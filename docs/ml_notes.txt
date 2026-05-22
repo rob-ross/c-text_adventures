@@ -1,0 +1,43 @@
+Notes on ML
+
+Terms:
+
+Reinforcement Learning (RL)
+    Implicitly (Learning0
+    Explicitly (Action Masking)
+Partially Observable Markov Decision Process (POMDP)
+
+
+Action Masking
+    Physical Mask
+    Congnitive Mask
+    Hard Constraints
+    Hidden Information
+
+Legal Action Space
+Action Vector
+
+Agent Perception
+Action Space - what can your agent do? (discrete choices, continuous values, etc.)
+Observation Space - what can your agent see? (images, numbers, structured data, etc.)
+
+Feature Engineering
+Feature Vector
+
+Perception
+Penalty Signal
+Negative Reward
+Reward Signal - add `float last_reward` to ObservationSpace(OS)
+
+Illegal Move - precisely define this
+
+Normalization
+
+
+PyTorch
+TensorFlow
+
+
+
+
+

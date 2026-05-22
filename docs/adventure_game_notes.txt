@@ -1,0 +1,193 @@
+
+
+
+Useful tools:
+
+Copy system ('copy' as in written words)
+Handle copy as assets, or associate copy with assets
+
+UI to enter copy/scripts.
+1. Ease of data entry
+2. Integrated thesaurus and dictionary
+3. Automatically show common synonyms, antonyms for selected word
+4. spell checking and grammar checking
+5. export tools to JSON, other formats
+6. Support inclusions and alterations with percentages. Need some type of markup for this. A sentence or phrase  can
+    be marked as randomly included based on a percentage.
+    Examples
+    %%.3:{You see a door to the south.} could mean "include this here  30% of  the time."
+    %%{The air is cold.|The frigid air bites} could mean chose one or the other with equal proability (50-50 here)
+    %%{.3::The air is cold.|The frigid air bites} "choose first alternate 30% of the time otherwise use second"
+    %%{.1::Foo|.1::Bar|Baz} "choose Foo 10% of the time, Bar 10%, or Baz 80%"
+     note: the tool  would facilitate entering the markup. The game engine would need to interpret the mark up to
+        determine what text to display to the user.
+
+Blue sky:
+1. Search synomyms/antonyms by categories, like most common, least common, archaic, popular during a date range,
+    literary categories (poetic, fiction, fantasy, regional dialect, etc.)
+2. Rewrite in particular literary style, time period (AI good solution here.
+3. Localization to British English when possible, e.g. realize->realise.
+
+Synonyms, Antonyms, Definitions obtained from Word Net, wiktionary data
+Usage data from Google N-gram database
+
+
+Need a terrian building system
+1. Outdoor/overland
+2. Indoor, buildings, castles, forts
+3. Dungeon crawl
+
+Need to be able to construct maps and floor plans and associate asssets to areas such as text description,
+state machines to transition between scenes of the story, set ruless for treasure, NPCs, monsters, wandering monsters, etc.
+
+
+Entity creator (for both players, monsters, NPCs)
+Define classes and attributes, skills, deficits, allowable weapons, spells, restrictions.
+
+From a class creeate specific entity, link with asssets such as backstory, name, etc.
+
+
+Tool: need to run simulations with character classes against monsters to evaluate balance.
+
+Balance design
+ 1. traits and attributes should ideally occur in spectrums, perhaps multiple spectrums.
+        specific values across all spectrums should sum or average equally along all the classes.
+        Example: Say STRENGTH and DEFENSE are opposing spectrums. The combination of these values should
+        be roughly comparable between different classes.
+        Simplified concept - there could be a total amount of points to distribute among various attributes..
+            Distributing these points in different combinations in two classes should allow entities from those classes,
+            assuming similar experience levels and balanced equipment (weapons, spells, special skills (Kung Fu), when
+            battling each other to have similar records of wins vs losses. Tool should simulate many such interactions
+            to verify this balance.
+            
+
+Game Engines:
+    * Combat engine
+    * Procedural engine
+    * BX system (streamlines early D&D rules)
+            
+MACHINE LEARNING
+To let an AI play your game, you effectively have to turn citadel_of_pershu.c into a library that follows
+the "Gymnasium" (formerly OpenAI Gym) pattern. You need to expose four specific things:
+1. The Reset Function: A way for the AI to instantly restart the game to START_ROOM with a fresh GameState.
+2. The Step Function: Instead of the main_game_loop waiting for getchar(),
+    you need a function where the AI sends a command (e.g., 0 for North, 1 for South) and the function returns:
+    ◦ The Observation: The current state (either the raw numbers or the text description).
+    ◦ The Reward: A floating-point number. You might give +1.0 for picking up a key,
+        -0.1 for each turn taken (to encourage speed), and +100.0 for reaching the end.
+    ◦ The "Done" Flag: A boolean telling the AI if it died or won.
+3. The Action Space: A clear mapping of numbers to actions. The AI doesn't type "NORTH"; it sends the integer 0.
+4. The Observation Space: A structured way for the AI to "see" the world. If you want it to learn quickly,
+    you give it the raw GameState variables. If you want it to be "human-like," you only give it the text strings
+    you print to the console.
+
+
+    OpenAI Gymnasium
+
+    Gymnasium (formerly OpenAI Gym) is the de facto standard for developing and comparing reinforcement
+    learning algorithms. It provides a unified API for environments, making it easy to swap out different game worlds
+    or simulations while keeping your agent code consistent.
+    You can read more about Gymnasium and find its official documentation here:
+    • Gymnasium Official Documentation: https://gymnasium.farama.org/
+    • GitHub Repository: https://github.com/Farama-Foundation/Gymnasium
+    The documentation is excellent and includes tutorials on how to create your own custom environments,
+        which is exactly what you'll be doing to interface with your C game.
+
+    Python Frameworks for Testing C Code with ML
+    To test your C code with ML in Python, you'll typically need two main components:
+    1. A way to interface Python with your C code: This allows your Python ML agent to call your C game's functions
+        (perform_action, check_game_over, set_silent_mode, etc.) and access the GameState struct.
+    2. A Reinforcement Learning framework: This provides the algorithms and tools to train your ML agent.
+    Here are the recommended frameworks:
+    1. Python-C Interface: ctypes
+    ctypes is a foreign function library for Python. It provides C compatible data types and allows calling functions
+    in dynamic link libraries (DLLs/shared libraries) from Python. This is the most common and often the most
+    straightforward way to interface Python with C code for this kind of application, especially if you're compiling
+    your C game into a shared library (.so on Linux/macOS, .dll on Windows).
+    How it works:
+    • You compile your citadel_of_pershu.c (and mersenne_twister.c) into a shared library, e.g., libcitadel.so.
+    • In Python, you load this library using ctypes.CDLL().
+    • You define the argument types (argtypes) and return types (restype) for your C functions in Python.
+    • You can then call your C functions directly from Python, passing Python objects that ctypes automatically converts
+        to C types. You can also define Python classes that mirror your C structs (like GameState)
+        to easily pass and receive complex data.
+
+    2. Reinforcement Learning Framework: Gymnasium + Stable Baselines3
+    Once you have your ctypes wrapper, you'll integrate it into a custom Gymnasium environment.
+    • Gymnasium: As discussed, this provides the reset() and step() methods that your ML agent will interact with. Your custom Gymnasium environment will:
+    ◦ __init__(): Load your C library and initialize GameState.
+    ◦ reset(): Call your C initialize() function, reset GameState, and return the initial observation.
+    ◦ step(action): Map the agent's integer action to your C perform_action() call (e.g., action=0 maps to perform_action(gs, 'N', 0,0,0)). It then calls perform_action(), check_game_over(), calculates the reward, and returns the next observation, reward, done flag, and info dictionary.
+    • Stable Baselines3 (SB3): This is a set of reliable implementations of reinforcement learning algorithms in PyTorch. It's built to work seamlessly with Gymnasium environments. Once you have your custom Gymnasium environment, you can plug in various SB3 algorithms (like PPO, A2C, DQN) to train your agent.
+
+    Why this combination?
+    • Standardization: Gymnasium provides a consistent API for your environment, making it easy to experiment with different RL algorithms.
+    • Powerful Algorithms: Stable Baselines3 offers state-of-the-art RL algorithms that are well-tested and optimized.
+    • Community Support: Both are widely used, meaning plenty of documentation, tutorials, and community help.
+
+    Conceptual flow:
+    1. C Code: Your citadel_of_pershu.c compiled as libcitadel.so.
+    2. Python Wrapper (ctypes): A Python module that loads libcitadel.so and exposes your C functions and GameState struct to Python.
+    3. Custom Gymnasium Environment: A Python class that inherits from gymnasium.Env, using your ctypes wrapper to interact with the C game.
+    4. RL Agent (Stable Baselines3): An SB3 algorithm (e.g., PPO) that learns to play your game by interacting with your custom Gymnasium environment.
+
+    This setup provides a robust and efficient way to train an ML agent on your C-based text adventure.
+
+```python
+import ctypes
+
+# Load the shared library
+lib = ctypes.CDLL("./libcitadel.so")
+
+# Define the C GameState struct in Python
+class GameState(ctypes.Structure):
+    _fields_ = [
+        ("player_name", ctypes.c_char_p),
+        ("room", ctypes.c_int),
+        ("turns", ctypes.c_int),
+        ("cash", ctypes.c_int),
+        # ... other fields ...
+        ("is_dead", ctypes.c_bool),
+        ("completed", ctypes.c_bool),
+        # ... MTState, items, rooms_visited ...
+    ]
+
+# Define argument and return types for C functions
+lib.initialize.argtypes = [ctypes.POINTER(GameState)]
+lib.initialize.restype = None
+
+lib.perform_action.argtypes = [
+    ctypes.POINTER(GameState),
+    ctypes.c_char,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int
+]
+lib.perform_action.restype = ctypes.c_bool
+
+lib.check_game_over.argtypes = [ctypes.POINTER(GameState)]
+lib.check_game_over.restype = ctypes.c_bool
+
+lib.set_silent_mode.argtypes = [ctypes.c_bool]
+lib.set_silent_mode.restype = None
+
+# Initialize game state
+gs = GameState()
+lib.initialize(ctypes.byref(gs))
+lib.set_silent_mode(True) # Silence C output for ML
+
+# Example ML step
+action_char = b'F' # 'F' as bytes
+strategy = 1 # Magic
+skill1 = 0
+skill2 = 0
+
+success = lib.perform_action(ctypes.byref(gs), action_char, strategy, skill1, skill2)
+game_over = lib.check_game_over(ctypes.byref(gs))
+
+if success:
+    # Calculate reward based on gs.cash, gs.monsters_killed, gs.is_dead, etc.
+    pass
+
+
+```

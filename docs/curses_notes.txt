@@ -1,0 +1,90 @@
+1. The "Bible" of Escape Sequences
+
+If you want the authoritative sources, there are two main places to look:
+    1. ECMA-48 / ISO 6429: The actual official standard. It's dry and theoretical.
+    2. XTerm Control Sequences: The practical "gold standard." XTerm is the reference implementation
+    for modern terminal emulators. If XTerm supports it, almost everyone else (iTerm2, GNOME Terminal,
+    macOS Terminal) tries to support it too.
+    On Linux/Mac: You can often type man console_codes in your terminal to get a very detailed list 
+    of the sequences supported by the Linux console.
+    
+2. The Cheat Sheet (The ones you will actually use)
+    Most commands start with CSI (Control Sequence Introducer), which is ESC (ASCII 27) followed by [.   
+    
+    Cursor Movement
+    
+    ESC [ <n> A    CUU    Move Cursor Up n lines
+    ESC [ <n> B    CUD    Move Cursor Down n lines    
+    ESC [ <n> C    CUF    Move Cursor Forward (Right) n columns    
+    ESC [ <n> D    CUB    Move Cursor Back (Left) n columns    
+    ESC [ <n> ; <m> H    CUP    Move Cursor to Position (Row n, Column m)
+    ESC [ H         CUP    Move Cursor to Home (1, 1) 
+    
+    Erasing Text
+    
+    ESC [ J      ED    Clear from cursor to end of screen    
+    ESC [ 1 J    ED    Clear from cursor to beginning of screen
+    ESC [ 2 J    ED    Clear entire screen (move cursor to top left on some, not all)
+    ESC [ K      EL    Clear from cursor to end of line
+    ESC [ 2 K    EL    Clear entire line
+    
+    ESC [ <n> m | n | Action | | :--- | :--- | | 0 | Reset / Normal (Turn off all attributes) | | 1 | Bold | | 4 | Underline | | 30-37 | Foreground Text Color (Black, Red, Green, Yellow, Blue, Magenta, Cyan, White) | | 40-47 | Background Color | | 90-97 | Bright Foreground Color |
+    Example: \033[1;31m sets Bold Red. \033[0m resets it.
+    
+    Screen Controls
+    
+    ESC [ ? 25 l      Hide Cursor (Note the lowercase L)
+    ESC [ ? 25 h      Show Cursor
+    ESC [ ? 1049 h    Enable Alternate Buffer (Save screen, switch to blank slate like vim)
+    ESC [ ? 1049 l    Disable Alternate Buffer (Restore original screen)
+
+    Linux/Mac: Almost every terminal emulator (Terminal.app, iTerm2, gnome-terminal) emulates xterm-256color.
+    You are safe using standard ANSI codes.
+
+
+    To get the complete list of capability names ("capnames") that you can use with tput,
+    the authoritative source is the terminfo manual.
+
+        # Ask the database: "How do I clear the screen for the current TERM?"
+        tput clear
+
+        # Ask: "How many columns does this terminal have?"
+        tput cols
+
+    1. The Master List (man terminfo)
+
+    man terminfo
+
+    Scroll down to the section titled "Capabilities". You will see a large table with columns like this:
+    •    Variable Str: The name used in C code (ncurses).
+    •    Capname: The short name used by tput.
+    •    Termcap Code: The really old 2-letter code (mostly obsolete).
+    •    Description: What it does.
+
+    2. See What Your Current Terminal Supports (infocmp)
+        If you want to know specifically which capabilities are defined for your current terminal
+        (e.g., xterm-256color), use the infocmp command.
+        (The -1 flag prints one capability per line, making it much easier to read.)
+        infocmp -1
+        
+
+ncurses:
+
+documentation for the ncurses library?
+There is excellent documentation available, mostly in the form of "man pages" (manual pages) and online guides.
+• Man Pages (Reference):
+◦ man ncurses: The overview of the library.
+◦ man curs_termcap: Specifically for the terminfo capabilities you are using now (like tigetstr).
+◦ man terminfo: The list of all capabilities (like clear, cup, bold).
+
+•The "Bible" (Tutorial):
+◦ The NCURSES Programming HOWTO: This is the most famous guide for learning ncurses. It walks you through everything from "Hello World" to complex windows and menus.
+◦ You can find it easily by searching "ncurses programming howto tldp".
+
+
+How to make it work on Windows:
+• Use a Port: There is a library called PDCurses (Public Domain Curses).
+    It is a drop-in replacement that implements the exact same functions (setupterm, putp, etc.)
+    but translates them into Windows API calls under the hood. If you use PDCurses, your code will work.
+• Use WSL or MinGW: If you use the Windows Subsystem for Linux (WSL) or a toolchain like Cygwin/MinGW,
+    you are effectively running in a Unix simulation, and the code will work exactly as is.
