@@ -40,4 +40,41 @@ TensorFlow
 
 
 
+Markov Decision Process (MDP)
+-----------------------
+s: state, a: action, r: result
+S0, A0, R0, S1, A1, R1, ....
 
+Ultimate Goal of the Agent:
+    figure out how to, for any given time step, use the input state S to decide on an output action A in
+    a way that maximizes the total subsequent reward over time.
+
+Markov Property  : each state is only dependent on immediately previous state.
+
+Policy Function (pi symbol): the strategy that takes an input state and decides on an output action.
+S -> A
+policy π(a|s) = probability of picking a certain action given the input state
+
+total cumulative reward - return function G sub-t. t represents which time step the reward is for
+
+policy π(a|s)
+return Gt = rt + grt+1 + g^2rt+2 + g^3rt+3 ...
+model  p(s',r|s,a) probability of any next state and reward given the combination of
+                    being in a certain state and picking a certain action
+
+g discount factor gamma: 0 <= g <= 1
+
+GOAL: find policy which maximizes return
+
+Simple Max example problem. 3 x 5 space maze with a single wall in between two halves of the maze.
+Episode terminates when agent reaches end of maze or in 20 steps
+
+Key concepts:
+- explorations/exploitation tradeoff
+- temporal difference
+- the credit assigment problem
+- world models - model of environment p: s,a -> s', a'
+- sample efficiency
+
+
+Value Function? Q function. Temporal difference? Epsilon? 
