@@ -61,10 +61,11 @@ enum Direction {
     DIRECTION_WEST,
     DIRECTION_UP,
     DIRECTION_DOWN,
+    DIRECTION_COUNT
 };
 
 // direction in "NSEWUD"
-static enum Direction calc_direction_index(char const direction_char) {
+static inline enum Direction calc_direction_index(char const direction_char) {
     switch (toupper(direction_char)) {
         case 'N': return DIRECTION_NORTH;
         case 'S': return DIRECTION_SOUTH;
@@ -76,7 +77,7 @@ static enum Direction calc_direction_index(char const direction_char) {
     }
 }
 
-static const char * direction_string(const enum Direction direction_index) {
+static inline const char * direction_string(const enum Direction direction_index) {
     switch (direction_index) {
         case DIRECTION_ERR:   return "ERROR";
         case DIRECTION_NORTH: return "NORTH";
@@ -91,7 +92,7 @@ static const char * direction_string(const enum Direction direction_index) {
 
 // Currently a bad move in a direction results in the same message each time, as defined below
 // todo (rob) do we want to make this more dynamic?
-char const * const BAD_MOVE_DESC[6] = {
+static char const * const BAD_MOVE_DESC[DIRECTION_COUNT] = {
     "NO EXIT THAT WAY",
     "THERE IS NO EXIT SOUTH",
     "YOU CANNOT GO IN THAT DIRECTION",
@@ -108,7 +109,7 @@ char const * const BAD_MOVE_DESC[6] = {
 //// ------------------------------------------------------------
 
 typedef struct RandomText {
-    const char *text;  // displayed if chance_percent is satisifed
+    const char *text;  // displayed if chance_percent is satisfied
     const char *else_text; // if not null, displayed when chance_percent not satisfied
     double chance_percent;  // between 0 and 1. Random number between 0 and 1  must be less (<) than this to be displayed
 } RandomText;
