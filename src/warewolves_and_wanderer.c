@@ -71,7 +71,7 @@ enum Idx {
 };
 
 // direction in "NSEWUD"
-int calc_direction_index(char const direction) {
+static int calc_direction_index(char const direction) {
     switch (direction) {
         case 'N': return NORTH;
         case 'S': return SOUTH;
@@ -146,13 +146,13 @@ char const * const BAD_MOVE_DESC[6] = {
 };
 
 // FORWARD REFERENCES
-bool major_handling_routine(struct GameState * gs);
-void display_room_desc(struct GameState * gs);
-void initialize(struct GameState * gs);
-void display_line(char const* msg);
-void display_score(const struct GameState * gs);
+static bool major_handling_routine(struct GameState * gs);
+static void display_room_desc(struct GameState * gs);
+static void initialize(struct GameState * gs);
+static void display_line(char const* msg);
+static void display_score(const struct GameState * gs);
 
-int main_impl(void) {
+int main_warewolves_and_wanderer(void) {
     srand( time(nullptr) );
 
     // 10 REM WEREWOLVES AND WANDERER
@@ -181,11 +181,11 @@ int main_impl(void) {
 
 #ifdef WAREWOLVES_AND_WANDERER_MAIN
 int main(void) {
-    return main_impl();
+    return main_warewolves_and_wanderer();
 }
 #endif
 
-void display_line(char const* msg) {
+static void display_line(char const* msg) {
     fflush(stdout);
     constexpr int _30ms = 30'000;
     for (char const *next = msg; *next; ++next) {
@@ -197,12 +197,12 @@ void display_line(char const* msg) {
     fflush(stdout);
 }
 
-void display_score(const struct GameState * gs) {
+static void display_score(const struct GameState * gs) {
     display_line("\nYOUR SCORE IS");
-    printf("%d", 3* gs->tally + 5* gs->strength + 2* gs->wealth + gs->food + 30*gs->monsters_killed);
+    printf("%d\n", 3* gs->tally + 5* gs->strength + 2* gs->wealth + gs->food + 30*gs->monsters_killed);
 }
 
-void display_inventory(struct GameState * gs) {
+static void display_inventory(struct GameState * gs) {
     if (gs->wealth > 0) {
         printf("YOU HAVE $%d WEALTH\n", gs->wealth);
     }
@@ -239,7 +239,7 @@ void display_inventory(struct GameState * gs) {
 }
 
 //990 REM ROOM DESCRIPTION
-void display_room_desc(struct GameState * gs) {
+static void display_room_desc(struct GameState * gs) {
     printf("\n%s", ROOMS[gs->room].desc);
     if (gs->room == 9) {
         // if in Room 9 transition to Room 10 and show description
@@ -250,7 +250,7 @@ void display_room_desc(struct GameState * gs) {
 
 // first_letter must be in "NSEWUD"
 // return true if command was sucessfully processed. If false, the move is not allowed.
-bool process_move_command(struct GameState * gs, char first_letter) {
+static bool process_move_command(struct GameState * gs, char first_letter) {
 
     int location = gs->room;
     int direction_index = calc_direction_index(first_letter);
@@ -270,9 +270,9 @@ bool process_move_command(struct GameState * gs, char first_letter) {
     return false;
 }
 
-int const ITEM_COSTS[] = { 0, 15, 10, 20, 2, 30, 50};
+static int const ITEM_COSTS[] = { 0, 15, 10, 20, 2, 30, 50};
 
-void display_inventory_menu(struct GameState * gs) {
+static void display_inventory_menu(struct GameState * gs) {
     printf("\nYOU HAVE $%d\n", gs->wealth);
 
     printf("YOU CAN BUY 1 - FLAMING TORCH ($15)\n");
@@ -284,7 +284,7 @@ void display_inventory_menu(struct GameState * gs) {
     printf("            0 - TO CONTINUE ADVENTURE\n");
 }
 
-void do_inventory(struct GameState * gs) {
+static void do_inventory(struct GameState * gs) {
     printf("PROVISIONS AND INVENTORY\n");
     if (gs->wealth <=0 ) {
         printf("YOU HAVE NO MONEY.\n");
@@ -351,7 +351,7 @@ void do_inventory(struct GameState * gs) {
 }
 
 
-void eat_food(struct GameState * gs) {
+static void eat_food(struct GameState * gs) {
     if (gs->food <= 0) return;
     for (;;) {
         char food_quantity;
@@ -373,7 +373,7 @@ void eat_food(struct GameState * gs) {
     }
 }
 
-void pick_up_treasure(struct GameState * gs) {
+static void pick_up_treasure(struct GameState * gs) {
     if ( ROOM_GRAPH[gs->room][CONTENTS] <= 0 ) {
         printf("THERE IS NO TREASURE TO PICK UP.\n");
         return;
@@ -386,7 +386,7 @@ void pick_up_treasure(struct GameState * gs) {
     ROOM_GRAPH[gs->room][CONTENTS] = 0;
 }
 
-void use_magic_amulet(struct GameState * gs) {
+static void use_magic_amulet(struct GameState * gs) {
     for (;;) {
         // Generate a random number between 1 and 19
         int room_index = (rand() % 19) + 1;
@@ -397,7 +397,7 @@ void use_magic_amulet(struct GameState * gs) {
     }
 }
 
-void fight(struct GameState * gs) {
+static void fight(struct GameState * gs) {
     if (ROOM_GRAPH[gs->room][CONTENTS] >= 0) {
         return; // no monster to fight
     }
@@ -475,7 +475,7 @@ void fight(struct GameState * gs) {
 char const * const VALID_COMMANDS = "QNSEWUDRFICPM";
 char const * const VALID_DIRECTIONS = "NSEWUD";
 
-void retreat(struct GameState * gs) {
+static void retreat(struct GameState * gs) {
     if (ROOM_GRAPH[gs->room][CONTENTS] >= 0) {
         return; // no monster to retreat from
     }
@@ -508,7 +508,7 @@ void retreat(struct GameState * gs) {
 
 // 160 REM MAJOR HANDLING ROUTINE
 // returns true if still alive
-bool major_handling_routine(struct GameState * gs) {
+static bool major_handling_routine(struct GameState * gs) {
     gs->strength -= 5;
 
     if (gs->strength <= 15) {
@@ -661,7 +661,7 @@ bool major_handling_routine(struct GameState * gs) {
 }
 
 
-void initialize(struct GameState * gs) {
+static void initialize(struct GameState * gs) {
     char name_buffer[1024];
     printf("WHAT IS YOUR NAME, EXPLORER? ");
     scanf("%s", name_buffer);
