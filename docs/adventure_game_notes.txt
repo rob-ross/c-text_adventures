@@ -21,6 +21,9 @@ UI to enter copy/scripts.
     %%{.1::Foo|.1::Bar|Baz} "choose Foo 10% of the time, Bar 10%, or Baz 80%"
      note: the tool  would facilitate entering the markup. The game engine would need to interpret the mark up to
         determine what text to display to the user.
+7. support a "delay" symbol to cause the text display to pause before the next text is displayed. See room 19 in Chateau Gaillard.
+8. Need a way to link Rooms with code or scripts to perform actions, like lowering stats or damaging health. A mini
+    state-machine of actions tied to game state? See rooms 5, 13 in Chateau Gaillard.
 
 Blue sky:
 1. Search synomyms/antonyms by categories, like most common, least common, archaic, popular during a date range,

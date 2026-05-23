@@ -23,6 +23,10 @@
 #include <sys/_types/_useconds_t.h>
 
 #include "mersenne_twister.h"
+#include "rooms.h"
+#include "monsters.h"
+#include "treasure.h"
+
 
 constexpr int NUM_ROOMS         = 48;
 constexpr int NUM_DEATH_ROOMS   =  4;
@@ -101,78 +105,6 @@ static char const * const BAD_MOVE_DESC[DIRECTION_COUNT] = {
     "YOU CANNOT DESCEND FROM HERE",
 };
 
-
-//// ------------------------------------------------------------
-////
-////    RANDOM TEXT
-////
-//// ------------------------------------------------------------
-
-typedef struct RandomText {
-    const char *text;  // displayed if chance_percent is satisfied
-    const char *else_text; // if not null, displayed when chance_percent not satisfied
-    double chance_percent;  // between 0 and 1. Random number between 0 and 1  must be less (<) than this to be displayed
-} RandomText;
-
-typedef struct RandomTextArray {
-    size_t length;
-    RandomText lines[];  // flexible array
-} RandomTextArray;
-
-
-//// ------------------------------------------------------------
-////
-////    CHARACTER / MONSTER STATS
-////
-//// ------------------------------------------------------------
-
-enum StatIndex {
-    STAT_NULL [[maybe_unused]],
-    STAT_STRENGTH,
-    STAT_CHARISMA,
-    STAT_DEXTERITY,
-    STAT_INTELLIGENCE,
-    STAT_WISDOM,
-    STAT_CONSTITUTION,
-    STAT_COUNT // Useful for loops and array sizing
-};
-
-// Just the raw integer fields
-#define CHAR_STATS_LIST   \
-int null_stat;        \
-int strength;         \
-int charisma;         \
-int dexterity;        \
-int intelligence;     \
-int wisdom;           \
-int constitution;
-
-// The union logic that maps the array to the fields
-#define CHAR_STATS_UNION_BODY     \
-int as_array[STAT_COUNT];     \
-struct { CHAR_STATS_LIST };
-
-typedef struct CharStats {
-    union { CHAR_STATS_UNION_BODY };
-} CharStats;
-
-
-//// ------------------------------------------------------------
-////
-////    MONSTERS
-////
-//// ------------------------------------------------------------
-
-typedef struct Monster {
-    char const * name;
-    [[maybe_unused]] int monster_index;
-    union {
-        CharStats stats; // Named access: m.stats.strength
-        union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength or m.as_array[StatIndex]
-    };
-} Monster;
-
-
 static char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "NULL MONSTER",
     "Swashbuckler", "Werebear",
@@ -192,34 +124,6 @@ static char const * const MONSTER_NAMES[NUM_MONSTERS] = {
 };
 
 
-
-//// ------------------------------------------------------------
-////
-////    TREASURE
-////
-//// ------------------------------------------------------------
-
-enum Item {
-    ITEM_NULL [[maybe_unused]],
-    ITEM_TORCH,
-    ITEM_SILVER_KEY,
-    ITEM_GOLD_KEY,
-    ITEM_SWORD,
-    ITEM_WAR_HAMMER,
-    ITEM_CHAIN_MAIL,
-    ITEM_SHIELD,
-    ITEM_CLOAK,
-    ITEM_WAND,
-    ITEM_COUNT
-};
-
-
-typedef struct Treasure {
-    char const * name;
-    [[maybe_unused]] int treasure_index;
-    int value;
-} Treasure;
-
 // first 9 elements are items the user can use, carry, or drop (and pick up again.)
 // From Emeralds and higher, these are treasure that are converted to a cash equivalent
 static char const * const TREASURE_NAMES[NUM_TREASURES] = {
@@ -229,25 +133,6 @@ static char const * const TREASURE_NAMES[NUM_TREASURES] = {
     "Emeralds", "Silver Rings", "Elven Amethysts", "Diamond Dragon Eyes", "Crystal Ball", "Pieces of Eight",
     "Elemental Gems", "Shape-Shifting Stones", "Gold Doubloons"
 };
-
-
-//// ------------------------------------------------------------
-////
-////    ROOMS
-////
-//// ------------------------------------------------------------
-
-
-typedef struct Room {
-    [[maybe_unused]] int id;
-    [[maybe_unused]] char const * name;
-    char const * desc;
-    RandomTextArray  * preamble;
-    RandomTextArray  * epilog;
-    Monster  monster;
-    Treasure treasure;
-} Room;
-
 
 
 // todo (rob) We should just store the full description on a single line of text (no embedded newlines), and let the
@@ -306,17 +191,6 @@ static Room ROOMS[NUM_ROOMS] = {
 
 };
 
-enum RoomGraphIndex {
-    RGINDEX_NORTH,
-    RGINDEX_SOUTH  [[maybe_unused]],
-    RGINDEX_EAST   [[maybe_unused]],
-    RGINDEX_WEST   [[maybe_unused]],
-    RGINDEX_UP     [[maybe_unused]],
-    RGINDEX_DOWN,
-    RGINDEX_TREASURE,
-    RGINDEX_MONSTER,
-    RGINDEX_COUNT
-};
 
 
 static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {

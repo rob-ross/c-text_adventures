@@ -33,6 +33,7 @@ Illegal Move - precisely define this
 
 Normalization
 
+Q-Learning
 
 PyTorch
 TensorFlow
@@ -70,11 +71,15 @@ Simple Max example problem. 3 x 5 space maze with a single wall in between two h
 Episode terminates when agent reaches end of maze or in 20 steps
 
 Key concepts:
-- explorations/exploitation tradeoff
+- exploration/exploitation tradeoff
 - temporal difference
 - the credit assigment problem
 - world models - model of environment p: s,a -> s', a'
 - sample efficiency
 
 
-Value Function? Q function. Temporal difference? Epsilon? 
+Value Function? Q function. Temporal difference? Epsilon?
+
+Epsilon-greedy strategy (start with large epsilon, reduce over time):
+    with probability epsilon: choose a random action (explore)
+    with probability 1-epsilon: chose the best known action (exploit)

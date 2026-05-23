@@ -1330,7 +1330,7 @@ static bool main_game_loop(GameState * gs) {
 ////
 //// ------------------------------------------------------------
 
-int main_impl(void) {
+int main_citadel_of_pershu(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
     GameState gs = {};
 
@@ -1358,6 +1358,6 @@ int main_impl(void) {
 
 
 int main(void) {
-    return main_impl();
+    return main_citadel_of_pershu();
 }
 #endif
