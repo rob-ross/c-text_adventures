@@ -124,3 +124,63 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 35, 33,  0, 38,  0,  0,  0,  0,  0,  0 },  //  ROOM 43
     {  0,  0,  0, 40,  0,  0, 18,  0,  0,  0 },  //  ROOM 44
 };
+
+// todo (rob) need a better name than Item or Object. It's a thingee you can pick up and carry.
+// at least 3 categories; weapon, treasure, usable item: e.g., a key, rope, things you use to advance game state.
+typedef struct Object {
+    char const * const name;
+    int                id;
+    int                value;
+} Object;
+
+constexpr int NUM_OBJECTS = 21;  // todo (rob) make data driven
+
+static Object OBJECTS[NUM_OBJECTS] = {
+    {.id =  0, .name="NULL OBJECT" },
+    {.id =  1, .name="axe" },
+    {.id =  2, .name="sword" },
+    {.id =  3, .name="dagger" },
+    {.id =  4, .name="mace" },
+    {.id =  5, .name="quarterstaff" },
+    {.id =  6, .name="morning star" },
+    {.id =  7, .name="falchion" },
+    {.id =  8, .name="crystal ball", .value=99 },
+    {.id =  9, .name="amulet", .value=247 },
+    {.id = 10, .name="ebony ring", .value=166 },
+    {.id = 11, .name="gems", .value=462 },
+    {.id = 12, .name="mystic scroll", .value=195 },
+    {.id = 13, .name="healing potion", .value=231 },
+    {.id = 14, .name="dilithium crystals", .value=162 },
+    {.id = 15, .name="copper pieces", .value=27 },
+    {.id = 16, .name="diadem", .value=141 },
+    {.id = 17, .name="silver key" },
+    {.id = 18, .name="golden key" },
+    {.id = 19, .name="chest of stone" },
+    {.id = 20, .name="chest made of iron" },
+};
+
+constexpr int NUM_MONSTERS = 21;  // todo (rob) make data driven
+
+static char const * const MONSTER_NAMES[NUM_MONSTERS] = {
+    "NULL MONSTER",
+    "Dwarf",
+    "Monoceros",
+    "Paradrus",
+    "Vampyre",
+    "Wrnach",
+    "Giolla Dacker",
+    "Kraken",
+    "Fenris Wolf",
+    "Calopus",
+    "Basilisk",
+    "Grimoire",
+    "Flying Buffalo",
+    "Ber Serkoid",
+    "Wyrm",
+    "Crowtherwood",
+    "Gygax",
+    "Ragnarok",
+    "Fomorine",
+    "Hafgygr",
+    "Grendel",
+};
