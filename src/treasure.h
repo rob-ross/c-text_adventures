@@ -29,8 +29,11 @@ enum Item {
 };
 
 
-typedef struct Treasure {
-    char const * name;
-    [[maybe_unused]] int treasure_index;
-    int value;
-} Treasure;
+
+// todo (rob) need a better name than Item or Object. It's a thingee you can pick up and carry.
+// at least 3 categories; weapon, treasure, usable item: e.g., a key, rope, things you use to advance game state.
+typedef struct Object {
+    char const * const name;
+    int                id;
+    int                value;
+} Object;

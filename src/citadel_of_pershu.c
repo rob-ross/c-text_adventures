@@ -469,7 +469,7 @@ static char get_command_char(char const * const prompt, char const * const valid
 }
 
 
-struct StringBuffer greet_player() {
+static struct StringBuffer greet_player() {
     cls();
     const struct StringBuffer sb = get_str("What is your name, explorer? ");
     display("Hello, Explorer ");
@@ -527,7 +527,7 @@ static Treasure generate_treasure( GameState * gs, int treasure_index) {
 void reset(GameState * gs, const uint32_t seed) {
     const char * player_name = GLOBALS.player_name;  // we reuse the same string
     // reset GameState
-    *gs = (GameState){ .player_name = player_name, .room = START_ROOM, .cash = 100, .magic = 3 };
+    *gs = (GameState){ .player_name = player_name, .room = ROOM_START, .cash = 100, .magic = 3 };
     
     mt_initialize_state(&gs->mt_state, seed);  // initialize the PRNG
     
@@ -543,8 +543,8 @@ void reset(GameState * gs, const uint32_t seed) {
     }
 
     // special treasure items
-    ROOMS[START_ROOM].treasure = generate_treasure(gs, ITEM_TORCH);
-    ROOM_GRAPH[START_ROOM][RGINDEX_TREASURE] = ITEM_TORCH;
+    ROOMS[ROOM_START].treasure = generate_treasure(gs, ITEM_TORCH);
+    ROOM_GRAPH[ROOM_START][RGINDEX_TREASURE] = ITEM_TORCH;
     ROOMS[LIBRARY_ROOM].treasure = generate_treasure(gs, ITEM_SILVER_KEY);
     ROOM_GRAPH[LIBRARY_ROOM][RGINDEX_TREASURE] = ITEM_SILVER_KEY;
     ROOMS[GLOVE_STOREROOM].treasure = generate_treasure(gs, ITEM_GOLD_KEY);
@@ -555,8 +555,8 @@ void reset(GameState * gs, const uint32_t seed) {
         for (;;) {
             int rand_room = rnd_range(gs, 1, 43 + 1);
             if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_MONSTER] ||
-                    rand_room == START_ROOM ||
-                    rand_room == END_ROOM ||
+                    rand_room == ROOM_START ||
+                    rand_room == ROOM_END ||
                     rand_room == LIBRARY_ROOM ||
                     rand_room == GLOVE_STOREROOM)) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER]  = monster_index;
@@ -573,7 +573,7 @@ void reset(GameState * gs, const uint32_t seed) {
     for (int treasure_index = 4; treasure_index < 19; ++treasure_index ) {
         for (;;) {
             int rand_room = rnd_range(gs, 1, 43 + 1);
-            if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_TREASURE] || rand_room == START_ROOM || rand_room == END_ROOM  ) ) {
+            if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_TREASURE] || rand_room == ROOM_START || rand_room == ROOM_END  ) ) {
                 ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure_index;
                 ROOMS[rand_room].treasure = generate_treasure(gs, treasure_index);
                 break;
@@ -1034,7 +1034,7 @@ static bool process_retreat(GameState * gs) {
         const int room_index = ROOM_GRAPH[room][exit_index];
         if ( room_index ) {
             //todo retreat through unlocked doors should be ok, but not through locked doors
-            if ( !( room_index == END_ROOM || room_index ==  WINE_CELLAR_EAST || room_index == MARBLE_HALL) ) {
+            if ( !( room_index == ROOM_END || room_index ==  WINE_CELLAR_EAST || room_index == MARBLE_HALL) ) {
                 // don't retreat to end room or through locked doors
                 exits[num_exits++] = room_index;
             }
@@ -1238,7 +1238,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
 bool check_game_over(GameState *gs) {
     if (gs->completed) return true;
 
-    if (gs->room == END_ROOM || gs->room >= DROWNING_ROOM) {
+    if (gs->room == ROOM_END || gs->room >= DROWNING_ROOM) {
         if (gs->room >= DROWNING_ROOM) gs->is_dead = true;
         gs->completed = true;
         return true;
@@ -1348,7 +1348,6 @@ int main_citadel_of_pershu(void) {
     display_conclusion(&gs);
     display_score(&gs);
     cleanup(&gs);
-
 
     return EXIT_SUCCESS;
 }

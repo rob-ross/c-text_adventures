@@ -38,13 +38,13 @@ typedef struct RandomTextArray {
 //// ------------------------------------------------------------
 
 typedef struct Room {
-    [[maybe_unused]] int id;
+    [[maybe_unused]] const int id;
     [[maybe_unused]] char const * name;
     char const * desc;
     RandomTextArray  * preamble;
     RandomTextArray  * epilog;
     Monster  monster;
-    Treasure treasure;
+    Object   treasure;
 } Room;
 
 enum RoomGraphIndex {

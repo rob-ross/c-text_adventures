@@ -8,16 +8,57 @@
 
 #pragma once
 
+
+#include "common/console_utils.h"
+
 #include "mersenne_twister.h"
 #include "rooms.h"
 #include "monsters.h"
 #include "treasure.h"
 
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <poll.h>
+#endif
+
+#include <sys/_types/_useconds_t.h>
+
+
 constexpr int NUM_ROOMS          = 45;  // todo (rob) these values should be data driven
-constexpr int START_ROOM         = 27;
-constexpr int END_ROOM           = 28;
-constexpr int TRAPPED_ROOM       = 29;
-constexpr int PIT_OF_FLAMES_ROOM = 30;
+constexpr int NUM_DEATH_ROOMS    =  6;
+
+constexpr int NUM_TREASURES     = 21;
+constexpr int NUM_MONSTERS      = 21;
+
+constexpr int ROOM_START         = 27;
+constexpr int ROOM_END           = 28;
+
+// these constants are nice for static compiler checks but won't scale to a real world app. We're using these constsants
+// to add things to a room, (treasure, monster), exclude things from being added, check special conditions, e.g.,
+// do you have the right key to unlock the door, etc. These should all be pushed into the data layer.
+constexpr int ROOM_EERIE         =  2;
+constexpr int ROOM_MATTRESS      =  3;
+constexpr int ROOM_WOODEN        =  4;
+constexpr int ROOM_STONE         =  5;  // death
+constexpr int ROOM_L_SHAPED      =  6;
+
+constexpr int ROOM_KITCHEN       =  8;
+constexpr int ROOM_MIRROR        = 13;
+constexpr int ROOM_YELLOW        = 16;
+constexpr int ROOM_CRAMPED       = 17;
+constexpr int ROOM_TRAPPED       = 29;  // death
+constexpr int ROOM_PIT_OF_FLAMES = 30;  // death
+constexpr int ROOM_ACID          = 31;  // death
+constexpr int ROOM_SPIDER        = 32;  // death
+constexpr int ROOM_UNEVEN        = 34;
+
+constexpr int ROOM_GARGOYLE      = 37;  // death
+constexpr int ROOM_TROPHY        = 40;
+constexpr int ROOM_TURRET        = 44;
+
+constexpr bool CONTINUE_GAME = true;
+constexpr bool END_GAME      = false;
 
 /*
  *  Word wrap notes:
@@ -42,7 +83,7 @@ static Room ROOMS[NUM_ROOMS] = {
 {.id = 10,  .name= "ROOM 10",    .desc = "A stairwell ends in this 'room', which is more of a landing than an actual room. The door to the north is made of iron, which has rusted over the centuries." },
 {.id = 11,  .name= "ROOM 11",    .desc = "There is a stone archway to the north. You are in a very long room. You are in a very long room.\nFresh air blows down some stairs and rich red drapes cover the walls. You can see doors to the south and east." },
 {.id = 12,  .name= "ROOM 12",    .desc = "You have entered a room filled with swirling, choking smoke. You must leave quickly to remain healthy enough to continue your chosen quest." },
-{.id = 13,  .name= "ROOM 13",    .desc = "There is a mirror in the corner. You glance at it, and feel suddenly very ill.\nYou realize the looking-glass has been infused with a Spall of Charisma Reduction... oh dear...." },
+{.id = 13,  .name= "ROOM 13",    .desc = "There is a mirror in the corner. You glance at it, and feel suddenly very ill.\nYou realize the looking-glass has been infused with a Spell of Charisma Reduction... oh dear...." },
 {.id = 14,  .name= "ROOM 14",    .desc = "This room is richly finished with a white marble floor. Strange footprints lead to the two doors from this room. Dare you follow them?" },
 {.id = 15,  .name= "ROOM 15",    .desc = "You are in a long, long hallway, lined on each side with rich, red drapes.\nThey are parted halfway down the east wall where there is a door." },
 {.id = 16,  .name= "ROOM 16",    .desc = "Someone has spent a long time painting this room a bright yellow.\nYou remember reading that yellow is the Ancient Oracle's Color of Warning..." },
@@ -56,7 +97,7 @@ static Room ROOMS[NUM_ROOMS] = {
 {.id = 24,  .name= "ROOM 24",    .desc = "This is a round stone cavern off the side of the alcove to your north." },
 {.id = 25,  .name= "ROOM 25",    .desc = "You are in an enormous circular room, which looks as if it was used as a games room. Rubble covers the floor, partially blocking the only exit." },
 {.id = 26,  .name= "ROOM 26",    .desc = "Through the dim mustiness of this small potting shed you can see a stairwell." },
-{.id = 27,  .name= "ROOM 27",    .desc = "You begin this Adventure in a small wood outside the Chateau.\nWhile out walking one day, you come across a small, ramshackle shed int the woods. Entering it, you see a hole in once corner. An old ladder leads down from the hole." },
+{.id = 27,  .name= "ROOM 27",    .desc = "You begin this Adventure in a small wood outside the Chateau.\nWhile out walking one day, you come across a small, ramshackle shed in the woods. Entering it, you see a hole in one corner. An old ladder leads down from the hole." },
 {.id = 28,  .name= "ROOM 28",    .desc = "How wonderful! Fresh air, sunlight, birds are singing. You are free at last." },
 {.id = 29,  .name= "ROOM 29",    .desc = "The smell came from bodies rotting in huge traps. One springs shut on you, trapping you forever!" },
 {.id = 30,  .name= "ROOM 30",    .desc = "You fall into a pit of flames." },
@@ -66,7 +107,7 @@ static Room ROOMS[NUM_ROOMS] = {
 {.id = 34,  .name= "ROOM 34",    .desc = "It is hard to see in this room and you slip slightly on the uneven, rocky floor." },
 {.id = 35,  .name= "ROOM 35",    .desc = "Horrors! This room was once the torture chamber of the Chateau.\nSkeletons lie on the floor, still with chains around their bones." },
 {.id = 36,  .name= "ROOM 36",    .desc = "Another room with very unpleasant memories.\nThis foul hole was used as the Chateau dungeon." },
-{.id = 37,  .name= "ROOM 37",    .desc = "Oh no, this is a gargoyle's lair. It has been held prisoner here for three hundred years.\nIn his frenzy he thrashes out at you and ...breaks your neck!!" },
+{.id = 37,  .name= "ROOM 37",    .desc = "Oh no, this is a gargoyle's lair. It has been held prisoner here for three hundred years.\nIn his frenzy he thrashes out at you and... breaks your neck!!" },
 {.id = 38,  .name= "ROOM 38",    .desc = "This was the Lower Dancing Hall. With doors to the north, the east, and to the west, you would seem to be able to flee any danger." },
 {.id = 39,  .name= "ROOM 39",    .desc = "This is a dingy pit at the foot of some extremely dubious-looking stairs. A door leads to the east." },
 {.id = 40,  .name= "ROOM 40",    .desc = "Doors open to each compass point from the Trophy Room of the Chateau.\nThe heads of strange creatures shot by the ancestral owners are mounted high up on each wall." },
@@ -112,7 +153,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 31, 31, 31, 31, 31, 31,  0,  0,  0,  0 },  //  ROOM 31
     { 32, 32, 32, 32, 32, 32,  0,  0,  0,  0 },  //  ROOM 32
     { 43, 42, 40,  0, 26,  0,  0,  0,  0,  0 },  //  ROOM 33
-    {  0, 38, 35,  0,  0,  0,  0,100,  0,  0 },  //  ROOM 34
+    {  0, 38, 35,  0,  0,  0,100,  0,  0,  0 },  //  ROOM 34
     {  0, 43, 36, 34,  0,  0,  0,  0,  0,  0 },  //  ROOM 35
     {  0, 40, 37, 35,  0,  0,  0,  0,  0,  0 },  //  ROOM 36
     { 37, 37, 37, 37, 37, 37,  0,  0,  0,  0 },  //  ROOM 37
@@ -159,7 +200,15 @@ static Object OBJECTS[NUM_OBJECTS] = {
     {.id = 20, .name="chest made of iron" },
 };
 
-constexpr int NUM_MONSTERS = 21;  // todo (rob) make data driven
+constexpr int OBJECT_AXE         =  1;
+constexpr int OBJECT_SWORD       =  2;
+constexpr int OBJECT_DIADEM      = 16;
+constexpr int OBJECT_SILVER_KEY  = 17;
+constexpr int OBJECT_GOLD_KEY    = 18;
+constexpr int OBJECT_STONE_CHEST = 19;
+constexpr int OBJECT_IRON_CHEST  = 20;
+
+
 
 static char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "NULL MONSTER",
@@ -184,3 +233,40 @@ static char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "Hafgygr",
     "Grendel",
 };
+
+constexpr int MONSTER_DWARF = 1;
+
+
+//// ------------------------------------------------------------
+////
+////    GAME STATE
+////
+//// ------------------------------------------------------------
+
+typedef struct GameState {
+    const CharBuffer * player_name;
+    uint32_t seed;
+    // state for Mersenne Twister PRNG
+    MTState mt_state;
+
+    int room;  // current room
+    int turns;
+    int cash;
+
+    int monsters_killed;  // number of monsters destroyed
+    int monsters_fought;
+    union {
+        CharStats stats; // Named access: m.stats.strength
+        union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength & m.as_array
+    };
+
+    bool has_torch;
+
+    bool is_dead;
+    bool completed; // true if reached final room
+    bool rooms_visited[NUM_ROOMS];
+
+    int QU;  // end-of-game flag?
+    int BOX; // chest flag?
+
+} GameState;

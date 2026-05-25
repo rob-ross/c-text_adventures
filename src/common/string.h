@@ -1,0 +1,18 @@
+// string.h
+//
+// Copyright (c) Rob Ross 2026.
+//
+//
+// Created 2026/05/23 20:05:40 PDT
+
+
+
+#pragma once
+#include <sys/_types/_size_t.h>
+
+typedef struct CharBuffer {
+    size_t length;
+    char const buffer[]; // flexible array
+} CharBuffer;
+
+

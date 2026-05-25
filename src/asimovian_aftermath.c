@@ -135,8 +135,8 @@ enum RoomGraphIndex {
 };
 
 constexpr int NUM_ROOMS      = 20;
-constexpr int START_ROOM     = 3;
-constexpr int END_ROOM       = 6;
+constexpr int ROOM_START     = 3;
+constexpr int ROOM_END       = 6;
 constexpr int POD_ROOM       = 11;
 constexpr int RADIATION_ROOM = 13;
 
@@ -314,7 +314,7 @@ bool main_game_loop(struct GameState * gs) {
     display_strength(gs);
     display_room_desc(gs);
 
-    if (gs->room == END_ROOM) {
+    if (gs->room == ROOM_END) {
         gs->completed = true;
         return false;
     }
@@ -493,7 +493,7 @@ void use_transporter(struct GameState * gs) {
         for (;;) {
             // Generate a random number between 1 and 19
             int room_index = mt_rand_range(&mt_state, 1, 20);
-            if ( !(room_index == END_ROOM || room_index == POD_ROOM )) {
+            if ( !(room_index == ROOM_END || room_index == POD_ROOM )) {
                 gs->room = room_index;
                 break;
             }
@@ -520,7 +520,7 @@ void retreat(struct GameState * gs) {
     for (int i = RGINDEX_NORTH; i <= RGINDEX_DOWN; ++i ) {
         int room_index = ROOM_GRAPH[gs->room][i];
         if ( room_index ) {
-            if ( !( room_index == END_ROOM || room_index == POD_ROOM) ) {
+            if ( !( room_index == ROOM_END || room_index == POD_ROOM) ) {
                 // don't retreat to end rooms
                 exits[num_exits++] = room_index;
             }
@@ -1112,7 +1112,7 @@ void initialize(struct GameState * gs) {
     char_sleep(15'000); // set char delay to 15 ms
     // debug_room_desc();
 
-    gs->room = START_ROOM;
+    gs->room = ROOM_START;
     gs->strength = mt_rand_range(&mt_state, 0, 50) + 75;
     gs->wealth   = mt_rand_range(&mt_state, 0, 50) + 50;
     gs->oxy   = mt_rand_range(&mt_state, 0, 16);
@@ -1133,7 +1133,7 @@ void initialize(struct GameState * gs) {
         for (;;) {
             // Generate a random number between 1 and 19
             const int room_index = mt_rand_range(&mt_state, 1, 20);
-            if ( !(room_index == END_ROOM || room_index == POD_ROOM || room_index == RADIATION_ROOM ||
+            if ( !(room_index == ROOM_END || room_index == POD_ROOM || room_index == RADIATION_ROOM ||
                     ROOM_GRAPH[room_index][RGINDEX_CONTENTS] != 0 ) ) {
                 const int treasure = mt_rand_range(&mt_state, 10, 111); // rand val between 10 and 110 inclusive
                 ROOM_GRAPH[room_index][RGINDEX_CONTENTS] = treasure;
@@ -1148,7 +1148,7 @@ void initialize(struct GameState * gs) {
             for (;;) {
                 // Generate a random number between 1 and 19
                 const int room_index = mt_rand_range(&mt_state, 1, 20);
-                if ( !(room_index == END_ROOM || room_index == START_ROOM || room_index == RADIATION_ROOM ||
+                if ( !(room_index == ROOM_END || room_index == ROOM_START || room_index == RADIATION_ROOM ||
                         ROOM_GRAPH[room_index][RGINDEX_CONTENTS] != 0 ) ) {
                     ROOM_GRAPH[room_index][RGINDEX_CONTENTS] = -j;
                     break;
