@@ -91,6 +91,10 @@ int min(int a, int b) {
 int max(int a, int b) {
     return a > b ? a : b;
 }
+
+// determines how much of the string to print on one line then handles the rest of the string
+// recursively. It works but didn't seem to really simplify the method as I thought it would.
+// the previous version used an outer loop until all characters were processed, but it became very messy.
 void display_paginated_recursive(char const* msg, const int num_columns) {
     const int str_len = strlen(msg);
     if ( ! str_len ) return;  //base case
@@ -122,21 +126,33 @@ void display_paginated_recursive(char const* msg, const int num_columns) {
         }
     }
 
+    //  potential_line_end is the count of the number of characters, like a length of an array.
+    // a line takes on index values 0 to potential_line_end - 1.
+
     if (! has_newline) {
         if ( isalnum(msg[potential_line_end]) ||
             ( ispunct(msg[potential_line_end]) &&  msg[potential_line_end] != '-' ) ) {
-            // last character is alphanumeric or punctuation, so walk back until we find white space
-            while ( --potential_line_end > 0 &&
-                ( isalnum(msg[potential_line_end]) ||
-                    ( ispunct(msg[potential_line_end]) &&  msg[potential_line_end] != '-' ) ) );
+            // if next char after the end of this line is a blank, the last word can fit on the current line
+            bool line_ends_before_space = potential_line_end < (str_len) && isblank(msg[potential_line_end ]);
 
-            potential_line_end++; // line end var is exclusive so we must add one here.
+            if (!line_ends_before_space) {
+                // last character is alphanumeric or punctuation, so walk back until we find white space
+                while ( --potential_line_end > 0 &&
+                    ( isalnum(msg[potential_line_end]) ||
+                        ( ispunct(msg[potential_line_end]) &&  msg[potential_line_end] != '-' ) ) );
 
-            if (potential_line_end <= 1 ) {
-                // degenerate case, entire line is one large string don't break it
-                potential_line_end = potential_char_count;
-            } else {
-                potential_char_count = potential_line_end;
+                // it's bad design when you don't know why a line like this works. but for now, it works with this and
+                // doesn't work without it. todo (rob) trace this algorithm and prove it correct
+                // line end var is exclusive so we must add one here.
+                // Even though we didn't have to add it in the previous loop?? because reasons?
+                potential_line_end++;  // we decremented one too many times
+
+                if (potential_line_end <= 1 ) {
+                    // degenerate case, entire line is one large string don't break it
+                    potential_line_end = potential_char_count;
+                } else {
+                    potential_char_count = potential_line_end;
+                }
             }
 
         }
@@ -151,6 +167,7 @@ void display_paginated_recursive(char const* msg, const int num_columns) {
     for (int c = line_start; c < line_end; ++c ) {
         if (msg[c] != '\n' ) {
             putchar(msg[c]);
+            char_sleep(-1);
             fflush(stdout);
         }
     }
@@ -228,7 +245,7 @@ static bool stdin_has_data(void) {
 #endif
 }
 
-static void flush_input(void) {
+void flush_input(void) {
     while (stdin_has_data()) {
         int c = getchar();
         if (c == '\n' || c == EOF) break;
@@ -266,4 +283,78 @@ CharBuffer *get_char_buffer(char const *prompt) {
         memcpy((void *)cb->buffer, temp_buffer, len + 1);
     }
     return cb;
+}
+
+static struct StringBuffer {char buffer[1024];} get_str(char const *  prompt) {
+    struct StringBuffer sb = {};
+    display(prompt);
+
+    if (fgets(sb.buffer, sizeof(sb.buffer), stdin)) {
+        size_t len = strlen(sb.buffer);
+        if (len > 0) {
+            if (sb.buffer[len - 1] == '\n') {
+                // Normal case: entire line read, remove newline
+                sb.buffer[len - 1] = '\0';
+            } else {
+                // Truncation case: buffer was too small, leftovers remain in stdin
+                flush_input();
+            }
+        }
+    }
+    return sb;
+}
+
+int get_int(char const * const prompt, const int min, const int max) {
+    for (;;) {
+        struct StringBuffer sb = get_str(prompt);
+
+        // If the user just hit enter, sb.buffer[0] will be '\0'
+        if (sb.buffer[0] == '\0') {
+            display_line("INPUT CANNOT BE EMPTY. PLEASE ENTER A NUMBER.");
+            continue;
+        }
+
+        char *endptr;
+        long val = strtol(sb.buffer, &endptr, 10);
+
+        // If endptr is the same as the buffer, no numbers were found at the start
+        if (endptr == sb.buffer) {
+            display_line("INVALID INPUT. PLEASE ENTER A VALID INTEGER.");
+            continue;
+        }
+
+        if (val < min || val > max) {
+            printf("OUT OF RANGE. PLEASE ENTER A NUMBER BETWEEN %d AND %d.\n", min, max);
+            continue;
+        }
+
+        return (int)val;
+    }
+}
+
+
+static void display_command_err(char const * msg, char const command) {
+    if (!msg) {
+        msg = "INVALID COMMAND: ";
+    }
+    display(msg);
+    printf("'%c'\n", command);
+}
+
+// return the first letter of the user's input converted to uppercase.
+// input char must be in the `valid_chars` string to be accepted or user is re-prompted until it is
+// err_msg may be null
+char get_command_char(char const * const prompt, char const * const valid_chars, char const * const err_msg) {
+    char first_letter;
+    bool is_invalid_command;
+    do {
+        const struct StringBuffer sb = get_str(prompt);
+        first_letter = (char)toupper(sb.buffer[0]);
+        is_invalid_command = ! strchr(valid_chars, first_letter);
+        if (is_invalid_command) {
+            display_command_err(err_msg, first_letter);
+        }
+    } while (is_invalid_command);
+
+    return first_letter;
 }

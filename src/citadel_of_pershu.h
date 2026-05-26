@@ -232,7 +232,7 @@ typedef struct GameState {
         bool     treasure_is_visible;
         bool     must_fight; // Explicitly tell ML that movement/retreat is blocked
         Monster  current_monster;
-        Treasure current_treasure;
+        Object   current_treasure;
         uint32_t legal_actions_mask; // Bitmask where each bit corresponds to VALID_COMMANDS
     } perception;
 } GameState;

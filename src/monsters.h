@@ -19,6 +19,7 @@
 typedef struct Monster {
     char const * name;
     [[maybe_unused]] int monster_index;
+    int ferocity_factor;
     union {
         CharStats stats; // Named access: m.stats.strength
         union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength or m.as_array[StatIndex]

@@ -516,10 +516,10 @@ static void  init_rooms() {
     ROOMS[39].epilog->lines[0] = (RandomText){ .chance_percent = .6, .text="A small door leaads to the north\nand another to the east."};
 }
 
-static Treasure generate_treasure( GameState * gs, int treasure_index) {
-    return (Treasure){
+static Object generate_treasure( GameState * gs, int treasure_index) {
+    return (Object){
         .name = TREASURE_NAMES[treasure_index],
-        .treasure_index = treasure_index,
+        .id = treasure_index,
         .value = rnd_range(gs, 0, 100 ) + 56};
 }
 
@@ -539,7 +539,7 @@ void reset(GameState * gs, const uint32_t seed) {
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
         ROOMS[room_index].monster =  (Monster){};
-        ROOMS[room_index].treasure =  (Treasure){};
+        ROOMS[room_index].treasure =  (Object){};
     }
 
     // special treasure items
@@ -709,14 +709,14 @@ static bool pick_up_treasure(GameState * gs) {
     }
 
     if (treasure_index > ITEM_WAND) {
-        const Treasure treasure = ROOMS[gs->room].treasure;
+        const Object treasure = ROOMS[gs->room].treasure;
         gs->cash += treasure.value;
     } else {
         gs->items[treasure_index] = treasure_index;
     }
 
     ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
-    ROOMS[gs->room].treasure = (Treasure){};
+    ROOMS[gs->room].treasure = (Object){};
     return true;
 }
 
@@ -959,7 +959,7 @@ bool fight_action(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
 }
 
 // Entry point for human user path. This displays some information, prompts user for some choices, and passes those to
-// fight_action(), the ML entry point for the fight action.
+// perform_action(), the ML entry point for the fight action.
 static bool process_fight(GameState * gs) {
     if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
         display_line("There is nothing to fight.");
@@ -1089,7 +1089,7 @@ static void update_perception(GameState * gs) {
     gs->perception.monster_is_visible  = false;
     gs->perception.treasure_is_visible = false;
     gs->perception.current_monster  = (Monster){};
-    gs->perception.current_treasure = (Treasure){};
+    gs->perception.current_treasure = (Object){};
     gs->perception.legal_actions_mask = 0;
 
     // Populate Action Mask for ML
@@ -1100,7 +1100,7 @@ static void update_perception(GameState * gs) {
     }
 
     // Only see things if the room is lit
-    // Note: Treasure index 1 is the Torch itself, which is visible in the dark.
+    // Note: Object index 1 is the Torch itself, which is visible in the dark.
     if (gs->has_torch || treasure_index == ITEM_TORCH ) {
         if (monster_index > 0 ) {
             gs->perception.current_monster = ROOMS[room_index].monster;

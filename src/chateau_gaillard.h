@@ -60,6 +60,7 @@ constexpr int ROOM_TURRET        = 44;
 constexpr bool CONTINUE_GAME = true;
 constexpr bool END_GAME      = false;
 
+char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
 /*
  *  Word wrap notes:
  *      We don't break words. Only wrap whole words. If word ends with punctuation like period or comma or semicolon,
@@ -117,6 +118,10 @@ static Room ROOMS[NUM_ROOMS] = {
 {.id = 44,  .name= "ROOM 44",    .desc = "You are in the rear turret room, below the extreme western wall of the ancient Chateau." },
 };
 
+
+// ROOM_GRAPH: in column RGITREASURE > 98 indicates a locked door
+// last two columns are related to unlocking somehow??
+
 static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
 
@@ -124,7 +129,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0, 29,  3,  1,  0,  0, 17,  0,  0,  0 },  //  ROOM 2
     {  0,  8,  4,  2,  0,  0,  0,  0,  0,  0 },  //  ROOM 3
     {  0,  9,  5,  3,  0,  0,  2,  0,  0,  0 },  //  ROOM 4
-    {  5,  5,  5,  5,  5,  5,  0,  0,  0,  0 },  //  ROOM 5
+    {  5,  5,  5,  5,  5,  5,  0,  0,  0,  0 },  //  ROOM 5, DEATH
     {  0, 11,  7, 30,  0,  0,  1,  0,  0,  0 },  //  ROOM 6
     {  0,  0,  8,  6,  0,  0,  0,  0,  0,  0 },  //  ROOM 7
     {  3,  0,  0,  7,  0,  0, 99,  0,  0,  0 },  //  ROOM 8
@@ -148,15 +153,15 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 22,  0,  0,  0,  0, 33,  0,  0,  0,  0 },  //  ROOM 26
     {  0,  0,  0,  0,  0, 17,  0,  0,  0,  0 },  //  ROOM 27, ENTRANCE
     {  0,  0,  0,  0,  0, 11,  0,  0,  0,  0 },  //  ROOM 28, END ROOM
-    { 29, 29, 29, 29, 29, 29,  0,  0,  0,  0 },  //  ROOM 29
-    { 30, 30, 30, 30, 30, 30,  0,  0,  0,  0 },  //  ROOM 30
-    { 31, 31, 31, 31, 31, 31,  0,  0,  0,  0 },  //  ROOM 31
-    { 32, 32, 32, 32, 32, 32,  0,  0,  0,  0 },  //  ROOM 32
+    { 29, 29, 29, 29, 29, 29,  0,  0,  0,  0 },  //  ROOM 29, DEATH
+    { 30, 30, 30, 30, 30, 30,  0,  0,  0,  0 },  //  ROOM 30, DEATH
+    { 31, 31, 31, 31, 31, 31,  0,  0,  0,  0 },  //  ROOM 31, DEATH
+    { 32, 32, 32, 32, 32, 32,  0,  0,  0,  0 },  //  ROOM 32, DEATH
     { 43, 42, 40,  0, 26,  0,  0,  0,  0,  0 },  //  ROOM 33
     {  0, 38, 35,  0,  0,  0,100,  0,  0,  0 },  //  ROOM 34
     {  0, 43, 36, 34,  0,  0,  0,  0,  0,  0 },  //  ROOM 35
     {  0, 40, 37, 35,  0,  0,  0,  0,  0,  0 },  //  ROOM 36
-    { 37, 37, 37, 37, 37, 37,  0,  0,  0,  0 },  //  ROOM 37
+    { 37, 37, 37, 37, 37, 37,  0,  0,  0,  0 },  //  ROOM 37, DEATH
     { 34,  0, 43, 39,  0,  0,  0,  0,  0,  0 },  //  ROOM 38
     {  0,  0, 38,  0, 10,  0,  0,  0,  0,  0 },  //  ROOM 39
     { 36, 41, 44, 33,  0,  0, 20,  0,  0,  0 },  //  ROOM 40
@@ -166,13 +171,6 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0,  0,  0, 40,  0,  0, 18,  0,  0,  0 },  //  ROOM 44
 };
 
-// todo (rob) need a better name than Item or Object. It's a thingee you can pick up and carry.
-// at least 3 categories; weapon, treasure, usable item: e.g., a key, rope, things you use to advance game state.
-typedef struct Object {
-    char const * const name;
-    int                id;
-    int                value;
-} Object;
 
 constexpr int NUM_OBJECTS = 21;  // todo (rob) make data driven
 
@@ -200,8 +198,14 @@ static Object OBJECTS[NUM_OBJECTS] = {
     {.id = 20, .name="chest made of iron" },
 };
 
-constexpr int OBJECT_AXE         =  1;
-constexpr int OBJECT_SWORD       =  2;
+constexpr int OBJECT_AXE           =  1;
+constexpr int OBJECT_SWORD         =  2;
+constexpr int OBJECT_DAGGER        =  3;
+constexpr int OBJECT_MACE          =  4;
+constexpr int OBJECT_QUARTER_STAFF =  5;
+constexpr int OBJECT_MORNING_STAR  =  6;
+constexpr int OBJECT_FALCHION      =  7;
+
 constexpr int OBJECT_DIADEM      = 16;
 constexpr int OBJECT_SILVER_KEY  = 17;
 constexpr int OBJECT_GOLD_KEY    = 18;
@@ -243,6 +247,8 @@ constexpr int MONSTER_DWARF = 1;
 ////
 //// ------------------------------------------------------------
 
+constexpr int MAX_ITEMS = 5; // max number of items that can be carried
+
 typedef struct GameState {
     const CharBuffer * player_name;
     uint32_t seed;
@@ -264,9 +270,11 @@ typedef struct GameState {
 
     bool is_dead;
     bool completed; // true if reached final room
+    int  items[MAX_ITEMS];  //
     bool rooms_visited[NUM_ROOMS];
 
-    int QU;  // end-of-game flag?
+    int QU;  // end-of-game flag? Quit flag, used in final scoring
     int BOX; // chest flag?
+
 
 } GameState;

@@ -23,11 +23,14 @@ extern bool GLOBAL_silent_mode;
 extern uint32_t GLOBAL_char_sleep_duration;
 
 void cls();
+void flush_input(void);
 void set_silent_mode(bool silent);
 uint32_t set_char_sleep(uint32_t microseconds);
 void display(char const* msg );
 void display_line(char const* msg );
 void display_paginated(char const* msg, const int num_columns);
 CharBuffer * get_char_buffer(char const *  prompt);
+char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);
+int get_int(char const * const prompt, const int min, const int max);
 
 
