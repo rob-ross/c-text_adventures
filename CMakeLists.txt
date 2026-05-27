@@ -7,7 +7,9 @@ add_executable(text_adventures src/main.c
         src/citadel_of_pershu.c
         src/mersenne_twister.c
         src/asimovian_aftermath.c
-        src/warewolves_and_wanderer.c)
+        src/warewolves_and_wanderer.c
+        src/chateau_gaillard.c
+        src/common/console_utils.c)
 
 target_include_directories(text_adventures PUBLIC include)
 

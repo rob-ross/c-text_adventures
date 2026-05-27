@@ -22,6 +22,7 @@ clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werro
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 
 //// ------------------------------------------------------------
@@ -285,6 +286,32 @@ static void clear_monster(const GameState * gs) {
     ROOMS[gs->room].monster = (Monster){};
 }
 
+// first_letter must be in "NSEWUD"
+// return true if the command was successfully processed. If false, the move is not allowed and an error message
+// will have been displayed
+static bool process_move_command(GameState * gs, char const first_letter) {
+    if (!strchr(VALID_DIRECTIONS, first_letter)) {
+        display("I don't know how to go ");
+        printf("%c\n", first_letter);
+        return false;
+    }
+    const int location = gs->room;
+    const int direction_index = calc_direction_index(first_letter);
+    if (direction_index == DIRECTION_ERR) {
+        display("Bad direction_index, first_letter='");
+        printf("%c'\n", first_letter);
+        return false;
+    }
+
+    if (ROOM_GRAPH[location][direction_index] > 0) {
+        gs->room = ROOM_GRAPH[location][direction_index];
+        return true;
+    }
+
+    display_line(BAD_MOVE_DESC[direction_index]);
+    return false;
+}
+
 //return false if fight action could not be completed, otherwise return true
 bool fight_action(GameState * gs, int weapon, enum StatIndex stat1, enum StatIndex stat2) {
     if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
@@ -428,8 +455,41 @@ bool fight_action(GameState * gs, int weapon, enum StatIndex stat1, enum StatInd
 }
 
 
-bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
-    return true;
+/**
+  * Core Game Engine Logic
+  * This function is "Pure Logic" - it updates state based on an action.
+  * It returns true if the action was accepted as a turn, false otherwise.
+  *
+  * @param gs
+  * @param action
+  * @param arg1 For 'F': strategy (1:magic, 2:skill). For 'G': item index.
+  * @param arg2 For 'F': first skill stat index.
+  * @param arg3 For 'F': second skill stat index.
+  *
+  *
+  */
+bool perform_action(GameState *gs, struct ParsedCommand command, int arg1, int arg2, int arg3) {
+
+    enum Command cmd = command.command;
+
+    gs->turns++;
+    gs->rooms_visited[gs->room] = true;
+
+    bool result = false;
+
+    switch (cmd) {
+        case CMD_FIGHT:
+            result = fight_action(gs, arg1, (enum StatIndex)arg2, (enum StatIndex)arg3);
+            break;
+        case CMD_MOVE:
+            result = process_move_command(gs, (char)toupper(command.object[0]));
+            break;
+        default:
+            result = false;
+            break;
+    }
+
+    return result;
 }
 
 // Entry point for the human user path. This displays some information, prompts the user for some choices,
@@ -536,7 +596,7 @@ static bool process_fight(GameState * gs) {
     }
 
     display("\nThe ");
-    display_line(m.name);
+    display(m.name);
     display_line(" has the following attributes:");
     display_char_attributes(m.stats);
     display_line("Your attributes are:");
@@ -553,7 +613,7 @@ static bool process_fight(GameState * gs) {
         }
         display("Duplicate skill: ");
     }
-    return perform_action(gs, 'F', weapon_choice, first_skill, second_skill);
+    return perform_action(gs, (struct ParsedCommand){.command = CMD_FIGHT, }, weapon_choice, first_skill, second_skill);
 }
 
 
@@ -637,6 +697,244 @@ void check_dwarf(GameState * gs) {
         }
 }
 
+// return true if carrying any items
+static bool has_items(const GameState * gs) {
+    for (int bag_index = 1; bag_index < ITEM_COUNT; ++bag_index ) {
+        if (! gs->items[bag_index] ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/**
+ * Shared Validation: Can an item be dropped here?
+ * Returns true if valid, false otherwise.
+ * Prints error messages only if verbose is true.
+ */
+static bool can_drop_item(const GameState *gs, int item_index, bool verbose) {
+    if (!has_items(gs)) {
+        if (verbose) display_line("You have nothing to get rid of.");
+        return false;
+    }
+    if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE]) {
+        if (verbose) {
+            display("There is already a ");
+            display(ROOMS[gs->room].treasure.name);
+            display_line(" here.");
+        }
+        return false;
+    }
+    if (item_index == 0) return true; // Cancel/No-op is valid
+    if (item_index < 0 || item_index >= ITEM_COUNT || !gs->items[item_index]) {
+        if (verbose) display_line("You are not carrying that item.");
+        return false;
+    }
+    return true;
+}
+
+
+// Entry point for human user path. This displays some information, prompts user for some choices, and passes those to
+// drop_action(), the ML entry point for the drop action.
+static bool get_rid_of(GameState * gs) {
+    // Pre-check: If the room is already full, don't even start the loop
+    if (!can_drop_item(gs, 0, true)) return false;
+
+    int item = 0;
+    for (;;) {
+        display_inventory(gs);
+        item = get_int("Enter number of object to drop (0 for none): ", 0, 9);
+        if ( !item ) {
+            return true;  // exit without dropping anything
+        }
+
+        if (gs->items[item]) {
+            break;
+        }
+        display_line("You are not carrying that item.");
+    }
+    return perform_action(gs, (struct ParsedCommand){.command = CMD_DROP}, item, 0, 0);
+}
+
+
+bool str_in_array(char const * str, int len, char const  * array[static len]) {
+    size_t str_len = strlen(str);
+    char upper[str_len + 1] = {};
+    for (int i = 0; i < str_len; ++i) {
+        upper[i] = (char)toupper(str[i]);
+    }
+    upper[str_len] = '\0';
+    for (int i = 0; i < len; ++i ) {
+        if (strcmp(upper, array[i]) == 0 ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+struct ParsedCommand  parse_user_command(char const * prompt, char const * err_msg) {
+
+
+    for (;;) {
+
+        char line[1024]       = {};
+        char verb[1024]       = {};
+        char verb_upper[1024] = {};
+        char object[1024]     = {};
+
+        struct ParsedCommand pc;
+
+        display(prompt);
+        if (!fgets(line, sizeof(line), stdin)) {
+            continue;
+        }
+
+        // Remove newline if present
+        line[strcspn(line, "\n")] = 0;
+
+        int num_words = sscanf(line, "%s %s", verb, object);
+        if (num_words < 1) {
+            continue;
+        }
+        //defensive measure to ensure these are properly terminated within allocated bounds
+        verb[1023]   = '\0';
+        object[1023] = '\0';
+        const size_t verb_len = strlen(verb);
+        for (int i = 0; i < 1024 && verb[i]; ++i) {
+            verb_upper[i] = (char)toupper((unsigned char)verb[i]);
+        }
+
+        // -----------------------------------------------------------------
+        //         One word commands
+        // -----------------------------------------------------------------
+
+
+        // Check for help or quit (single word sufficient)
+        if (strcmp(verb_upper, "HELP") == 0) {
+            pc.command = CMD_HELP;
+            memcpy(pc.verb, verb, 1024);
+            pc.object[0] = '\0';
+            return pc;
+        }
+        if (strcmp(verb_upper, "QUIT") == 0) {
+            pc.command = CMD_QUIT;
+            memcpy(pc.verb, verb, 1024);
+            pc.object[0] = '\0';
+            return pc;
+        }
+
+        // allow navigation with single word or direction character
+        if (verb_len == 1 && strchr(VALID_DIRECTIONS, verb_upper[0])) {
+            pc.command = CMD_MOVE;
+            strncpy(pc.object, verb, sizeof(pc.object) - 1);
+            strncpy(pc.verb, "go", strlen("go"));
+            return pc;
+        }
+        const char *direction_verbs[] = {"NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN"};
+        printf("checking direction verbs: verb_upper:%s\n" ,verb_upper);
+
+        for (int i = 0; i < 6; i++) {
+            printf("     direction_verbs[i]:%s\n" , direction_verbs[i]);
+
+            if (strcmp(verb_upper, direction_verbs[i]) == 0) {
+
+                pc.command = CMD_MOVE;
+                strncpy(pc.object, verb, sizeof(pc.object) - 1);
+                strncpy(pc.verb, "go", strlen("go"));
+                return pc;
+            }
+        }
+
+        enum Command cmd = CMD_NONE;
+        // Fight commands todo (rob) these are one-word commands here because there can only be one monster to fight
+        // in a room, but in future versions, there may be more than one monster to fight so the second string is
+        // required
+        const char *fight_verbs[] = {"STAB", "KILL", "FIGHT", "KICK", "PUNCH", "SLAY", "ATTACK" };
+        for (int i = 0; i < 7; i++) {
+            if (strcmp(verb_upper, fight_verbs[i]) == 0) {
+                pc.command = CMD_FIGHT;
+                return pc;
+            }
+        }
+
+        // -----------------------------------------------------------------
+        //         Two word commands
+        // -----------------------------------------------------------------
+
+        // Movement commands
+        const char *movement_verbs[] = {"GO", "MOVE", "CLIMB", "RUN", "WALK"};
+        bool continue_outer = false;
+        for (int i = 0; i < 5; i++) {
+            if (strcmp(verb_upper, movement_verbs[i]) == 0) {
+                if (!str_in_array(object, 6, direction_verbs)) {
+                    printf("I don't know how to %s %s\n", verb, object);
+                    continue_outer = true;
+                    break;
+                }
+                cmd = CMD_MOVE;
+                break;
+            }
+        }
+        if (continue_outer) {
+            continue;
+        }
+
+        // Drop commands
+        const char *drop_verbs[] = {"DROP", "PUT", "THROW", "BREAK" };
+        for (int i = 0; i < 4; i++) {
+            if (strcmp(verb_upper, drop_verbs[i]) == 0) {
+                cmd = CMD_DROP;
+                break;
+            }
+        }
+
+        // Take commands
+        const char *take_verbs[] = {"TAKE", "GET", "STEAL", "LIFT" };
+        for (int i = 0; i < 4; i++) {
+            if (strcmp(verb_upper, take_verbs[i]) == 0) {
+                cmd = CMD_TAKE;
+                break;
+            }
+        }
+
+
+        if (cmd) {
+            if (num_words == 2) {
+                pc.command = cmd;
+                strncpy(pc.object, object, sizeof(pc.object) - 1);
+                pc.object[sizeof(pc.object) - 1] = '\0';
+                return pc;
+            } else {
+                char const * question;
+                switch (cmd) {
+                    case CMD_MOVE:
+                        question = "where"; break;
+                    case CMD_DROP:
+                    case CMD_TAKE:
+                    case CMD_FIGHT:
+                        question = "what"; break;
+                    default:
+                        question = "how"; break;
+                }
+                char err[1024];
+                snprintf(err, sizeof(err), "%s %s?", verb, question);
+                display_line(err);
+                continue;
+            }
+        }
+
+        display_line(err_msg);
+    }
+}
+
+static bool process_quit(const GameState * gs) {
+    display_line("COWARD...QUITTER....TURNCOAT.....");
+    // todo (rob) ask for confirmation?
+    return END_GAME;
+}
+
 static bool main_game_loop(GameState * gs) {
     uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
     if ( gs->rooms_visited[gs->room] ) {
@@ -682,10 +980,29 @@ static bool main_game_loop(GameState * gs) {
 
     // process user input
     flush_input();
-    char cmd = get_command_char("\nWhat do you want to do? ", VALID_COMMANDS, nullptr);
-    display("You chose ");
-    printf("'%c'\n",cmd);
+    struct ParsedCommand command = parse_user_command("\nWhat do you want to do? ", "I don't know how to do that.");
 
+    display("You chose ");
+    printf("%d %s\n",command.command, command.object);
+    enum Command cmd = command.command;
+
+    if ( cmd == CMD_QUIT) {
+        set_char_sleep(saved_sleep_duration);
+        return process_quit(gs);
+    }
+    if ( cmd == CMD_HELP) {
+        display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
+    }
+
+    if ( cmd == CMD_FIGHT ) {
+        //specialized code to prompt user and gather options to pass to perform_action()
+        process_fight(gs);
+    } else if (cmd == CMD_DROP){
+        get_rid_of(gs);
+    } else {
+        // Now the human call and the ML call use the exact same entry point
+        perform_action(gs, command, 0,0, 0);
+    }
 
     set_char_sleep(saved_sleep_duration);
 
@@ -726,6 +1043,16 @@ void reset(GameState * gs, const uint32_t seed) {
     ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE]   = OBJECT_GOLD_KEY;
 
     ROOM_GRAPH[ROOM_YELLOW][RGINDEX_MONSTER]    = MONSTER_DWARF;
+
+    // create room Object for the treasures
+    for (int room = 1; room < NUM_ROOMS; ++room) {
+        int treasure_index = ROOM_GRAPH[room][RGINDEX_TREASURE];
+        if ( treasure_index > 0 && treasure_index < NUM_OBJECTS ) {
+            ROOMS[room].treasure = OBJECTS[ treasure_index ];
+        }
+    }
+
+
 
     // allot treasure
     for (int treasure_index = OBJECT_AXE; treasure_index <= OBJECT_DIADEM; ++treasure_index ) {
@@ -809,6 +1136,9 @@ int main_chateau_gaillard(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
     set_silent_mode(false);
 
+    set_char_sleep(0); // todo (rob) this is for debugging so we don't have to wait for text to display
+
+
     const CharBuffer * player_name = get_player_name();
 
     GameState gs = {.player_name = player_name};
@@ -858,7 +1188,7 @@ static void cleanup(GameState * gs) {
 //// ------------------------------------------------------------
 
 void display_all_room_desc() {
-    const int saved_sleep = GLOBAL_char_sleep_duration;
+    const uint32_t saved_sleep = GLOBAL_char_sleep_duration;
     set_char_sleep(0);
 
     for (int i = 1; i < NUM_ROOMS; ++i ) {

@@ -672,7 +672,7 @@ static bool process_quit(const GameState * gs) {
 
 
 // first_letter must be in "NSEWUD"
-// return true if command was sucessfully processed. If false, the move is not allowed and an error message
+// return true if command was successfully processed. If false, the move is not allowed and an error message
 // will have been displayed
 static bool process_move_command(GameState * gs, char const first_letter) {
     const int location = gs->room;

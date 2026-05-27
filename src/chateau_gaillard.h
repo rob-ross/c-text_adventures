@@ -15,6 +15,7 @@
 #include "rooms.h"
 #include "monsters.h"
 #include "treasure.h"
+#include "directions.h"
 
 #ifdef _WIN32
 #include <conio.h>
@@ -121,7 +122,7 @@ static Room ROOMS[NUM_ROOMS] = {
 
 // ROOM_GRAPH: in column RGITREASURE > 98 indicates a locked door
 // last two columns are related to unlocking somehow??
-
+//indices 9 and 10 act like extra slots when dropping items, so each room can have 3 items in it.
 static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
 
@@ -141,7 +142,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0, 18,  0, 13,  0,  0,  0,  0,  0,  0 },  //  ROOM 14
     {  0, 21, 16, 12,  0,  0,  0,  0,  0,  0 },  //  ROOM 15
     { 12, 20, 19, 15,  0,  0,  0,  1,  0,  0 },  //  ROOM 16
-    {  0,  0, 18,  0, 27,  0,  0,  0,  0,  0 },  //  ROOM 17
+    {  0,  0, 18,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 17
     { 14, 19, 31, 17,  0,  0,  0,  0,  0,  0 },  //  ROOM 18
     { 18, 23,  0, 16,  0,  0,  0,  0,  0,  0 },  //  ROOM 19
     { 16, 25,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 20
@@ -278,3 +279,24 @@ typedef struct GameState {
 
 
 } GameState;
+
+// todo (rob) use WordNet synset ids for the constants.
+enum Command {
+    CMD_ERROR = -1,
+    CMD_NONE  =  0,
+
+    CMD_FIGHT = 27047,  // oewn-01092746-v (Interlingual Index: i27047)
+    CMD_TAKE  = 27693,  // oewn-01216829-v (Interlingual Index: i27693)
+    CMD_MOVE  = 30898, // oewn-01839438-v (Interlingual Index: i30898)
+
+
+    CMD_HELP =  34433, // oewn-02553283-v (Interlingual Index: i34433)
+    CMD_QUIT =  35062, // oewn-02686624-v (Interlingual Index: i35062)
+    CMD_DROP =  31618, // oewn-01981715-v (Interlingual Index: i31618)
+};
+
+struct ParsedCommand {
+    enum Command command;
+    char verb[1024];
+    char object[1024];
+};

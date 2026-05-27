@@ -1,0 +1,72 @@
+Vocabulary:
+
+We should have a canonical list, with allowed synonyms for each canonical word.
+We should use WordNet sense ids to standardize on existing work for synomyms.
+We need to write a method that verifies we're not duplicating the first 3 chars of a word for
+another action.
+
+Command/Action/Verbs:
+
+HEL[P]     oewn-02553283-v (Interlingual Index: i34433)
+QUI[T]     oewn-02686624-v (Interlingual Index: i35062)
+
+COMBAT WORDS
+------------
+oewn-01092746-v (Interlingual Index: i27047)
+STA[B]
+KIL[L]
+FIG[HT]
+KIC[K]
+PUN[CH]
+SLA[Y]
+ATT[ACK]
+
+MOVEMENT WORDS (GOTO 740
+-------------------------
+oewn-01839438-v (Interlingual Index: i30898)
+GO
+MOV[E]
+CLI[MB]
+RUN
+WAL[K]
+
+GET WORDS
+------------
+oewn-01216829-v (Interlingual Index: i27693)
+TAK[E]
+GET
+STE[AL]
+LIF[T]
+
+DROP WORDS
+------------
+oewn-01981715-v (Interlingual Index: i31618)
+DRO[P]
+PUT
+THR[OW]
+BRE  ?? BREAK?
+
+LOCKED DOORS
+------------
+UNL[OCK]
+
+CLOSED DOORS
+------------
+OPE[N]
+
+READ THINGS
+------------
+REA[D]
+
+FOOD
+------------
+DRI[NK]
+SWA[LLOW]
+
+PUZZLE WORDS:
+------------
+BRI[BE]
+PAY
+
+Nouns/Objects/Targets of action words:
+??? context specific?
