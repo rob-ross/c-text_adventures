@@ -233,7 +233,7 @@ void flush_input(void);
 struct StringBuffer {char buffer[1024];} get_str(char const *  prompt);
 char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);
 int get_int(char const * const prompt, int min, int max);
-bool process_move_command(struct GameState * gs, char first_letter);
+bool cmd_move(struct GameState * gs, char first_letter);
 int calc_score(const struct GameState * gs);
 void display_command_err(char const * msg, char  command);
 void display_inventory(struct GameState * gs);
@@ -350,7 +350,7 @@ bool main_game_loop(struct GameState * gs) {
         }
 
         if ( strchr(VALID_DIRECTIONS, first_letter) ) {
-            if ( process_move_command(gs, first_letter)) {
+            if ( cmd_move(gs, first_letter)) {
                 user_moved = true;
             } else {
                 is_invalid_command = true;
@@ -686,7 +686,7 @@ void fight(struct GameState * gs) {
 // first_letter must be in "NSEWUD"
 // return true if command was sucessfully processed. If false, the move is not allowed and an error message
 // will have been displayed
-bool process_move_command(struct GameState * gs, char const first_letter) {
+bool cmd_move(struct GameState * gs, char const first_letter) {
     const int location = gs->room;
     const int direction_index = calc_direction_index(first_letter);
     if (ROOM_GRAPH[location][direction_index] > 0) {

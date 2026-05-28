@@ -20,7 +20,8 @@ char const * const VALID_DIRECTIONS = "NSEWUD";
 
 enum Direction {
     DIRECTION_ERR = -1,
-    DIRECTION_NORTH = 0,
+    DIRECTION_NONE = 0,
+    DIRECTION_NORTH,
     DIRECTION_SOUTH,
     DIRECTION_EAST,
     DIRECTION_WEST,
@@ -30,7 +31,7 @@ enum Direction {
 };
 
 // direction in "NSEWUD"
-static inline enum Direction calc_direction_index(char const direction_char) {
+static inline enum Direction calc_direction_index(int const direction_char) {
     switch (toupper(direction_char)) {
         case 'N': return DIRECTION_NORTH;
         case 'S': return DIRECTION_SOUTH;

@@ -11,6 +11,7 @@
 
 
 #include <stdint.h>
+#include <stdarg.h> // Added for variadic functions
 #include "string.h"
 
 // usleep() takes argument in microseconds
@@ -28,9 +29,10 @@ void set_silent_mode(bool silent);
 uint32_t set_char_sleep(uint32_t microseconds);
 void display(char const* msg );
 void display_line(char const* msg );
-void display_paginated(char const* msg, const int num_columns);
+// Add the format attribute here
+void vdisplay( const char * restrict format, ... ) __attribute__((format(printf, 1, 2)));
+void vdisplay_line( const char * restrict format, ...) __attribute__((format(printf, 1, 2)));
+void display_paginated(char const* msg, int num_columns);
 CharBuffer * get_char_buffer(char const *  prompt);
 char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);
-int get_int(char const * const prompt, const int min, const int max);
-
-
+int get_int(char const * prompt, int min, int max);

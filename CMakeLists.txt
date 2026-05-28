@@ -29,3 +29,5 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         -fsanitize=leak
     )
 endif()
+
+add_executable(regex_tests src/regex_tests.c)

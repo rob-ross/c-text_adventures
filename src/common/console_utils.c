@@ -15,6 +15,7 @@
 #include <sys/poll.h>
 #include <sys/_types/_useconds_t.h>
 #include <ctype.h>
+#include <stdarg.h> // Added for variadic functions
 
 
 uint32_t GLOBAL_char_sleep_duration = _15ms;
@@ -83,6 +84,65 @@ void display_line(char const* msg ) {
     fflush(stdout);
     char_sleep(-1);
 }
+
+// Internal helper function for vdisplay and vdisplay_line
+// This function performs the formatting and character-by-character display without adding a newline.
+static void _vdisplay_internal(const char * restrict format, va_list args_orig) { // NOLINT(*-reserved-identifier)
+    if (GLOBAL_silent_mode) return;
+
+    // Determine the size needed for the formatted string
+    va_list args_copy_for_size;
+    va_copy(args_copy_for_size, args_orig); // Make a copy for the first vsnprintf call
+    int size = vsnprintf(nullptr, 0, format, args_copy_for_size);
+    va_end(args_copy_for_size); // End the copy
+
+    if (size < 0) {
+        // Handle error, e.g., print a generic error message or log it
+        display_line("Error formatting message.");
+        return;
+    }
+
+    // Allocate buffer for the formatted string + null terminator
+    char *buffer = malloc(size + 1);
+    if (buffer == NULL) {
+        // Handle memory allocation error
+        display_line("Memory allocation error for message.");
+        return;
+    }
+
+    // Format into buffer using the original va_list
+    vsnprintf(buffer, size + 1, format, args_orig);
+
+    display(buffer); // Use existing display function for char-by-char output
+
+    free(buffer);
+}
+
+
+// supports format string and variadic args (without adding a newline)
+void vdisplay(const char * restrict format, ...) {
+    if (GLOBAL_silent_mode) return;
+
+    va_list args;
+    va_start(args, format);
+    _vdisplay_internal(format, args);
+    va_end(args);
+}
+
+// calls vdisplay() and appends a newline.
+void vdisplay_line(const char * restrict format, ...) {
+    if (GLOBAL_silent_mode) return;
+
+    va_list args;
+    va_start(args, format);
+    _vdisplay_internal(format, args); // Use the internal helper
+    va_end(args);
+
+    putchar('\n'); // Add the newline here
+    fflush(stdout);
+    char_sleep(-1);
+}
+
 
 int min(int a, int b) {
     return a < b ? a : b;

@@ -70,3 +70,7 @@ PAY
 
 Nouns/Objects/Targets of action words:
 ??? context specific?
+
+
+
+API of Engine should try to take simple int parameters at all times.

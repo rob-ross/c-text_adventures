@@ -285,14 +285,21 @@ enum Command {
     CMD_ERROR = -1,
     CMD_NONE  =  0,
 
+    // these are single word direction commands. Their ids match enum Direction for convenience.
+    CMD_NORTH = 1,
+    CMD_SOUTH,
+    CMD_EAST,
+    CMD_WEST,
+    CMD_UP,
+    CMD_DOWN,
+
     CMD_FIGHT = 27047,  // oewn-01092746-v (Interlingual Index: i27047)
     CMD_TAKE  = 27693,  // oewn-01216829-v (Interlingual Index: i27693)
-    CMD_MOVE  = 30898, // oewn-01839438-v (Interlingual Index: i30898)
-
+    CMD_MOVE  = 30898,  // oewn-01839438-v (Interlingual Index: i30898)
+    CMD_DROP =  31618, // oewn-01981715-v (Interlingual Index: i31618)
 
     CMD_HELP =  34433, // oewn-02553283-v (Interlingual Index: i34433)
     CMD_QUIT =  35062, // oewn-02686624-v (Interlingual Index: i35062)
-    CMD_DROP =  31618, // oewn-01981715-v (Interlingual Index: i31618)
 };
 
 struct ParsedCommand {
@@ -300,3 +307,5 @@ struct ParsedCommand {
     char verb[1024];
     char object[1024];
 };
+
+bool perform_action(GameState *gs, enum Command  cmd,  int arg1,  int arg2,  int arg3);

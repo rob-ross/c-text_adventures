@@ -250,7 +250,7 @@ static void display_room_desc(struct GameState * gs) {
 
 // first_letter must be in "NSEWUD"
 // return true if command was sucessfully processed. If false, the move is not allowed.
-static bool process_move_command(struct GameState * gs, char first_letter) {
+static bool cmd_move(struct GameState * gs, char first_letter) {
 
     int location = gs->room;
     int direction_index = calc_direction_index(first_letter);
@@ -501,7 +501,7 @@ static void retreat(struct GameState * gs) {
         if (is_invalid_command) {
             printf("INVALID DIRECTION '%c'\n", first_letter);
         }
-    } while (is_invalid_command || !process_move_command(gs, first_letter) );
+    } while (is_invalid_command || !cmd_move(gs, first_letter) );
 
 
 }

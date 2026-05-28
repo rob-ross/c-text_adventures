@@ -674,7 +674,7 @@ static bool process_quit(const GameState * gs) {
 // first_letter must be in "NSEWUD"
 // return true if command was successfully processed. If false, the move is not allowed and an error message
 // will have been displayed
-static bool process_move_command(GameState * gs, char const first_letter) {
+static bool cmd_move(GameState * gs, char const first_letter) {
     const int location = gs->room;
     const int direction_index = calc_direction_index(first_letter);
     if (direction_index == DIRECTION_ERR) {
@@ -1178,7 +1178,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
 
         // We must update perception after the move is processed but before returning
         // so the new room's content is visible in the GameState.
-        const bool result = process_move_command(gs, cmd);
+        const bool result = cmd_move(gs, cmd);
         update_perception(gs);  // room may have changed
         return result;
     }

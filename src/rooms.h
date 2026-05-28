@@ -47,6 +47,7 @@ typedef struct Room {
     Object   treasure;
 } Room;
 
+// RoomGraphIndex: maps to array indices in ROOM_GRAPH, so these must not be reordered or renumbered!
 enum RoomGraphIndex {
     RGINDEX_NORTH,
     RGINDEX_SOUTH  [[maybe_unused]],
@@ -56,7 +57,7 @@ enum RoomGraphIndex {
     RGINDEX_DOWN,
     RGINDEX_TREASURE,
     RGINDEX_MONSTER,
-    RGINDEX_1,
-    RGINDEX_2,
+    RGINDEX_TREASURE2,
+    RGINDEX_TREASURE3,
     RGINDEX_COUNT
 };
