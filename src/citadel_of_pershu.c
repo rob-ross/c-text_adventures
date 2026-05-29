@@ -676,7 +676,7 @@ static bool process_quit(const GameState * gs) {
 // will have been displayed
 static bool cmd_move(GameState * gs, char const first_letter) {
     const int location = gs->room;
-    const int direction_index = calc_direction_index(first_letter);
+    const int direction_index = calc_room_graph_direction_index(first_letter);
     if (direction_index == DIRECTION_ERR) {
         display("Bad direction_index, first_letter='");
         printf("%c'\n", first_letter);
@@ -1070,7 +1070,7 @@ static bool is_action_legal(const GameState *gs, char c) {
         if (cmd != 'F' && cmd != 'R') return false;
     }
     // 2. Directional check
-    int dir_idx = calc_direction_index(cmd);
+    int dir_idx = calc_room_graph_direction_index(cmd);
     if (dir_idx != DIRECTION_ERR) {
         return ROOM_GRAPH[room_index][dir_idx] > 0;
     }

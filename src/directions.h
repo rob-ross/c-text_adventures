@@ -31,21 +31,22 @@ enum Direction {
 };
 
 // direction in "NSEWUD"
-static inline enum Direction calc_direction_index(int const direction_char) {
+static inline enum Direction calc_room_graph_direction_index(int const direction_char) {
     switch (toupper(direction_char)) {
-        case 'N': return DIRECTION_NORTH;
-        case 'S': return DIRECTION_SOUTH;
-        case 'E': return DIRECTION_EAST;
-        case 'W': return DIRECTION_WEST;
-        case 'U': return DIRECTION_UP;
-        case 'D': return DIRECTION_DOWN;
-        default:  return DIRECTION_ERR;
+        case 'N': return DIRECTION_NORTH - 1;
+        case 'S': return DIRECTION_SOUTH - 1;
+        case 'E': return DIRECTION_EAST  - 1;
+        case 'W': return DIRECTION_WEST  - 1;
+        case 'U': return DIRECTION_UP    - 1;
+        case 'D': return DIRECTION_DOWN  - 1;
+        default:  return DIRECTION_ERR   - 1;
     }
 }
 
 static inline const char * direction_string(const enum Direction direction_index) {
     switch (direction_index) {
         case DIRECTION_ERR:   return "ERROR";
+        case DIRECTION_NONE:  return "NONE";
         case DIRECTION_NORTH: return "NORTH";
         case DIRECTION_SOUTH: return "SOUTH";
         case DIRECTION_EAST:  return "EAST";

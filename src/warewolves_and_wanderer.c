@@ -71,7 +71,7 @@ enum Idx {
 };
 
 // direction in "NSEWUD"
-static int calc_direction_index(char const direction) {
+static int calc_room_graph_direction_index(char const direction) {
     switch (direction) {
         case 'N': return NORTH;
         case 'S': return SOUTH;
@@ -253,7 +253,7 @@ static void display_room_desc(struct GameState * gs) {
 static bool cmd_move(struct GameState * gs, char first_letter) {
 
     int location = gs->room;
-    int direction_index = calc_direction_index(first_letter);
+    int direction_index = calc_room_graph_direction_index(first_letter);
     if (ROOM_GRAPH[location][direction_index] > 0) {
         gs->room = ROOM_GRAPH[location][direction_index];
         if (gs->room == 11) {
@@ -597,7 +597,7 @@ static bool major_handling_routine(struct GameState * gs) {
         }
 
         if ( strchr(VALID_DIRECTIONS, first_letter) ) {
-            int direction_index = calc_direction_index(first_letter);
+            int direction_index = calc_room_graph_direction_index(first_letter);
             if (ROOM_GRAPH[gs->room][direction_index] == 0) {
                 printf("%s\n", BAD_MOVE_DESC[direction_index]);
                 is_invalid_command = true;
@@ -617,7 +617,7 @@ static bool major_handling_routine(struct GameState * gs) {
 
     if (strchr(VALID_DIRECTIONS, first_letter) ) {
         // move command
-        int direction_index = calc_direction_index(first_letter);
+        int direction_index = calc_room_graph_direction_index(first_letter);
         gs->room = ROOM_GRAPH[gs->room][direction_index];
         if (gs->room == 11) {
             // Exit!!

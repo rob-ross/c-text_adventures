@@ -47,7 +47,7 @@ enum Direction {
 };
 
 // direction in "NSEWUD"
-enum Direction calc_direction_index(char const direction_char) {
+enum Direction calc_room_graph_direction_index(char const direction_char) {
     switch (toupper(direction_char)) {
         case 'N': return DIRECTION_NORTH;
         case 'S': return DIRECTION_SOUTH;
@@ -688,7 +688,7 @@ void fight(struct GameState * gs) {
 // will have been displayed
 bool cmd_move(struct GameState * gs, char const first_letter) {
     const int location = gs->room;
-    const int direction_index = calc_direction_index(first_letter);
+    const int direction_index = calc_room_graph_direction_index(first_letter);
     if (ROOM_GRAPH[location][direction_index] > 0) {
         gs->room = ROOM_GRAPH[location][direction_index];
         return true;

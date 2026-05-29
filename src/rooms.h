@@ -11,7 +11,7 @@
 #include <stddef.h>
 
 #include "monsters.h"
-#include "treasure.h"
+#include "room_objects.h"
 
 //// ------------------------------------------------------------
 ////
@@ -45,6 +45,8 @@ typedef struct Room {
     RandomTextArray  * epilog;
     Monster  monster;
     Object   treasure;
+
+    object_id   objects[10];
 } Room;
 
 // RoomGraphIndex: maps to array indices in ROOM_GRAPH, so these must not be reordered or renumbered!
@@ -61,3 +63,16 @@ enum RoomGraphIndex {
     RGINDEX_TREASURE3,
     RGINDEX_COUNT
 };
+
+constexpr int ROOM_ERR_OBJECT_NOT_FOUND = -3;
+constexpr int ROOM_ERR_ROOM_FULL = -2;
+constexpr int ROOM_ERR_ALREADY_GOT_ONE_YOU_SEE_ITS_VERY_NICE =  -1;
+constexpr int ROOM_SUCCESS = 0;
+
+
+int  room_add_object(Room *r, int object_id);
+int  room_remove_object(Room *r, int object_id);
+bool room_is_full(const Room *r );
+int  room_index_for_object(const Room *r, int object_id );
+int  room_count_of_objects(const Room *r);
+int  room_first_object_index(const Room *r);

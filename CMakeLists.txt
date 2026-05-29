@@ -9,7 +9,10 @@ add_executable(text_adventures src/main.c
         src/asimovian_aftermath.c
         src/warewolves_and_wanderer.c
         src/chateau_gaillard.c
-        src/common/console_utils.c)
+        src/common/console_utils.c
+        src/parser.c
+        src/rooms.c
+        src/room_objects.c)
 
 target_include_directories(text_adventures PUBLIC include)
 
