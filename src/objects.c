@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <sys/_types/_size_t.h>
 
-#include "room_objects.h"
+#include "objects.h"
 
 #include <string.h>
 
@@ -23,15 +23,16 @@ struct ObjectStore {
     Object objects[]; // flexible array
 };
 
+// This store manages each object as a unique identity.
+// E.g., the "chest of stone" is a single unique object in the global environment.
+// If we want to populate many "chest of stone" objects in multiple locations, we need a higher-level data structure
+// like a Class or a prototype for each type of such objects.
 struct ObjectStore * pvt_objects = {};
 
-constexpr int ROOM_OBJECT_NOT_FOUND = -1;
-constexpr int ROOM_OBJECT_NULL_OBJECT_NAME = 0;
-
-Object * find_object(const int object_id) {
+const Object * find_object(const object_id id) {
     const size_t size = pvt_objects->size;
     for (int i = 0; i < size; ++i) {
-        if (pvt_objects->objects[i].id == object_id) {
+        if (pvt_objects->objects[i].id == id) {
             return &pvt_objects->objects[i];
         }
     }
@@ -39,22 +40,43 @@ Object * find_object(const int object_id) {
 }
 
 
-char const * room_objects_name_for_object_id(object_id object_id) {
-    Object *o = find_object(object_id);
+
+static Object * pvt_find_object(const object_id id) {
+    const size_t size = pvt_objects->size;
+    for (int i = 0; i < size; ++i) {
+        if (pvt_objects->objects[i].id == id) {
+            return &pvt_objects->objects[i];
+        }
+    }
+    return nullptr;
+}
+
+bool room_objects_set_open_flag(const object_id id) {
+    Object *o = pvt_find_object(id);
+    if (!o) return false;
+    o->is_open_bit = true;
+    return true;
+}
+
+char const * room_objects_name_for_object_id(const object_id id) {
+    const Object *o = pvt_find_object(id);
     if (!o) {
         return pvt_objects->objects[0].name;
     }
     return o->name;
 }
 
-int room_objects_index_for_name(char const item_name[static 1]) {
+// return the object id for the given item_name. If a partial item_name is passed, performs a "starts with"
+// search to match. But this will return the first object in the store that starts with the argument string,
+// which may or may not be what you are looking for.
+int room_objects_id_for_partial_name(char const item_name[static 1]) {
     if (!item_name) return ROOM_OBJECT_NULL_OBJECT_NAME;
 
     const size_t size = pvt_objects->size;
     for (int i = 1; i < size; ++i) {
-        printf("room_objects_index_for_name: item_name: %s, objects[%d].name:%s, strlen:%zd\n",
-            item_name, i, pvt_objects->objects[i].name, strlen(item_name));
         if (strncmp(item_name, pvt_objects->objects[i].name, strlen(item_name)) == 0 ) {
+            printf("room_objects_id_for_partial_name: item_name: %s, objects[%d].name:%s, strlen:%zd\n",
+                item_name, i, pvt_objects->objects[i].name, strlen(item_name));
             return pvt_objects->objects[i].id;
         }
     }
@@ -63,8 +85,8 @@ int room_objects_index_for_name(char const item_name[static 1]) {
 
 // Changes location of the object
 // Returns the old location
-int room_objects_relocate_object(const int object_id, const int new_location) {
-    Object *o = find_object(object_id);
+int room_objects_relocate_object(const object_id id, const int new_location) {
+    Object *o = pvt_find_object(id);
     int old_loc = o->location;
     o->location = new_location;
     return old_loc;

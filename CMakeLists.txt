@@ -12,7 +12,8 @@ add_executable(text_adventures src/main.c
         src/common/console_utils.c
         src/parser.c
         src/rooms.c
-        src/room_objects.c)
+        src/objects.c
+        src/monsters.c)
 
 target_include_directories(text_adventures PUBLIC include)
 

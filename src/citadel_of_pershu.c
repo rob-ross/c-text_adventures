@@ -647,7 +647,7 @@ static int count_items_carried(const GameState * gs) {
 }
 
 // return true if carrying any items
-static bool has_items(const GameState * gs) {
+static bool actor_has_any_items(const GameState * gs) {
     for (int bag_index = 1; bag_index < ITEM_COUNT; ++bag_index ) {
         if (! gs->items[bag_index] ) {
             return true;
@@ -732,7 +732,7 @@ static void clear_monster(const GameState * gs) {
  * Prints error messages only if verbose is true.
  */
 static bool can_drop_item(const GameState *gs, int item_index, bool verbose) {
-    if (!has_items(gs)) {
+    if (!actor_has_any_items(gs)) {
         if (verbose) display_line("You have nothing to get rid of.");
         return false;
     }

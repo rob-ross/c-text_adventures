@@ -5,9 +5,6 @@
 //
 // Created 2026/05/28 17:49:00 PDT
 
-// Jambooty
-// Created by Rob Ross on 5/28/26.
-//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +28,7 @@
 static const char * const REGEX_HELP   = RSL "(HELP)" REL;
 static const char * const REGEX_QUIT   = RSL "(QUIT)" REL;
 static const char * const REGEX_UNLOCK = RSL "(UNLOCK)";
-static const char * const REGEX_OPEN   = RSL "(OPEN)";
+static const char * const REGEX_OPEN   = RSL "(OPEN)" SP VOBJ REL;
 static const char * const REGEX_READ   = RSL "(READ)";
 
 static const char * const REGEX_NORTH  = RSL "(NORTH|N)" REL;
@@ -52,8 +49,6 @@ static const char * const REGEX_MOVE = RSL "(GO|MOVE|CLIMB|RUN|WALK)" SP VOBJ RE
 static const char * const REGEX_DIRECTION = RSL "(NORTH|SOUTH|EAST|WEST|UP|DOWN|N|S|E|W|U|D)" REL;
 static const char * const REGEX_FIGHT     = RSL "(FIGHT|STAB|KILL|KICK|PUNCH|SLAY|ATTACK)(.*)" REL;
 
-// static const char * const REGEX_VERB_OBJECT = "^[[:space:]]+(.*)";
-
 #undef VOBJ
 #undef REL
 #undef RSL
@@ -68,7 +63,7 @@ static RegexPattern patterns[] = {
     {REGEX_HELP,        {}, "HELP",      CMD_HELP  },
     {REGEX_QUIT,        {}, "QUIT",      CMD_QUIT  },
     {REGEX_UNLOCK,      {}, "UNLOCK" },
-    {REGEX_OPEN,        {}, "OPEN" },
+    {REGEX_OPEN,        {}, "OPEN",      CMD_OPEN  },
     {REGEX_READ,        {}, "READ" },
 
     {REGEX_NORTH,       {}, "NORTH", CMD_NORTH },

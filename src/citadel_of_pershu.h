@@ -25,7 +25,7 @@
 #include "mersenne_twister.h"
 #include "rooms.h"
 #include "monsters.h"
-#include "room_objects.h"
+#include "objects.h"
 #include "directions.h"
 
 

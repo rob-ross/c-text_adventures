@@ -1,0 +1,282 @@
+
+In game architecture, this specific pattern is called the Controller/Possession Pattern
+
+1. The Core Terms to Use
+
+Actor / Pawn: This is the physical body in the game world (the hero, the goblin, the wolf).
+    It holds the stats (health, strength), the inventory, and the physical location. It has zero decision-making power
+    on its own.
+
+Controller: This is the "brain." It contains the logic of what to do next.
+    AIController: A controller driven by code (behavior trees, state machines, or LLMs).
+    PlayerController: A controller driven by human keyboard input.
+
+2. How the Architecture WorksInstead of creating a Player class, you create a generic Actor class.
+    You then "attach" a controller to it.
+    [ PlayerController ] (Human Input)
+                 │
+                 ▼  (Possesses)
+[ Actor: Goblin ] ◄─(Swappable)─► [ Actor: Hero ]
+                 ▲
+                 │  (Possesses)
+           [ AIController ] (Computer Logic)
+
+To swap characters, you simply tell the PlayerController to unpossess the Hero and possess the Goblin.
+Simultaneously, an AIController takes over the Hero so they don't frozen in place.
+
+3. Text Adventure Implementation Example
+
+Because your game is a text-based simulation, here is how you can structure your code objects conceptually:
+    Room Object: Holds a list of Items (swords, potions) and a list of Actors (orc, wizard).
+    Actor Object: Has a property called current_controller.
+    The Game Loop: The game loop simply iterates through every Actor in the world and calls
+        current_controller.get_next_action().
+            If the controller is an AI, it returns "attack hero".
+            If the controller is the Player, it waits for the human to type kill orc.
+
+4. Benefits for your "Sims-like" Simulation
+
+Uniform Rules: Because the human is just another controller, the player cannot do anything a monster couldn't
+    theoretically do if the AI was smart enough.
+Emergent Gameplay: If the player switches from a Hero to a Wolf, the game's text parser automatically changes context.
+    Instead of "You see a sword," the Wolf's perspective might read, "You smell metal and blood."
+
+
+Anything that can be interacted with and is not a living Agent/Actor is an Entity
+
+In game architecture and simulator design, the overarching class for all non-living, physical things in the world
+is almost universally called an Item or a Prop.
+To handle specific distinctions between portable gear and unmovable room objects, developers typically use a
+master class with specific boolean properties or clear inheritance subclasses.
+
+Here is the industry-standard naming convention and structure for these objects:
+
+1. The Master Class: Item, Prop, or Entity
+
+This is the base class for everything that is not an Actor. It handles basic physical properties like name,
+description, weight, and current_location (which could be a Room ID or an Actor’s inventory slot).
+
+2. Subtype 1: Portable Objects (PortableItem or Pickup)
+
+These are the small things that can be added to an Actor’s inventory.
+
+Industry Terms: Item, Collectible, Pickup, Gear, or InventoryItem.
+Common Subclasses:
+    Equippable / Weapon: Can be wielded (swords, shields).
+    Consumable: Destroyed upon use (potions, food).
+    KeyItem: Cannot be dropped or sold; unlocks progression (keys, story notes).
+
+
+3. Subtype 2: Heavy/Fixed Objects (Fixture or StaticMesh)
+
+These are the objects added to a room for gameplay logic, puzzles, or flavor, but they cannot be stuffed into a backpack.
+Industry Terms: Fixture, InteractableProp, DynamicObject, or StaticEntity.
+Common Subclasses:
+MovableProp / PhysicsObject: The heavy boulder you mentioned. It has properties like weight or
+    strength_required_to_push, allowing strong Actors to move it between rooms or move it aside to reveal a hidden door.
+Container: Chests, wardrobes, or crates. They cannot be picked up, but they hold a sub-list of PortableItems that
+    can be taken.
+DecorativeInteractable: The tapestry you mentioned. It cannot be taken, but it has states (e.g., is_hanging = true).
+    An Actor can use an action like examine tapestry or pull tapestry to trigger a hidden switch.
+
+Recommended Code Blueprint (Conceptual)To make your "Sims-style" text simulation elegant, you can use
+a unified hierarchy where portability is just a trait. This prevents you from needing separate code logic to move
+a boulder versus moving a pebble.
+
+                  [ Base Entity ]
+                         │
+        ┌────────────────┴────────────────┐
+        ▼                                 ▼
+    [ Actor ]                          [ Item ]
+(Hero, Wolf, Orc)             (Has weight, description)
+                                          │
+                        ┌─────────────────┴─────────────────┐
+                        ▼                                   ▼
+                [ PortableItem ]                        [ Fixture ]
+            (is_carryable = true)                  (is_carryable = false)
+                        │                                   │
+         ┌──────────────┴──────────────┐             ┌──────┴──────────────┐
+         ▼                             ▼             ▼                     ▼
+    [ Weapon ]                   [ Consumable ]  [ Container ]       [ MovableProp ]
+  (Sword, Bow)                  (Potion, Bread) (Chest, Desk)       (Boulder, Cart)
+
+
+Why this fits your Simulation Goal
+
+By giving the base Item class a property like weight and the Actor class a property like carry_capacity,
+you don't even need hardcoded classes to separate them.
+
+A pebble has a weight of 1. Any Actor can carry it.
+A sword has a weight of 5. Most Actors can carry it.
+A boulder has a weight of 500. No Actor has a carry capacity that high, so it is naturally "un-pickable,"
+but a giant Actor might have a push_capacity of 600, allowing them to shove it.
+
+
+How to "guard" traversal edges between nodes, i.e., handle locked door:
+
+Using a "guard" mechanism attached to your room edges is an incredibly elegant solution for a graph-based simulation.
+In software architecture and game design, this design pattern is formally known as a Gatekeeper, Condition Guard, or
+a Traversal Predicate.
+By making these guards modular objects rather than hardcoding "locked" logic directly into the room, you can swap, add,
+or remove them dynamically during runtime.
+
+Here is how you can classify, name, and structure this system for your text adventure.
+
+1. Architectural Names for the System
+
+EdgeGuard / TraversalGuard: This is the most accurate mechanical term. The object "guards" the graph edge and
+evaluates whether an Actor meets the conditions to pass.
+Blocker / Obstacle: A more gameplay-focused term. The edge is blocked until the obstacle is resolved.
+Lock / Keyhole: A literal term, though it might feel conceptually awkward if the guard is a sleeping dragon instead
+ of a door lock.
+
+ 2. Types of Edge Guards (Subclasses)Because your game is a simulation, "unlocking" an edge doesn't just have to mean
+ using a literal key. By creating an EdgeGuard base class, you can implement several clever subtypes:
+
+ ItemGuard (The Key Lock): Requires the traversing Actor to have a specific Portable Item (e.g., a brass key) in
+ their inventory. As you noted, once used, the guard can be deleted entirely, or its is_locked state flips to false.
+
+ AttributeGuard (The Stat Check): Requires the Actor to have a certain stat. For example, a "Heavy Rubble" guard
+ on the Down edge requires Actor.strength > 15 to clear.
+
+ StateGuard (The Event Lock): Checks a global game variable. For example, the East gate is blocked by a magical barrier
+ until the global event boss_is_dead = true.
+
+ ActorGuard (The Living Sentinel): The edge is blocked because a specific hostile creature is in the room.
+ The player cannot go North because a giant spider is guarding that archway. Once the spider is killed
+ (removed from the room), the edge becomes free.
+
+ 3. How to Structure the Edge Object
+
+ Instead of your room edges being simple pointers to another room ID, they can be objects themselves.
+
+ {
+   "direction": "North",
+   "destination_room_id": "room_102",
+   "guard": {
+     "type": "ItemGuard",
+     "required_item_id": "iron_key",
+     "locked_description": "A heavy iron door blocks the way North. It has a massive keyhole.",
+     "unlock_text": "You turn the iron key. The door creaks open permanently."
+   }
+ }
+
+4. How the Traversal Logic Executes
+When an Actor (Player or AI) attempts a command like go north, the engine runs a quick checklist:
+
+Check Edge: Does the North edge exist? (If null, print "You can't go that way.")
+Check Guard: Does the edge have an active EdgeGuard object attached?
+Evaluate: If yes, call guard.can_pass(actor).
+    If True: The actor moves to the destination room. If the guard is a one-time lock, the engine deletes
+        the guard from the edge.
+    If False: The movement fails, and the engine prints the guard's locked_description.
+
+
+
+Why this fits your AI Simulation goals
+
+This architecture is incredibly powerful for your future AI controlled heroes and monsters. Because
+the EdgeGuard exposes its requirements, the AI can read them!
+
+If an AI hero wants to go North to escape a monster, but the path is blocked by an ItemGuard requiring an iron_key,
+the AI's pathfinding system can scan the surrounding rooms for the key, go pick it up, return to the room, and unlock
+the door—exactly like a human player would.
+
+Separate automatic checks from active commands.
+In game architecture, this is done by giving your EdgeGuard a property or method that dictates how it handles
+validation.Here is the best way to model both systems and integrate the "unlock door" command into your edge guard.
+
+1. The Core Property: TriggerType
+
+You can add a simple property to your EdgeGuard called trigger_type. This defines how the guard reacts to the actor.
+
+PASSIVE (The silent/automatic model): The guard checks the actor's inventory the exact moment they type go north.
+If they have the key, it deletes itself instantly and lets them through.
+ACTIVE (The command-required model): The guard blocks movement until a specific interaction command
+is successfully targeted at it. Walking into it with the key will just return the locked message.
+
+2. Modeling the Data StructureHere is how you can represent these two different doors using the exact same
+EdgeGuard class template.
+
+The Silent/Passive Guard (Example 1)
+
+{
+  "direction": "North",
+  "destination_room_id": "room_102",
+  "guard": {
+    "name": "rusty gate",
+    "trigger_type": "PASSIVE",
+    "required_item_id": "rusty_key",
+    "consume_item": true,
+    "locked_description": "A rusty iron gate bars the way North."
+  }
+}
+
+The Command-Required/Active Guard (Example 2)
+
+{
+  "direction": "West",
+  "destination_room_id": "room_105",
+  "guard": {
+    "name": "oak door",
+    "trigger_type": "ACTIVE",
+    "required_item_id": "brass_key",
+    "consume_item": false,
+    "locked_description": "A heavy oak door to the West is locked.",
+    "unlock_text": "You turn the brass key in the oak door. It clicks open permanently."
+  }
+}
+
+3. How the "Unlock Door" Command Integrates
+
+When a player types unlock door or unlock west door, your regex parser matches the intent.
+Here is the step-by-step logic your engine executes to resolve that command:
+
+Step A: Find the Target Guard
+
+The engine scans the current room's edges to see if any active EdgeGuard matches the name the player typed
+(e.g., "door").
+    If the player typed unlock door and there is a guard on the West edge named "oak door", the engine selects
+    that guard.
+    If there are multiple locked doors, the engine asks for clarification ("Which door do you mean, North or West?").
+
+Step B: Execute the unlock() Method
+
+Once the engine locates the guard on the West edge, it passes the actor's inventory to the guard's unlock function:
+Check Trigger Type: If the guard's trigger_type is PASSIVE, it might say:
+    "You don't need to unlock this manually; just try walking through it."
+Check Key: It checks if brass_key is in the actor's inventory. If missing:
+    "You don't have the right key for this door."
+Resolve Unlock: If the key is present, the guard prints its unlock_text.
+Remove the Guard: The engine deletes the guard object from the West edge. The edge is now a standard,
+    completely unrestricted link to room_105.
+
+4. Updating the Room Description Permanently
+
+You mentioned wanting the room description to change permanently (e.g., changing from "A heavy oak door to the
+West is locked" to "The door to the West is unlocked").
+Instead of hardcoding a different room text string, you can make your room description dynamic using
+string interpolation. Your room description function can automatically check the status of its edges.
+
+def get_room_description(room):
+    text = room.base_description  # "You are in a damp dungeon cell."
+
+    # Dynamically append edge information
+    for edge in room.edges:
+        if edge.guard is not None:
+            # If the guard is still there, print its locked status
+            text += f" {edge.guard.locked_description}"
+        else:
+            # If the guard is gone (unlocked), print the open path
+            text += f" An open archway leads {edge.direction}."
+
+    return text
+
+Why this benefits your AI Simulation
+By using the ACTIVE model with explicit unlock commands, your future AI agents will navigate the world logically.
+Instead of just teleporting through doors, an AI hero's decision tree will look like this:
+Goal: Go West.
+Obstacle: Edge is blocked by an ACTIVE guard named "oak door" requiring "brass_key".
+Check Inventory: AI has "brass_key".
+Action: AI executes the command unlock oak door.
+Action: AI executes the command go west.

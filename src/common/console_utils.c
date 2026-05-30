@@ -67,6 +67,7 @@ void char_sleep(const int32_t microseconds) {
 //display string without adding newline
 void display(char const* msg ) {
     if (GLOBAL_silent_mode) return;
+    if (!msg) { msg = "(null)"; }
 
     fflush(stdout);
     for (char const *next = msg; *next; ++next) {
