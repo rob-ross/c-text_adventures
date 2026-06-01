@@ -15,7 +15,7 @@
 clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
     -std=c23 -o chateau_gaillard.out chateau_gaillard.c mersenne_twister.c \
-     common/console_utils.c common/string.c parser.c room_objects.c rooms.c monsters.c
+     common/console_utils.c common/string.c parser.c objects.c rooms.c monsters.c
 
 */
 #include "chateau_gaillard.h"
@@ -24,6 +24,10 @@ clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werro
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+uint32_t DEBUG_NORMAL_SLEEP = 0;
+uint32_t DEBUG_VISITED_SLEEP = 0;
+bool DEBUG = true;
 
 static void cleanup(GameState *gs);
 
@@ -162,14 +166,13 @@ static void display_room_desc(GameState *gs) {
 static void display_room_monster(GameState *gs) {
     if (GLOBAL_silent_mode) return;
 
-    const int monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    if (monster_index == 0) {
+    const monster_id id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
+    if (id == 0) {
         return;
     }
-    Room room = ROOMS[gs->room];
     display_line("\nLOOK OUT!");
     display("There is a ");
-    display(room.monster.name);
+    display(monsters_name_for_id( id));
     display_line(" here!");
 }
 
@@ -192,7 +195,7 @@ static void display_room_treasure(const GameState *gs) {
 
     for (int i = 0; i < 10; ++i) {
         if (room->objects[i]) {
-            vdisplay_line("(id=%d) %s\n", room->objects[i], room_objects_name_for_object_id(room->objects[i]));
+            vdisplay_line("(id=%d) %s\n", room->objects[i], obj_name_for_object_id(room->objects[i]));
             // display_line(room_objects_name_for_object_id(room->objects[i]));
         }
     }
@@ -229,57 +232,24 @@ static void display_char_attributes(const CharStats stats) {
     printf("%2d\n", stats.constitution);
 }
 
-static void display_inventory(const GameState *gs) {
-    if (GLOBAL_silent_mode) return;
-
-    bool has_items = false;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (gs->items[i] != 0) {
-            has_items = true;
-            break;
-        }
-    }
-
-    if (!has_items) {
-        display_line("You are not carrying anything.");
-        return;
-    }
-
-    display_line("\nYou are carrying:");
-    int item_count = 0;
-    int cash = 0;
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
-        if (gs->items[bag_index]) {
-            printf("%d. ", bag_index + 1);
-            display(OBJECTS[gs->items[bag_index]].name);
-            display("  ");
-            item_count++;
-            cash += OBJECTS[gs->items[bag_index]].value;
-            if (!(item_count % 3)) {
-                display_line(""); // display 3 items per line
-            }
-        }
-    }
-
-    if (item_count % 3) {
-        display_line("");
-    }
-
-    if (cash > 0) {
-        display("Total value - $");
-        printf("%d\n", cash);
-    }
-}
-
 
 // clear the monster in the current room and its entry in the ROOMS array
 static void clear_monster(const GameState *gs) {
     ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
-    ROOMS[gs->room].monster = (Monster){};
+    ROOMS[gs->room].monster = 0;
 }
 
 // Returns true if the user can move from the current room via the direction
 bool check_can_move(GameState *gs, int const direction, const bool verbose) {
+    const int room_id = gs->room;
+    // check for transition guards, like locks on doors, puzzles solved, equipment carried, etc.
+    // i.e., if room_index == ROOM_YELLOW && (dwarf_alive) print("Dwarf stops you"); return false;
+    const Room * r = room_find_room(room_id);
+    if (room_id == ROOM_YELLOW && r->monster == MONSTER_DWARF ) {
+        if (verbose){ display_line("\nThe dwarf refuses to let you proceed."); }
+        return false;
+    }
+
     if (!strchr(VALID_DIRECTIONS, direction)) {
         if (verbose) vdisplay_line("I don't know how to go %c.", direction);
         return false;
@@ -291,33 +261,33 @@ bool check_can_move(GameState *gs, int const direction, const bool verbose) {
         return false;
     }
 
-    const int room_index = gs->room;
-    const int next_room_index = ROOM_GRAPH[room_index][direction_index];
-    if (next_room_index == 0) {
+    const int next_room_id = ROOM_GRAPH[room_id][direction_index];
+    if (next_room_id == 0) {
         display_line("");
         display_line(BAD_MOVE_DESC[direction_index]);
         return false;
     }
 
-    if (next_room_index < 0 || next_room_index >= NUM_ROOMS) {
-        vdisplay_line("runtime error: next_room_index is out of bounds: %d, expected range [0, %d]",
-                      next_room_index, NUM_ROOMS - 1);
+    if (next_room_id < 0 || next_room_id >= NUM_ROOMS) {
+        if (verbose) {
+            vdisplay_line("runtime error: next_room_index is out of bounds: %d, expected range [0, %d]",
+                          next_room_id, NUM_ROOMS - 1);
+        }
         return false;
     }
 
-    // check for transition guards, like locks on doors, puzzles solved, equipment carried, etc.
-    // i.e., if room_index == ROOM_YELLOW && (dwarf_alive) print("Dwarf stops you"); return false;
 
 
     return true;
 }
 
 // ML/engine path
-static bool move_action(GameState *gs, int const first_letter) {
+static bool action_move(GameState *gs, int const first_letter) {
     if (!check_can_move(gs, first_letter, false)) {
         return false;
     }
     const int direction_index = calc_room_graph_direction_index(first_letter);
+    gs->room_prev = gs->room;
     gs->room = ROOM_GRAPH[gs->room][direction_index];
     return true;
 }
@@ -326,7 +296,17 @@ static bool move_action(GameState *gs, int const first_letter) {
 // Expect the first letter of the object[] to be in "NSEWUD".
 // Return true if the command was successfully processed. If false, the move is not allowed and an error message
 // will have been displayed.
-static bool cmd_move(GameState *gs, const struct ParsedCommand *pc) {
+static bool cmd_move(GameState *gs, const ParsedCommand *pc) {
+    const enum Command ocmd = pc->verb_object_command;
+    if ( (ocmd < CMD_NORTH || ocmd > CMD_DOWN)) {
+        if (!pc->has_verb_object) {
+            vdisplay_line("%s where?", pc->verb);
+        } else {
+            vdisplay_line("I don't know how to %s '%s'.", pc->verb, pc->verb_object);
+        }
+        return false;
+    }
+
     const int first_letter = toupper(pc->verb_object[0]);
     if (!check_can_move(gs, first_letter, true)) {
         return false;
@@ -335,7 +315,7 @@ static bool cmd_move(GameState *gs, const struct ParsedCommand *pc) {
 }
 
 //return false if fight action could not be completed, otherwise return true
-bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatIndex stat2) {
+bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex stat1, const enum StatIndex stat2) {
     if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
         return false; // nothing to fight
     }
@@ -348,26 +328,43 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
         }
     }
     if (missing_weapon) {
-        display("You're not carrying a ");
-        display(OBJECTS[weapon].name);
-        display_line(".");
+        const Object *o = obj_find_object(weapon);
+        if (!o) {
+            vdisplay_line("unknown weapon id=%d", weapon);
+            return false;
+        }
+        vdisplay("You're not carrying a %s.", o->name);
         return false;
     }
+    // We add to the hero_tally (8 - weapon)
+    // that will give us 7 extra points for using the axe, down to 1 extra point for using a falchion.
+
+    int weapon_strength = weapon <= OBJECT_FALCHION ? 8 - weapon : 8;
+    // possible weapons range from 1. axe to 7. falchion. Axe is the best weapon and should add bonus points to hero tally.
+    int weapon_bonus = weapon_strength; //here we use the ordinality of the object_ids, but eventually weapons will
+    // have their own attributes we will query
+
+    printf("weapon:%d, weapon_strength:%d, weapon_bonus:%d\n",weapon, weapon_strength, weapon_bonus);
 
     gs->monsters_fought++;
     // gs->must_fight = false;
-
-    Monster m = ROOMS[gs->room].monster;
+    const monster_id mid = ROOMS[gs->room].monster;
+    const Monster *m = monsters_find_monster(mid);
+    const char * monster_name = monsters_name_for_id(mid);
     int monster_tally = 0;
     int hero_tally = 0;
-    int ferocity_factor = m.ferocity_factor * 2.0 / weapon;
+    // average stat is 10.5, sum of 6 average stats is 63. This is the total stats of an average monster.
+    // higher than this is a stronger monster, lower is a weaker monster.
+    double ferocity_multiplier = (m->ferocity_factor / 63.0 );
     hero_tally += gs->stats.as_array[stat1];
     hero_tally += gs->stats.as_array[stat2];
-    monster_tally += m.stats.as_array[stat1];
-    monster_tally += m.stats.as_array[stat2];
+    hero_tally += weapon_bonus;
 
-    // todo (rob) ferocity_factor is computed but never used here. We should add to the hero_tally 8 - weapon -
-    // that will give us 7 extra points for using the axe, down to 1 extra point for using a falchion.
+    monster_tally += m->stats.as_array[stat1];
+    monster_tally += m->stats.as_array[stat2];
+    printf("before multiplying ff: ferocity_factor = %d, ferocity_multiplier=%g, monster_tally=%d\n", m->ferocity_factor, ferocity_multiplier, monster_tally);
+    monster_tally = (int)(monster_tally * ferocity_multiplier);
+
 
     if (!GLOBAL_silent_mode) {
         if (hero_tally == monster_tally) {
@@ -375,16 +372,10 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
         } else if (hero_tally > monster_tally) {
             display_line("It looks like the odds are in favor of you.");
         } else {
-            display("It looks like the odds are in favor of the ");
-            display(m.name);
-            display_line(".");
+            vdisplay_line("It looks like the odds are in favor of the %s.", monster_name);
         }
-        display("The ");
-        display(m.name);
-        display(" - ");
-        printf("%d\n", monster_tally);
-        display("You - ");
-        printf("%d\n", hero_tally);
+        vdisplay_line("The %s - %d", monster_name, monster_tally);
+        vdisplay_line("You - %d", hero_tally);
     }
 
     for (;;) {
@@ -395,17 +386,13 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
                 monster_tally--;
                 break;
             case 1:
-                display("The ");
-                display(m.name);
-                display_line(" strikes out.");
+                vdisplay_line("The %s strikes out.", monster_name);
                 hero_tally--;
                 gs->stats.strength--;
                 gs->stats.charisma--;
                 break;
             case 2:
-                display("You draw the ");
-                display(m.name);
-                display_line("'s blood!");
+                vdisplay_line("You draw the %s's blood!", monster_name);
                 monster_tally--;
                 break;
             case 3:
@@ -414,9 +401,7 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
                 gs->stats.dexterity--;
                 break;
             case 4:
-                display("The ");
-                display(m.name);
-                display_line(" is tiring.");
+                vdisplay_line("The %s is tiring.", monster_name);
                 monster_tally--;
                 break;
             case 5:
@@ -427,9 +412,7 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
                 break;
             case 6:
             default:
-                display("You wound the ");
-                display(m.name);
-                display_line("");
+                vdisplay_line("You wound the %s", monster_name);
                 monster_tally--;
                 break;
         }
@@ -443,7 +426,7 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
         gs->monsters_killed++;
     } else {
         display("The ");
-        display(m.name);
+        display(m->name);
         display_line(" got the better of you that time.");
         if (stat1 == STAT_STRENGTH || stat2 == STAT_STRENGTH) {
             gs->stats.strength = 4 * gs->stats.strength / 5;
@@ -475,10 +458,16 @@ bool fight_action(GameState *gs, int weapon, enum StatIndex stat1, enum StatInde
     return true;
 }
 
+//// ------------------------------------------------------------
+////
+////    ACTOR FUNCTIONS
+////
+//// ------------------------------------------------------------
+
 // Removes the object id from the user's list of items.
 // Returns true if the user was carrying this item, or false if the item was not present.
 // after this method completes, the object id will no longer be in the agent's item list.
-static bool actor_clear_object_id(GameState *gs, const object_id id) {
+static bool actor_remove_object(GameState *gs, const object_id id) {
     if (id < 1 || id >= NUM_OBJECTS) {
         return false;
     }
@@ -486,6 +475,7 @@ static bool actor_clear_object_id(GameState *gs, const object_id id) {
     for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
         if (gs->items[bag_index] == id) {
             gs->items[bag_index] = 0;
+            obj_clear_location(id);
             return true;
         }
     }
@@ -494,25 +484,25 @@ static bool actor_clear_object_id(GameState *gs, const object_id id) {
 
 
 // Returns the object id of the first object in the actor's items[],
-// or ACTOR_OBJECT_NOT_FOUND if there are no items
+// or ROOM_OBJ_NOT_FOUND if there are no items
 static int actor_first_object_id(const GameState *gs) {
     for (int i = 0; i < MAX_ITEMS; ++i) {
         if (gs->items[i] != 0) {
             return gs->items[i];
         }
     }
-    return ROOM_OBJECT_NOT_FOUND;
+    return OBJ_NOT_FOUND;
 }
 
 // return the object id for the given item_name. If a partial item_name is passed, performs a "starts with"
 // search to match. But this will return the first object in the store that starts with the argument string,
 // which may or may not be what you are looking for.
 static int actor_object_id_for_partial_name(const GameState *gs, char const item_name[static 1]) {
-    if (!item_name) return ROOM_OBJECT_NULL_OBJECT_NAME;
+    if (!item_name) return OBJ_NULL_OBJECT_NAME;
 
     for (int i = 0; i < MAX_ITEMS; ++i) {
         if (gs->items[i] != 0) {
-            const Object *o = find_object(gs->items[i]);
+            const Object *o = obj_find_object(gs->items[i]);
             if (strncmp(item_name, o->name, strlen(item_name)) == 0) {
                 printf("actor_object_id_for_partial_name: item_name: %s, items[%d].name:%s, strlen:%zd\n",
                        item_name, i, o->name, strlen(item_name));
@@ -520,8 +510,10 @@ static int actor_object_id_for_partial_name(const GameState *gs, char const item
             }
         }
     }
-    return ROOM_OBJECT_NOT_FOUND;
+    return OBJ_NOT_FOUND;
 }
+
+
 
 static int actor_count_of_objects(const GameState *gs) {
     int count = 0;
@@ -535,8 +527,10 @@ static int actor_count_of_objects(const GameState *gs) {
 static bool actor_has_item_named(const GameState *gs, char const *item_name) {
     if (!item_name) return false;
     for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (gs->items[i]) {
-            if (strcmp(OBJECTS[gs->items[i]].name, item_name) == 0) {
+        const object_id id = gs->items[i];
+        if ( id ) {
+            const Object *o = obj_find_object(id);
+            if ( o && strcmp(o->name, item_name) == 0) {
                 return true;
             }
         }
@@ -568,6 +562,52 @@ static bool actor_has_any_items(const GameState *gs) {
     return false;
 }
 
+
+static void actor_display_inventory(const GameState *gs) {
+    if (GLOBAL_silent_mode) return;
+
+    bool has_items = false;
+    for (int i = 0; i < MAX_ITEMS; ++i) {
+        if (gs->items[i] != 0) {
+            has_items = true;
+            break;
+        }
+    }
+
+    if (!has_items) {
+        display_line("You are not carrying anything.");
+        return;
+    }
+
+    display_line("\nYou are carrying:");
+    int item_count = 0;
+    int cash = 0;
+    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
+        object_id id = gs->items[bag_index];
+        if (id) {
+            const Object *o = obj_find_object(id);
+            vdisplay("%d. %s  ", bag_index + 1, o->name);
+            item_count++;
+            cash += o->value;
+            if (!(item_count % 3)) {
+                display_line(""); // display 3 items per line
+            }
+        }
+    }
+
+    if (item_count % 3) {
+        display_line("");
+    }
+
+    if (cash > 0) {
+        display("Total value - $");
+        printf("%d\n", cash);
+    }
+}
+
+
+
+
 /**
  * Shared Validation: Can something be opened here?
  * Returns true if valid, false otherwise.
@@ -576,9 +616,9 @@ static bool actor_has_any_items(const GameState *gs) {
 static bool can_open(const GameState *gs, const bool verbose) {
     // todo (rob) simple implementation for now. This app has 2 chests,only the chest
     // in Room 40 has something in it.
-    const Room *r = &ROOMS[gs->room];
+    const Room *r = room_find_room(gs->room);
     if (room_contains_object(r, OBJECT_STONE_CHEST) ||
-        room_contains_object(r, OBJECT_STONE_CHEST)) {
+        room_contains_object(r, OBJECT_IRON_CHEST)) {
         return true;
     }
     if (verbose) display_line("There is nothing here to open.");
@@ -589,7 +629,7 @@ bool action_open(GameState *gs, object_id id) {
     if (!can_open(gs, false)) {
         return false;
     }
-    return room_objects_set_open_flag(id);
+    return obj_set_open_flag(id);
 }
 
 static bool cmd_open(GameState *gs, const struct ParsedCommand *pc) {
@@ -599,9 +639,9 @@ static bool cmd_open(GameState *gs, const struct ParsedCommand *pc) {
     const Room *r = &ROOMS[gs->room];
     const Object *o;
     if (room_contains_object(r, OBJECT_IRON_CHEST)) {
-        o = find_object(OBJECT_IRON_CHEST);
+        o = obj_find_object(OBJECT_IRON_CHEST);
     } else {
-        o = find_object(OBJECT_STONE_CHEST);
+        o = obj_find_object(OBJECT_STONE_CHEST);
     }
     if (!o) return false;
     const object_id id = o->id;
@@ -644,18 +684,18 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
 }
 
 /** Logic Entry Point: ML and Human both end up here */
-bool drop_action(GameState *gs, int object_id) {
+bool acton_drop(GameState *gs, int object_id) {
     if (!can_drop_item(gs, object_id, false)) return false;
 
-    if (!actor_clear_object_id(gs, object_id)) {
+    if (!actor_remove_object(gs, object_id)) {
         return false;
     }
     return room_add_object(&ROOMS[gs->room], object_id) == ROOM_SUCCESS;
 }
 
 // Entry point for the human user path.
-// This displays some information, prompts the user for some choices, and passes those to
-// drop_action(), the ML entry point for the drop action.
+// This finds the item in the VO, and passes those to
+// drop_action(), the ML entry point for the read action.
 static bool cmd_drop(GameState *gs, const struct ParsedCommand *pc) {
     object_id id = 0;
     if (!pc->has_verb_object) {
@@ -668,7 +708,7 @@ static bool cmd_drop(GameState *gs, const struct ParsedCommand *pc) {
             }
         }
     } else {
-        // try to take drop this object by name
+        // try to drop this object by name
         id = actor_object_id_for_partial_name(gs, pc->verb_object);
     }
 
@@ -676,6 +716,67 @@ static bool cmd_drop(GameState *gs, const struct ParsedCommand *pc) {
     if (!can_drop_item(gs, id, true)) return false;
 
     return perform_action(gs, CMD_DROP, id, 0, 0);
+}
+
+
+/**
+ * Shared Validation: Can the item be be read?
+ * Returns true if valid, false otherwise.
+ * Prints error messages only if verbose is true.
+ */
+static bool can_read_item(const GameState *gs, const object_id id, const bool verbose) {
+    if (!id || !actor_has_item(gs, id)) {
+        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
+        return false;
+    }
+    const Object *o = obj_find_object(id);
+    if ( !o ) {
+        if (verbose) vdisplay_line("unknown object id=%d", id);
+        return false;
+    }
+    if ( !o->is_readable_bit) {
+        if (verbose) vdisplay_line("You can't read the %s", o->name);
+        return false;
+    }
+    return true;
+}
+
+static bool action_read(GameState *gs, object_id id) {
+    if (!can_read_item(gs, id, false)) return false;
+    // todo (rob) the object needs to contain the text of what can be read.
+    // in this current game there's only one scroll OBJECT_MYSTIC_SCROLL
+    // all that happens when reading the scroll is text information presented to the user, which is handled in
+    // cmd_read(). There is currently nothing else for this action_read() method to perform.
+
+    return true;
+}
+
+// Entry point for the human user path.
+// This finds the item in the VO, and passes those to
+// read_action(), the ML entry point for the read action.
+static bool cmd_read(GameState *gs, const struct ParsedCommand *pc) {
+    if (!pc->has_verb_object) {
+        display_line("read what?");
+        return false;
+    }
+    // try to read this object by name
+    const object_id id = actor_object_id_for_partial_name(gs, pc->verb_object);
+    if ( id == OBJ_NOT_FOUND) {
+        vdisplay_line("You can't read a %s", pc->verb_object);
+        return false;
+    }
+
+    // Pre-check: If the user doesn't have the item, skip the action
+    if (!can_read_item(gs, id, true)) return false;
+
+    if (id != OBJECT_MYSTIC_SCROLL ) return false;
+
+    const double roll = rnd_d(gs);
+    if (roll < .333)       display_line("It says 'The locks need special keys.'");
+    else if (roll < .666 ) display_line("The scroll reads: ''Chests can contain aid.");
+    else                   display_line("It says 'The amulet is important.'");
+
+    return perform_action(gs, CMD_READ, id, 0, 0);
 }
 
 
@@ -712,15 +813,15 @@ static bool can_take_item(const GameState *gs, const object_id id, const bool ve
 }
 
 /** Logic Entry Point: ML and Human both end up here */
-bool take_action(GameState *gs, const object_id id) {
+bool action_take(GameState *gs, const object_id id) {
     if (!can_take_item(gs, id, false)) return false;
 
     for (int i = 0; i < MAX_ITEMS; ++i) {
         if (!gs->items[i]) {
-            int room_index = gs->room;
+            room_id room_id = gs->room;
             gs->items[i] = id;
-            room_remove_object(&ROOMS[room_index], id);
-            room_objects_relocate_object(id, -1);
+            room_remove_object(&ROOMS[room_id], id);
+            obj_relocate_object(id, -1);
             return true;
         }
     }
@@ -745,7 +846,7 @@ static bool cmd_take(GameState *gs, const struct ParsedCommand *pc) {
         }
     } else {
         // try to take this object by name
-        id = room_objects_id_for_partial_name(pc->verb_object);
+        id = obj_id_for_partial_name(pc->verb_object);
     }
 
     // Pre-check: make sure the object_index is valid and exists in the room
@@ -754,12 +855,116 @@ static bool cmd_take(GameState *gs, const struct ParsedCommand *pc) {
     bool success = perform_action(gs, CMD_TAKE, id, 0, 0);
 
     if (success) {
-        vdisplay_line("\nYou now have the object_index:%d, %s", id, room_objects_name_for_object_id(id));
+        vdisplay_line("\nYou now have the object_index:%d, %s", id, obj_name_for_object_id(id));
     }
 
     return success;
 }
 
+static void set_state_death_by_dwarf(GameState *gs) {
+    gs->QU = 3;
+    gs->is_dead = true;
+    gs->completed = true;
+}
+
+static bool can_pay(const GameState *gs, const monster_id unused, const bool verbose) {
+    const Room *r = &ROOMS[gs->room];
+    const monster_id mid = r->monster;
+
+    if (mid != MONSTER_DWARF) {
+        return false;
+    }
+
+    return true;
+}
+
+/** Logic Entry Point: ML and Human both end up here */
+bool action_pay(GameState *gs, const monster_id unused ) {
+    if (!can_pay(gs, 0, false)) return false;
+
+    // the model action on success will be to
+    // 1. Remove the dwarf from the room.
+    // 2. Remove the amulet from the player's bag, set location to 0
+
+    // on failure,
+    // 1. 50% chance that the dwarf steals the first item in the player's bag.
+    // 2. If the bag is empty, or if the first random check is the other 50%, the dwarf kills you and the game ends
+    if (actor_has_item(gs, OBJECT_AMULET)) {
+        display_line("Lucky for you that you had it!");
+        clear_monster(gs);
+        actor_remove_object(gs, OBJECT_AMULET);
+    } else {
+        display_line("You do not have it!");
+        if (rnd_d(gs) < .5 ) {
+            display_line("He would accept anything that he really wants.\nBut you have nothing, and so he kills you.");
+            set_state_death_by_dwarf(gs);
+            return false;
+        }
+        display("He decides, however, to accept a 'gift' of");
+        const object_id id = actor_first_object_id(gs);
+        if (id == OBJ_NOT_FOUND) {
+            display_line(" anything valuable.\nBut you have nothing and so he kills you.");
+            set_state_death_by_dwarf(gs);
+            return false;
+        }
+        const Object *o = obj_find_object(id);
+        vdisplay_line(" the %s", o->name);
+        clear_monster(gs);
+        actor_remove_object(gs, id);
+    }
+
+    return true;
+}
+
+// Helper method that checks if the name in the argument matches the name of any monster in the
+// current room. Performs a starts-width, case-insensitive search. Thus, if there is a "Dragon" in the room,
+// search strings "Dragon", "DRAGON", "drag", etc., will all match. The search string is extracted from
+// pc->verb_object. pc->verb is also used for error messages.
+//
+static bool verify_monster_choice(const GameState *gs, const ParsedCommand *pc) {
+    const Room *current_room = &ROOMS[gs->room];
+    // case 1 no monster
+    if (current_room->monster == 0) {
+        if (pc->has_verb_object) {
+            vdisplay_line("There is no %s here to %s.", pc->verb_object, pc->verb);
+        } else {
+            vdisplay_line("There is nothing here to %s.", pc->verb);
+        }
+        return false;
+    }
+
+    if (pc->has_verb_object ) {
+        // player is referencing a monster by name
+        const bool is_present = monsters_monster_is_in_room(pc->verb_object, current_room );
+        if (!is_present) {
+            vdisplay_line("There is no %s here.", pc->verb_object);
+            return false;
+        }
+    }
+    return true;
+}
+
+
+static bool cmd_pay(GameState *gs, const ParsedCommand *pc) {
+    const Room *current_room = &ROOMS[gs->room];
+    if (! verify_monster_choice(gs, pc) ) return false;
+
+    // case 2, monster is present
+    const Monster *m = monsters_find_monster(current_room->monster);
+    // player is paying a monster by name
+    if ( current_room->monster != MONSTER_DWARF ) {
+        vdisplay_line("You cannot %s the %s", pc->verb, m->name);
+        //monster_is_insulted= true;
+        return false;
+    }
+
+    if (!can_pay(gs, MONSTER_DWARF, true)) return false;
+
+    // here we know the room has a dwarf and the command was properly formatted
+    display_line("\nHe demands the amulet!");
+
+    return perform_action(gs, CMD_PAY, MONSTER_DWARF, 0, 0);
+}
 
 /**
   * Core Game Engine Logic
@@ -785,52 +990,53 @@ bool perform_action(GameState *gs, enum Command const cmd, const int arg1, const
 
     switch (cmd) {
         case CMD_FIGHT:
-            result = fight_action(gs, arg1, (enum StatIndex) arg2, (enum StatIndex) arg3);
+            result = action_fight(gs, arg1, (enum StatIndex) arg2, (enum StatIndex) arg3);
             break;
         case CMD_MOVE:
-            result = move_action(gs, arg1);
+            result = action_move(gs, arg1);
             break;
         case CMD_DROP:
-            result = drop_action(gs, arg1);
+            result = acton_drop(gs, arg1);
             break;
         case CMD_TAKE:
-            result = take_action(gs, arg1);
+            result = action_take(gs, arg1);
             break;
         case CMD_OPEN:
             result = action_open(gs, arg1);
+            break;
+        case CMD_READ:
+            result = action_read(gs, arg1);
+            break;
+        case CMD_PAY:
+            result = action_pay(gs, arg1);
             break;
         default:
             result = false;
             break;
     }
-
     return result;
 }
 
+
 // Entry point for the human user path. This displays some information, prompts the user for some choices,
 // and passes those to perform_action(), the ML entry point for the fight action.
-static bool process_fight(GameState *gs) {
-    if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
-        display_line("There is nothing to fight.");
-        return false;
-    }
+static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
+    if (!verify_monster_choice(gs, pc)) return false;
+
     if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == MONSTER_DWARF) {
         display_line("The dwarf refuses to fight and his magic protects him.");
         return false;
     }
-    Monster m = ROOMS[gs->room].monster;
+    const monster_id mid = ROOMS[gs->room].monster;
+    Monster *m = monsters_find_monster(mid);
+    const char * monster_name = monsters_name_for_id(mid);
     display_line("--------------------------------------");
-    display("Your opponent is a ");
-    display(m.name);
-    display_line(".");
-    int ferocity_factor = m.ferocity_factor;
+    vdisplay_line("Your opponent is a %s.", monster_name);
+    int ferocity_factor = m->ferocity_factor;
 
-    display("The ");
-    display(m.name);
-    display("'s danger level is ");
-    printf("%d.\n", ferocity_factor);
+    vdisplay_line("The %s's danger level is %d", monster_name, ferocity_factor);
 
-    // see what weapons the user has. Object indices 1 (axe) to 7 (falchion)
+    // see what weapons the user has. Object ids 1 (axe) to 7 (falchion)
     int T[MAX_ITEMS] = {};
     for (int j = 0; j < MAX_ITEMS; ++j) {
         T[j] = 0;
@@ -844,9 +1050,7 @@ static bool process_fight(GameState *gs) {
                 T[j] = OBJECT_SWORD;
                 break;
             case OBJECT_DAGGER:
-                display("Your dagger is useful against ");
-                display(m.name);
-                display_line("s."); //pluralization
+                vdisplay_line("Your dagger is useful against %ss.", monster_name);
                 T[j] = OBJECT_DAGGER;
                 break;
             case OBJECT_MACE:
@@ -858,15 +1062,14 @@ static bool process_fight(GameState *gs) {
                 T[j] = OBJECT_QUARTER_STAFF;
                 break;
             case OBJECT_MORNING_STAR:
-                display("Swinging your morning star may inflict heavy wounds on the ");
-                display(m.name);
-                display_line("."); //pluralization
+                vdisplay_line("Swinging your morning star may inflict heavy wounds on the %s.", monster_name);
                 T[j] = OBJECT_MORNING_STAR;
                 break;
             case OBJECT_FALCHION:
                 display_line("A falchion is a useful weapon.");
                 T[j] = OBJECT_FALCHION;
                 break;
+            default: break;
         }
     }
     int weapon_count = 0;
@@ -879,20 +1082,20 @@ static bool process_fight(GameState *gs) {
     }
     int weapon_choice = 0;
     if (weapon_count == 0) {
-        display("You must fight the ");
-        display(m.name);
-        display_line(" with your bare hands.");
+        vdisplay_line("You must fight the %s with your bare hands.", monster_name);
     } else if (weapon_count == 1) {
-        display("You must fight with your ");
         weapon_choice = last_weapon;
-        display(OBJECTS[weapon_choice].name);
-        display_line(".");
+        const Object *o = obj_find_object(weapon_choice);
+        const char *weapon_name = o ? o->name : "unknown weapon";
+        vdisplay_line("You must fight with your %s.", weapon_name);
     } else {
         display_line("choose your weapon: ");
         for (int j = 0; j < MAX_ITEMS; ++j) {
             if (T[j]) {
-                printf("%d - ", j + 1);
-                display_line(OBJECTS[T[j]].name);
+                const object_id id = T[j];
+                const Object *o = obj_find_object(id);
+                if (!o) continue;
+                vdisplay_line("%d - %s", (j+1), o->name);
             }
         }
         int choice = 0;
@@ -905,15 +1108,16 @@ static bool process_fight(GameState *gs) {
             }
         }
         weapon_choice = T[choice - 1];
-        display("Right, so you choose to fight with the ");
-        display(OBJECTS[weapon_choice].name);
-        display_line(".");
+        const Object *o = obj_find_object(weapon_choice);
+        const char *weapon_name = o ? o->name : "unknown weapon";
+        if (o) {
+            vdisplay_line("Right, so you choose to fight with the  %s.", weapon_name);
+        }
+
     }
 
-    display("\nThe ");
-    display(m.name);
-    display_line(" has the following attributes:");
-    display_char_attributes(m.stats);
+    vdisplay_line("\nThe %s has the following attributes:", monster_name);
+    display_char_attributes(m->stats);
     display_line("Your attributes are:");
     display_char_attributes(gs->stats);
     display_line("Which attributes to fight with (choose 2):");
@@ -943,7 +1147,7 @@ bool check_game_over(GameState *gs) {
     if (gs->room == ROOM_END ||
         gs->room == ROOM_STONE ||
         (gs->room >= ROOM_TRAPPED && gs->room <= ROOM_SPIDER) ||
-        gs->room >= ROOM_GARGOYLE) {
+        gs->room == ROOM_GARGOYLE) {
         if (gs->room != ROOM_END) gs->is_dead = true;
         gs->completed = true;
         return true;
@@ -1028,9 +1232,9 @@ bool str_in_array(char const *str, int len, char const *array[static len]) {
     return false;
 }
 
-struct ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
+ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
     constexpr size_t LINE_BUFFER_SIZE = 1024;
-    struct ParsedCommand pc = {};
+    ParsedCommand pc = {};
 
     for (;;) {
         char line[LINE_BUFFER_SIZE] = {};
@@ -1044,31 +1248,14 @@ struct ParsedCommand parse_user_command(char const *prompt, char const *err_msg)
         line[LINE_BUFFER_SIZE - 1] = 0;
         pc = parse_cmd_string(line);
         const enum Command cmd = pc.verb_command;
-        const enum Command ocmd = pc.verb_object_command;
-        const size_t vo_len = strlen(pc.verb_object);
 
-        printf("parse_user_command():    vc:%d, voc:%d   verb:'%s', verb_obj:'%s', has_vobj?:%d\n",
-               pc.verb_command, pc.verb_object_command, pc.verb, pc.verb_object, pc.has_verb_object);
+        // printf("parse_user_command():    vc:%d, voc:%d   verb:'%s', verb_obj:'%s', has_vobj?:%d\n",
+        //        pc.verb_command, pc.verb_object_command, pc.verb, pc.verb_object, pc.has_verb_object);
 
         if (cmd < 0) {
             display_line(err_msg);
             continue;
         }
-
-        if (cmd == CMD_MOVE && (ocmd < CMD_NORTH || ocmd > CMD_DOWN)) {
-            if (vo_len == 0) {
-                vdisplay_line("%s where?", pc.verb);
-            } else {
-                vdisplay_line("I don't know how to %s '%s'.", pc.verb, pc.verb_object);
-            }
-            continue;
-        }
-
-        // if ( vo_len == 0 && (cmd == CMD_FIGHT || cmd == CMD_TAKE || cmd == CMD_DROP )) {
-        //     vdisplay_line("%s what?", pc.verb);
-        //     continue;
-        // }
-
         break;
     }
 
@@ -1084,17 +1271,30 @@ static bool process_quit(const GameState *gs) {
 
 static bool main_game_loop(GameState *gs) {
     uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
-    if (gs->rooms_visited[gs->room]) {
+    const room_id room_id = gs->room;
+    const Room *current_room = room_find_room(room_id);
+    if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
-        set_char_sleep(1'000); // 1ms
+        if (DEBUG) {
+            set_char_sleep(DEBUG_VISITED_SLEEP);
+        } else {
+            set_char_sleep(1'000); // 1ms
+        }
     }
 
-    gs->rooms_visited[gs->room] = true;
+    gs->rooms_visited[room_id] = true;
+    room_set_visited_flag(current_room);
+
     printf("---------------------------------------------------------------------------- %d\n", gs->turns);
 
     // display_status(gs);
     // display_line("");
-    display_room_desc(gs);
+
+    if (gs->room != gs->room_last_turn) {
+        // only display room desc once when first entering room. Reduces screen clutter and scrolling.
+        // user can always type "look" to re-display room desc.
+        display_room_desc(gs);
+    }
 
     if (check_game_over(gs)) {
         set_char_sleep(saved_sleep_duration);
@@ -1112,6 +1312,8 @@ static bool main_game_loop(GameState *gs) {
     } else {
         // we just lose points randomly here for some reason.
         if (adjust_stats(gs)) {
+            // todo temp (rob) debug
+            display_char_attributes(gs->stats);
             set_char_sleep(saved_sleep_duration);
             return END_GAME;
         }
@@ -1122,7 +1324,7 @@ static bool main_game_loop(GameState *gs) {
     display_line("\nYour attributes are:");
     display_char_attributes(gs->stats);
 
-    display_inventory(gs);
+    actor_display_inventory(gs);
 
     // process user input
     flush_input();
@@ -1130,7 +1332,11 @@ static bool main_game_loop(GameState *gs) {
 
     // display("You chose ");
     // printf("%d %s\n",pc.command, pc.object);
-    enum Command cmd = pc.verb_command;
+    const enum Command cmd = pc.verb_command;
+
+    // -----------------------------------------------------------------
+    //      Player Presentation Only
+    // -----------------------------------------------------------------
 
     if (cmd == CMD_QUIT) {
         set_char_sleep(saved_sleep_duration);
@@ -1139,10 +1345,17 @@ static bool main_game_loop(GameState *gs) {
     if (cmd == CMD_HELP) {
         display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
     }
+    if (cmd == CMD_LOOK) {
+        display_room_desc(gs);
+    }
+
+    // -----------------------------------------------------------------
+    //      Engine/Model Commands
+    // -----------------------------------------------------------------
 
     if (cmd == CMD_FIGHT) {
         //specialized code to prompt user and gather options to pass to perform_action()
-        process_fight(gs);
+        cmd_fight(gs, &pc);
     } else if (cmd == CMD_DROP) {
         cmd_drop(gs, &pc);
     } else if (cmd == CMD_TAKE) {
@@ -1151,6 +1364,10 @@ static bool main_game_loop(GameState *gs) {
         cmd_move(gs, &pc);
     } else if (cmd == CMD_OPEN) {
         cmd_open(gs, &pc);
+    } else if (cmd == CMD_READ) {
+        cmd_read(gs, &pc);
+    } else if (cmd == CMD_PAY) {
+        cmd_pay(gs, &pc);
     } else {
         // Now the human call and the ML call use the exact same entry point
         perform_action(gs, cmd, 0, 0, 0);
@@ -1159,10 +1376,23 @@ static bool main_game_loop(GameState *gs) {
     set_char_sleep(saved_sleep_duration);
 
     display_line("");
+    if (room_id == gs->room) {
+        // if room at end of turn is same as start of turn, update this so we
+        gs->room_last_turn = room_id;
+    } else {
+        gs->room_last_turn = gs->room_prev;
+    }
 
     return CONTINUE_GAME;
 }
 
+int sum_character_stats(const CharStats *s) {
+    int total = 0;
+    for (int i = 1; i < STAT_COUNT; ++i) {
+        total += s->as_array[i];
+    }
+    return total;
+}
 
 // called at the start of each new game
 void reset(GameState *gs, const uint32_t seed) {
@@ -1181,10 +1411,9 @@ void reset(GameState *gs, const uint32_t seed) {
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
         ROOM_GRAPH[room_index][RGINDEX_TREASURE2] = 0;
         ROOM_GRAPH[room_index][RGINDEX_TREASURE3] = 0;
-        ROOMS[room_index].monster = (Monster){};
-        // memcpy(&ROOMS[room_index].treasure, &(Object){}, sizeof(Object));
-        ROOMS[room_index].treasure =  (Object){};
+        ROOMS[room_index].monster = 0;
     }
+    monsters_clear_all();
 
     ROOM_GRAPH[ROOM_EERIE][RGINDEX_TREASURE] = OBJECT_SILVER_KEY;
     ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE] = OBJECT_SWORD;
@@ -1195,14 +1424,6 @@ void reset(GameState *gs, const uint32_t seed) {
     ROOM_GRAPH[ROOM_TROPHY][RGINDEX_TREASURE] = OBJECT_IRON_CHEST;
     ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE] = OBJECT_GOLD_KEY;
 
-
-    // create room Object for the treasures
-    for (int room = 1; room < NUM_ROOMS; ++room) {
-        int treasure_index = ROOM_GRAPH[room][RGINDEX_TREASURE];
-        if (treasure_index > 0 && treasure_index < NUM_OBJECTS) {
-            ROOMS[room].treasure = OBJECTS[treasure_index];
-        }
-    }
 
     // -----------------------------------------------------------------
     //      NEW OBJECT ALLOCATION METHOD
@@ -1232,8 +1453,7 @@ void reset(GameState *gs, const uint32_t seed) {
                   (rand_room >= ROOM_TRAPPED && rand_room <= ROOM_SPIDER) ||
                   rand_room == ROOM_GARGOYLE)) {
                 ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure_index;
-                memcpy(&ROOMS[rand_room].treasure, &OBJECTS[treasure_index], sizeof(Object));
-
+                // new way to manage objects
                 room_add_object(&ROOMS[rand_room], treasure_index);
                 break;
             }
@@ -1242,12 +1462,15 @@ void reset(GameState *gs, const uint32_t seed) {
 
 
     ROOM_GRAPH[ROOM_YELLOW][RGINDEX_MONSTER] = MONSTER_DWARF;
-    ROOMS[ROOM_YELLOW].monster  = (Monster) {
+    ROOMS[ROOM_YELLOW].monster = MONSTER_DWARF;
+    CharStats stats = random_monster_stats(gs);
+    int ff = sum_character_stats(&stats);
+    monsters_update_monster( &(Monster) {
                                     .name = MONSTER_NAMES[MONSTER_DWARF],
-                                    .monster_index = MONSTER_DWARF,
-                                    .ferocity_factor = 20,
+                                    .id = MONSTER_DWARF,
+                                    .ferocity_factor = ff,
                                     .stats = random_monster_stats(gs),
-                                 };
+    });
 
     // allot random monsters
     for (int monster_index = MONSTER_DWARF + 1; monster_index < NUM_MONSTERS; ++monster_index) {
@@ -1262,15 +1485,16 @@ void reset(GameState *gs, const uint32_t seed) {
                   (rand_room >= ROOM_TRAPPED && rand_room <= ROOM_SPIDER) ||
                   rand_room == ROOM_GARGOYLE)) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = monster_index;
-                CharStats s = random_monster_stats(gs);
-                int ff = s.strength * rnd_range(gs, 1, 6 + 1);
-                ROOMS[rand_room].monster =
-                        (Monster){
+                stats = random_monster_stats(gs);
+                ff = sum_character_stats(&stats);
+                ROOMS[rand_room].monster = monster_index;
+                monsters_update_monster( &(Monster) {
                             .name = MONSTER_NAMES[monster_index],
-                            .monster_index = monster_index,
+                            .id = monster_index,
                             .ferocity_factor = ff,
-                            .stats = s
-                        };
+                            .stats = stats
+                });
+
                 break;
             }
         }
@@ -1291,19 +1515,19 @@ static struct ObjectData {
 } get_object_data(void) {
     return (struct ObjectData){
         .data = {
-            {.id = 1, .name = "axe"},
-            {.id = 2, .name = "sword"},
-            {.id = 3, .name = "dagger"},
-            {.id = 4, .name = "mace"},
-            {.id = 5, .name = "quarterstaff"},
-            {.id = 6, .name = "morning star"},
-            {.id = 7, .name = "falchion"},
+            {.id = 1, .name = "axe", .is_weapon = true },
+            {.id = 2, .name = "sword", .is_weapon = true },
+            {.id = 3, .name = "dagger", .is_weapon = true },
+            {.id = 4, .name = "mace", .is_weapon = true },
+            {.id = 5, .name = "quarterstaff", .is_weapon = true },
+            {.id = 6, .name = "morning star", .is_weapon = true },
+            {.id = 7, .name = "falchion", .is_weapon = true },
             {.id = 8, .name = "crystal ball", .value = 99},
             {.id = 9, .name = "amulet", .value = 247},
             {.id = 10, .name = "ebony ring", .value = 166},
             {.id = 11, .name = "gems", .value = 462},
-            {.id = 12, .name = "mystic scroll", .value = 195},
-            {.id = 13, .name = "healing potion", .value = 231},
+            {.id = 12, .name = "mystic scroll", .value = 195,. is_readable_bit = true},
+            {.id = 13, .name = "healing potion", .value = 231, .is_drinkable_bit = true},
             {.id = 14, .name = "dilithium crystals", .value = 162},
             {.id = 15, .name = "copper pieces", .value = 27},
             {.id = 16, .name = "diadem", .value = 141},
@@ -1319,7 +1543,7 @@ static struct ObjectData {
 static void initialize() {
     // note: random data is initialized in reset()
     parser_init();
-    room_objects_init(20, get_object_data().data);
+    obj_init(20, get_object_data().data);
     init_rooms();
 }
 
@@ -1336,11 +1560,16 @@ static CharBuffer *get_player_name() {
 constexpr int DEBUG_RAND_SEED = 67;
 
 
+
 int main_chateau_gaillard(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
     set_silent_mode(false);
 
-    set_char_sleep(0); // todo (rob) this is for debugging so we don't have to wait for text to display
+    if (DEBUG) {
+        set_char_sleep(DEBUG_NORMAL_SLEEP);
+    } else {
+        set_char_sleep(10'000);
+    }
 
 
     const CharBuffer *player_name = get_player_name();
@@ -1349,9 +1578,9 @@ int main_chateau_gaillard(void) {
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
 
-    room_objects_repr();
-    monsters_repr();
-    room_rooms_repr();
+    obj_repr();
+    monsters_names_repr();
+    // room_rooms_repr();
 
     bool continue_loop;
     do {

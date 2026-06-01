@@ -236,7 +236,7 @@ int get_int(char const * const prompt, int min, int max);
 bool cmd_move(struct GameState * gs, char first_letter);
 int calc_score(const struct GameState * gs);
 void display_command_err(char const * msg, char  command);
-void display_inventory(struct GameState * gs);
+void actor_display_inventory(struct GameState * gs);
 void display_tally(const struct GameState * gs);
 
 void cls();
@@ -368,7 +368,7 @@ bool main_game_loop(struct GameState * gs) {
             display_help_info();
             break;
         case 'I':
-            display_inventory(gs);
+            actor_display_inventory(gs);
             break;
         case 'B':
             buy_supplies(gs);
@@ -818,7 +818,7 @@ void display_room_content(struct GameState * gs) {
     }
 }
 
-void display_inventory(struct GameState * gs) {
+void actor_display_inventory(struct GameState * gs) {
     display_line("");
 
     if (gs->items[ITEM_LIGHT]) {

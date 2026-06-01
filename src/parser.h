@@ -8,6 +8,7 @@
 
 #include <regex.h>
 
+// enum ids taken from https://en-word.net
 
 enum Command {
     CMD_NO_MATCH = -2, // couldn't parse this command string
@@ -22,6 +23,7 @@ enum Command {
     CMD_UP,
     CMD_DOWN,
 
+    CMD_READ  = 24875,  // oewn-00626756-v (Interlingual Index: i24875)
 
     CMD_FIGHT = 27047,  // oewn-01092746-v (Interlingual Index: i27047)
     CMD_TAKE  = 27693,  // oewn-01216829-v (Interlingual Index: i27693)
@@ -29,18 +31,22 @@ enum Command {
     CMD_MOVE  = 30898,  // oewn-01839438-v (Interlingual Index: i30898)
     CMD_DROP  = 31618,  // oewn-01981715-v (Interlingual Index: i31618)
 
+    CMD_LOOK  = 32408,  // oewn-02134989-v (Interlingual Index: i32408)
+
+    CMD_PAY   = 32996,  // oewn-02256551-v (Interlingual Index: i32996)
+
     CMD_HELP  = 34433,  // oewn-02553283-v (Interlingual Index: i34433)
     CMD_QUIT  = 35062,  // oewn-02686624-v (Interlingual Index: i35062)
 };
 
 constexpr size_t PC_BUFFER_LEN = 1024;
-struct ParsedCommand {
+typedef struct ParsedCommand {
     enum Command verb_command;
     enum Command verb_object_command;  // normally CMD_NONE for an identifier/name
     bool has_verb_object; // true if verb_object field is not empty
     char verb[PC_BUFFER_LEN];
     char verb_object[PC_BUFFER_LEN];  // object of the verb in a sentence.
-};
+} ParsedCommand;
 
 // Define a structure to hold regex patterns and their compiled forms
 typedef struct {

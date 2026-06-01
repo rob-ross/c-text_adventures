@@ -25,11 +25,13 @@
 // VOBJ: verb's object
 #define VOBJ "(.*)"
 
+static const char * const REGEX_LOOK   = RSL "(LOOK)" REL;
+
 static const char * const REGEX_HELP   = RSL "(HELP)" REL;
 static const char * const REGEX_QUIT   = RSL "(QUIT)" REL;
 static const char * const REGEX_UNLOCK = RSL "(UNLOCK)";
 static const char * const REGEX_OPEN   = RSL "(OPEN)" SP VOBJ REL;
-static const char * const REGEX_READ   = RSL "(READ)";
+static const char * const REGEX_READ   = RSL "(READ)" SP VOBJ REL;
 
 static const char * const REGEX_NORTH  = RSL "(NORTH|N)" REL;
 static const char * const REGEX_SOUTH  = RSL "(SOUTH|S)" REL;
@@ -38,8 +40,8 @@ static const char * const REGEX_WEST   = RSL "(WEST|W)" REL;
 static const char * const REGEX_UP     = RSL "(UP|U)" REL;
 static const char * const REGEX_DOWN   = RSL "(DOWN|D)" REL;
 
-static const char * const REGEX_BRIBE  = RSL "(BRIBE|PAY)(.*)";
-static const char * const REGEX_DRINK  = RSL "(DRINK|SWALLOW)(.*)";
+static const char * const REGEX_PAY  = RSL "(BRIBE|PAY)" SP VOBJ REL;
+static const char * const REGEX_DRINK  = RSL "(DRINK|SWALLOW)" SP VOBJ REL;
 
 static const char * const REGEX_DROP = RSL "(DROP|PUT|THROW|BREAK)" SP VOBJ REL;
 static const char * const REGEX_TAKE = RSL "(TAKE|GET|STEAL|LIFT)"  SP VOBJ REL;
@@ -47,7 +49,7 @@ static const char * const REGEX_TAKE = RSL "(TAKE|GET|STEAL|LIFT)"  SP VOBJ REL;
 static const char * const REGEX_MOVE = RSL "(GO|MOVE|CLIMB|RUN|WALK)" SP VOBJ REL;
 
 static const char * const REGEX_DIRECTION = RSL "(NORTH|SOUTH|EAST|WEST|UP|DOWN|N|S|E|W|U|D)" REL;
-static const char * const REGEX_FIGHT     = RSL "(FIGHT|STAB|KILL|KICK|PUNCH|SLAY|ATTACK)(.*)" REL;
+static const char * const REGEX_FIGHT     = RSL "(FIGHT|STAB|KILL|KICK|PUNCH|SLAY|ATTACK)" SP VOBJ REL;
 
 #undef VOBJ
 #undef REL
@@ -64,17 +66,18 @@ static RegexPattern patterns[] = {
     {REGEX_QUIT,        {}, "QUIT",      CMD_QUIT  },
     {REGEX_UNLOCK,      {}, "UNLOCK" },
     {REGEX_OPEN,        {}, "OPEN",      CMD_OPEN  },
-    {REGEX_READ,        {}, "READ" },
+    {REGEX_READ,        {}, "READ",      CMD_READ  },
 
     {REGEX_NORTH,       {}, "NORTH", CMD_NORTH },
     {REGEX_SOUTH,       {}, "SOUTH", CMD_SOUTH },
-    {REGEX_EAST,        {}, "EAST",  CMD_EAST },
-    {REGEX_WEST,        {}, "WEST",  CMD_WEST },
-    {REGEX_UP,          {}, "UP",    CMD_UP },
-    {REGEX_DOWN,        {}, "DOWN",  CMD_DOWN },
+    {REGEX_EAST,        {}, "EAST",  CMD_EAST  },
+    {REGEX_WEST,        {}, "WEST",  CMD_WEST  },
+    {REGEX_UP,          {}, "UP",    CMD_UP    },
+    {REGEX_DOWN,        {}, "DOWN",  CMD_DOWN  },
 
+    {REGEX_LOOK,        {}, "PAY",   CMD_LOOK }  ,
 
-    {REGEX_BRIBE,       {}, "BRIBE"},
+    {REGEX_PAY,         {}, "PAY",        CMD_PAY }  ,
     {REGEX_DRINK,       {}, "DRINK"},
     {REGEX_DROP,        {}, "DROP",       CMD_DROP  },
     {REGEX_TAKE,        {}, "TAKE",       CMD_TAKE  } ,
@@ -82,8 +85,7 @@ static RegexPattern patterns[] = {
     {REGEX_FIGHT,       {}, "FIGHT",      CMD_FIGHT },
 
     // DO NOT ADD NEW ITEMS BELOW REGEX_DIRECTION
-    {REGEX_DIRECTION,   {}, "DIRECTION"},
-    // {REGEX_VERB_OBJECT, {}, "VERB_OBJECT"           }   ,
+    // {REGEX_DIRECTION,   {}, "DIRECTION"},
     {nullptr, {}, nullptr, CMD_NONE}  // sentinel value, end of array
 };
 constexpr int NUM_PATTERNS = sizeof(patterns) / sizeof(patterns[0]) - 1;
@@ -93,7 +95,7 @@ constexpr int REGEX_NORTH_INDEX =  5;
 constexpr int REGEX_DOWN_INDEX  = 10;
 
 // constexpr int REGEX_VERB_OBJECT_INDEX = NUM_PATTERNS - 1;
-constexpr int REGEX_DIRECTION_INDEX   = NUM_PATTERNS - 2;
+// constexpr int REGEX_DIRECTION_INDEX   = NUM_PATTERNS - 2;
 
 // This will hold the patterns for the directions,
 // from patterns[REGEX_NORTH_INDEX] to patterns[REGEX_DOWN_INDEX] inclusive.

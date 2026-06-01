@@ -56,13 +56,14 @@ typedef struct Object {
     // 2. ZILF handles this different. Every object can be given an Action Routine, and that
     //     examines the parsed VO and VIO and handles the command. So we don't need a bit for
     //     every conceivable interaction possible with an object, we can customize what objects can
-    //     do. Maybe a statue becomes edible?
+    //     do. E.g., maybe a statue becomes edible?
     //      Then again, eating and drinking are probably ubiquitous enough in these games to deserve
     //      top-level handling. It automates and standardizes the responses to these actions.
     bool                is_drinkable_bit; // true if the object can be drunk/swallowed
     bool                is_eatable_bit;   // true if the object can be eaten
-
-
+    bool                is_readable_bit;  // true if this is an object that can be read.
+    bool                is_weapon;  // true if this object can be used as a weapon.
+                                    //A Weapon is probably a good candidate for a subclass.
 
     bool                is_light_source_bit; // is a light source and can be turned on/off
     bool                is_lit_bit; // if this is a light source, weather it is lit or not
@@ -73,21 +74,24 @@ typedef struct Object {
 
     // Usually, if an object is takeable, then it is also droppable. But we may have special circumstances like
     // "cursed" gear that cannot be dropped normally and require some special action to get rid of.
-    bool                is_takeable_bit; // the object can be taken, i.e., picked up
-    bool                is_droppable_bit; // the object can be dropped.
+    // these are negative bits because the default is presumably that most objects are takeable/droppable
+    bool                is_not_takeable_bit; // the object cannot be taken, i.e., picked up
+    bool                is_not_droppable_bit; // the object cannot be dropped.
 
 
 
 } Object;
 
-constexpr int ROOM_OBJECT_NOT_FOUND = -1;
-constexpr int ROOM_OBJECT_NULL_OBJECT_NAME = 0;
+constexpr int OBJ_NOT_FOUND = -1;
+constexpr int OBJ_NULL_OBJECT_NAME = 0;
 
-int room_objects_init(size_t size, Object data[static size]);
-void room_objects_free(void);
-void room_objects_repr(void);
-int room_objects_relocate_object( int id,  int new_location);
-int room_objects_id_for_partial_name(char const item_name[static 1]);
-char const * room_objects_name_for_object_id(object_id id);
-const Object * find_object(object_id id);
-bool room_objects_set_open_flag(object_id id);
+int  obj_init(size_t size, Object data[static size]);
+void obj_free(void);
+void obj_repr(void);
+int  obj_relocate_object( int id,  int new_location);
+int  obj_id_for_partial_name(char const item_name[static 1]);
+char const * obj_name_for_object_id(object_id id);
+const Object * obj_find_object(object_id id);
+bool obj_set_open_flag(object_id id);
+void obj_clear_location(object_id id);
+

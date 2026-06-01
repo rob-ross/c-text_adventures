@@ -202,7 +202,7 @@ static void display_score(const struct GameState * gs) {
     printf("%d\n", 3* gs->tally + 5* gs->strength + 2* gs->wealth + gs->food + 30*gs->monsters_killed);
 }
 
-static void display_inventory(struct GameState * gs) {
+static void actor_display_inventory(struct GameState * gs) {
     if (gs->wealth > 0) {
         printf("YOU HAVE $%d WEALTH\n", gs->wealth);
     }
@@ -524,7 +524,7 @@ static bool major_handling_routine(struct GameState * gs) {
     gs->tally += 1;
     printf("%s, YOUR STRENGTH IS %d\n", gs->player_name, gs->strength);
 
-    display_inventory(gs);
+    actor_display_inventory(gs);
 
     if (gs->items[ITEM_LIGHT]) {
         //GOSUB 990:REM ROOM DESCRIPTION

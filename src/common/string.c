@@ -11,4 +11,37 @@
 
 #include "string.h"
 
+#include <ctype.h>
 
+
+// Returns true if str strats with prefix, ignoring case.
+bool string_starts_with_ignore_case(const char *prefix, const char *str) {
+    // If partial_string is NULL, it cannot be a prefix of anything.
+    if ( !prefix || !str ) {
+        return false;
+    }
+
+    // If partial_string is empty, it is not considered a prefix.
+    if (*prefix == '\0') {
+        return false;
+    }
+
+    // If full_string is empty and partial_string is not empty, then partial_string cannot be a prefix.
+    if (*str == '\0') {
+        return false;
+    }
+
+    // Now both strings are guaranteed to be non-NULL and non-empty.
+    size_t i = 0;
+    while (prefix[i] != '\0' && str[i] != '\0') {
+        // Safely convert char to unsigned char before passing to toupper
+        if (toupper((unsigned char)prefix[i]) != toupper((unsigned char)str[i])) {
+            return false; // Mismatch found
+        }
+        i++;
+    }
+
+    // If we reached the end of partial_string, it means all characters matched.
+    // So, full_string starts with partial_string.
+    return prefix[i] == '\0';
+}

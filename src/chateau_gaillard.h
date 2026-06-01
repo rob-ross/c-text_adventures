@@ -14,7 +14,7 @@
 #include "mersenne_twister.h"
 #include "rooms.h"
 #include "monsters.h"
-#include "room_objects.h"
+#include "objects.h"
 #include "directions.h"
 #include "parser.h"
 
@@ -90,30 +90,6 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
 
 constexpr int NUM_OBJECTS = 21;  // todo (rob) make data driven
 
-static Object OBJECTS[NUM_OBJECTS] = {
-    {.id =  0, .name="NULL OBJECT" },
-    {.id =  1, .name="axe" },
-    {.id =  2, .name="sword" },
-    {.id =  3, .name="dagger" },
-    {.id =  4, .name="mace" },
-    {.id =  5, .name="quarterstaff" },
-    {.id =  6, .name="morning star" },
-    {.id =  7, .name="falchion" },
-    {.id =  8, .name="crystal ball", .value=99 },
-    {.id =  9, .name="amulet", .value=247 },
-    {.id = 10, .name="ebony ring", .value=166 },
-    {.id = 11, .name="gems", .value=462 },
-    {.id = 12, .name="mystic scroll", .value=195 },
-    {.id = 13, .name="healing potion", .value=231 },
-    {.id = 14, .name="dilithium crystals", .value=162 },
-    {.id = 15, .name="copper pieces", .value=27 },
-    {.id = 16, .name="diadem", .value=141 },
-    {.id = 17, .name="silver key" },
-    {.id = 18, .name="golden key" },
-    {.id = 19, .name="chest of stone" },
-    {.id = 20, .name="chest made of iron" },
-};
-
 constexpr int OBJECT_AXE           =  1;
 constexpr int OBJECT_SWORD         =  2;
 constexpr int OBJECT_DAGGER        =  3;
@@ -121,6 +97,9 @@ constexpr int OBJECT_MACE          =  4;
 constexpr int OBJECT_QUARTER_STAFF =  5;
 constexpr int OBJECT_MORNING_STAR  =  6;
 constexpr int OBJECT_FALCHION      =  7;
+constexpr int OBJECT_AMULET        =  9;
+
+constexpr int OBJECT_MYSTIC_SCROLL = 12;
 
 constexpr int OBJECT_DIADEM      = 16;
 constexpr int OBJECT_SILVER_KEY  = 17;
@@ -146,7 +125,9 @@ typedef struct GameState {
     // state for Mersenne Twister PRNG
     MTState mt_state;
 
-    int room;  // current room
+    room_id room;      // current room
+    room_id room_prev; // room user was in before this one
+    room_id room_last_turn; // updates every turn, if user in same room as last turn, will be same as `room`
     int turns;
     int cash;
 
@@ -161,7 +142,7 @@ typedef struct GameState {
 
     bool is_dead;
     bool completed; // true if reached final room
-    int  items[MAX_ITEMS];  //
+    object_id  items[MAX_ITEMS];  //
     bool rooms_visited[NUM_ROOMS];
 
     int QU;  // end-of-game flag? Quit flag, used in final scoring

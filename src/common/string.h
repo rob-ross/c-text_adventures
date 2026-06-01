@@ -16,3 +16,5 @@ typedef struct CharBuffer {
 } CharBuffer;
 
 
+// Returns true if `str` strats with `prefix`, ignoring case.
+bool string_starts_with_ignore_case(const char *prefix, const char *str);

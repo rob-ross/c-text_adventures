@@ -9,27 +9,26 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/_types/_size_t.h>
 
 #include "objects.h"
 
 #include <string.h>
 
-#include "rooms.h"
 
-struct ObjectStore {
+
+typedef struct ObjectStore {
     size_t capacity;
     size_t size;
     Object objects[]; // flexible array
-};
+} ObjectStore;
 
 // This store manages each object as a unique identity.
 // E.g., the "chest of stone" is a single unique object in the global environment.
 // If we want to populate many "chest of stone" objects in multiple locations, we need a higher-level data structure
 // like a Class or a prototype for each type of such objects.
-struct ObjectStore * pvt_objects = {};
+ObjectStore * pvt_objects = {};
 
-const Object * find_object(const object_id id) {
+const Object * obj_find_object(const object_id id) {
     const size_t size = pvt_objects->size;
     for (int i = 0; i < size; ++i) {
         if (pvt_objects->objects[i].id == id) {
@@ -51,14 +50,20 @@ static Object * pvt_find_object(const object_id id) {
     return nullptr;
 }
 
-bool room_objects_set_open_flag(const object_id id) {
+bool obj_set_open_flag(const object_id id) {
     Object *o = pvt_find_object(id);
     if (!o) return false;
     o->is_open_bit = true;
     return true;
 }
 
-char const * room_objects_name_for_object_id(const object_id id) {
+void obj_clear_location(const object_id id) {
+    Object *o = pvt_find_object(id);
+    if (!o) return;
+    o->location = 0;
+}
+
+char const * obj_name_for_object_id(const object_id id) {
     const Object *o = pvt_find_object(id);
     if (!o) {
         return pvt_objects->objects[0].name;
@@ -69,8 +74,8 @@ char const * room_objects_name_for_object_id(const object_id id) {
 // return the object id for the given item_name. If a partial item_name is passed, performs a "starts with"
 // search to match. But this will return the first object in the store that starts with the argument string,
 // which may or may not be what you are looking for.
-int room_objects_id_for_partial_name(char const item_name[static 1]) {
-    if (!item_name) return ROOM_OBJECT_NULL_OBJECT_NAME;
+int obj_id_for_partial_name(char const item_name[static 1]) {
+    if (!item_name) return OBJ_NULL_OBJECT_NAME;
 
     const size_t size = pvt_objects->size;
     for (int i = 1; i < size; ++i) {
@@ -80,19 +85,25 @@ int room_objects_id_for_partial_name(char const item_name[static 1]) {
             return pvt_objects->objects[i].id;
         }
     }
-    return ROOM_OBJECT_NOT_FOUND;
+    return OBJ_NOT_FOUND;
 }
 
 // Changes location of the object
 // Returns the old location
-int room_objects_relocate_object(const object_id id, const int new_location) {
+int obj_relocate_object(const object_id id, const int new_location) {
     Object *o = pvt_find_object(id);
     int old_loc = o->location;
     o->location = new_location;
     return old_loc;
 }
 
-int room_objects_init(const size_t size, Object data[static size]) {
+void obj_touch(const object_id id) {
+    Object *o = pvt_find_object(id);
+    if (!o) return;
+    o->is_touched_bit = true;
+}
+
+int obj_init(const size_t size, Object data[static size]) {
     // we add one extra Object element for the null object element, id = 0.
     const size_t capacity = size + 1;
     pvt_objects  = calloc( 1, sizeof(struct ObjectStore) +  ( sizeof(Object) * capacity ) );
@@ -118,15 +129,15 @@ int room_objects_init(const size_t size, Object data[static size]) {
 }
 
 
-void room_objects_free(void) {
+void obj_free(void) {
     void * saved = pvt_objects;
-    pvt_objects = 0;
+    pvt_objects = nullptr;
     free(saved);
 }
 
 
 // print info about the Objects managed in this unit
-void room_objects_repr(void) {
+void obj_repr(void) {
     const size_t size = pvt_objects->size;
     printf("\n(ObjectStore){.capacity=%zd, .size=%zd, .objects[]=\n", pvt_objects->capacity, pvt_objects->size);
     for (int i = 0; i < size; ++i) {
@@ -164,13 +175,13 @@ int main(void) {
 
 
 
-    int result = room_objects_init(20, data);
+    int result = obj_init(20, data);
     printf("init result: %d\n", result);
 
-    room_objects_repr();
+    obj_repr();
 
 
 
-    room_objects_free();
+    obj_free();
 }
 #endif

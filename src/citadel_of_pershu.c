@@ -174,7 +174,7 @@ static void display_char_attributes(const CharStats stats) {
 }
 
 
-static void display_inventory(const GameState * gs) {
+static void actor_display_inventory(const GameState * gs) {
     if (GLOBALS.silent_mode) return;
 
     display_line("\nItems:");
@@ -354,7 +354,7 @@ void display_game_state(const GameState *gs) {
         gs->player_name, gs->room, gs->turns, gs->cash, gs->monsters_killed,gs->monsters_fought, gs->magic,
         gs->has_torch, gs->is_dead, gs->completed, gs->must_fight);
     display_char_attributes(gs->stats);
-    display_inventory(gs);
+    actor_display_inventory(gs);
     printf("\n");
     printf("Rooms visited:\n");
     for (int room=0; room < NUM_ROOMS; ++room ) {
@@ -563,7 +563,7 @@ void reset(GameState * gs, const uint32_t seed) {
                 ROOMS[rand_room].monster =
                     (Monster){
                         .name = MONSTER_NAMES[monster_index],
-                        .monster_index = monster_index,
+                        .id = monster_index,
                         .stats = random_monster_stats(gs)};
                 break;;
                     }
@@ -760,7 +760,7 @@ static bool get_rid_of(GameState * gs) {
 
     int item = 0;
     for (;;) {
-        display_inventory(gs);
+        actor_display_inventory(gs);
         item = get_int("Enter number of object to drop (0 for none): ", 0, 9);
         if ( !item ) {
             return true;  // exit without dropping anything
@@ -777,7 +777,7 @@ static bool get_rid_of(GameState * gs) {
 
 
 /** Logic Entry Point: ML and Human both end up here */
-bool drop_action(GameState *gs, int item_index) {
+bool acton_drop(GameState *gs, int item_index) {
     // Perform the check (protects against ML typos)
     if (!can_drop_item(gs, item_index, !GLOBALS.silent_mode)) {
         return false;
@@ -798,7 +798,7 @@ bool drop_action(GameState *gs, int item_index) {
 
 //todo (rob) make `strategy` an enum
 //return false if fight action could not be completed, otherwise return true
-bool fight_action(GameState * gs, int strategy, enum StatIndex stat1, enum StatIndex stat2) {
+bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatIndex stat2) {
     if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
         return false;  // nothing to fight
     }    
@@ -960,7 +960,7 @@ bool fight_action(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
 
 // Entry point for human user path. This displays some information, prompts user for some choices, and passes those to
 // perform_action(), the ML entry point for the fight action.
-static bool process_fight(GameState * gs) {
+static bool cmd_fight(GameState * gs) {
     if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
         display_line("There is nothing to fight.");
         return false;
@@ -1189,20 +1189,20 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
             result = pick_up_treasure(gs);
             break;
         case 'F':
-            result = fight_action(gs, arg1, (enum StatIndex)arg2, (enum StatIndex)arg3);
+            result = action_fight(gs, arg1, (enum StatIndex)arg2, (enum StatIndex)arg3);
             break;
         case 'R':
             result =  process_retreat(gs);
             break;
         case 'G':
-            result =  drop_action(gs, arg1);
+            result =  acton_drop(gs, arg1);
             break;
         case 'H':
             display_help_info();
             result = true;
             break;
         case 'I':
-            display_inventory(gs);
+            actor_display_inventory(gs);
             result = true;
             break;
         case 'A':
@@ -1311,7 +1311,7 @@ static bool main_game_loop(GameState * gs) {
 
     if ( cmd == 'F' ) {
         //specialized code to prompt user and gather options to pass to perform_action()
-        process_fight(gs);
+        cmd_fight(gs);
     } else if (cmd == 'G'){
         get_rid_of(gs);
     } else {

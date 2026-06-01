@@ -68,6 +68,14 @@ Room ROOMS[NUM_ROOMS] = {
 };
 
 
+const Room * room_find_room(const room_id id) {
+    return &ROOMS[id];
+}
+
+Room * pvt_room_find_room(const room_id id) {
+    return &ROOMS[id];
+}
+
 // Returns true if the object in the argument is located in the room, otherwise returns false.
 bool room_contains_object(const Room *r, const object_id id) {
     for (int i = 0; i < 10; ++i) {
@@ -76,6 +84,11 @@ bool room_contains_object(const Room *r, const object_id id) {
         }
     }
     return false;
+}
+
+void room_set_visited_flag(const Room *r) {
+    Room *mutable_room = pvt_room_find_room(r->id);
+    mutable_room->is_visited_bit = true;
 }
 
 // Returns ROOM_ERR_OBJECT_NOT_FOUND if object_id is not present in the room.
@@ -126,7 +139,7 @@ int room_remove_object(Room *r, const int object_id) {
     for (int i = 0; i < 10; ++i) {
         if ( r->objects[i] == object_id ) {
             r->objects[i] = 0;
-            room_objects_relocate_object(object_id, 0);
+            obj_relocate_object(object_id, 0);
             return ROOM_SUCCESS;
         }
     }
@@ -140,7 +153,7 @@ int room_add_object(Room *r, const int object_id) {
 
     for (int i = 0; i < 10; ++i) {
         if ( r->objects[i] == 0) {
-            room_objects_relocate_object(object_id, r->id);
+            obj_relocate_object(object_id, r->id);
             r->objects[i] = object_id;
             return ROOM_SUCCESS;
         }
@@ -150,7 +163,7 @@ int room_add_object(Room *r, const int object_id) {
 
 void room_repr(const Room *r) {
     printf("(Room){ .id=%d, .name='%s', .desc='%s'", r->id, r->name, r->desc);
-    printf("  (Monster){ .id=%d, .name='%s' } }\n", r->monster.monster_index, r->monster.name);
+    printf("  (Monster){ .id=%d, .name='%s' } }\n", r->monster, monsters_name_for_id(r->monster));
 }
 
 void room_rooms_repr() {

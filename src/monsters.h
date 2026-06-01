@@ -7,9 +7,11 @@
 
 #pragma once
 
+
 #include "attribute_stats.h"
+#include "rooms.h"
 
-
+typedef struct Room Room;
 
 //// ------------------------------------------------------------
 ////
@@ -23,10 +25,11 @@ constexpr int MONSTER_DWARF = 1;
 
 extern char const * const MONSTER_NAMES[NUM_MONSTERS];
 
+typedef int monster_id;
 
 typedef struct Monster {
     char const * name;
-    [[maybe_unused]] int monster_index;
+    monster_id id;
     int ferocity_factor;
     union {
         CharStats stats; // Named access: m.stats.strength
@@ -35,4 +38,10 @@ typedef struct Monster {
 } Monster;
 
 
-void monsters_repr(void);
+void monsters_names_repr(void);
+bool monsters_monster_is_in_room( const char *monster_name, const Room *r );
+const char * monsters_name_for_id(monster_id id);
+Monster * monsters_find_monster(monster_id id);
+void monsters_update_monster(const Monster *m);
+// initializes all monster objects to 0 state
+void monsters_clear_all(void);
