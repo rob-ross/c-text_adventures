@@ -61,10 +61,10 @@ static inline const char * direction_string(const enum Direction direction_index
 // Currently a bad move in a direction results in the same message each time, as defined below
 // todo (rob) do we want to make this more dynamic?
 static char const * const BAD_MOVE_DESC[DIRECTION_COUNT] = {
-    "NO EXIT THAT WAY",
-    "THERE IS NO EXIT SOUTH",
-    "YOU CANNOT GO IN THAT DIRECTION",
-    "IN THAT WAY LIES MADNESS",
-    "THERE IS NO WAY UP FROM HERE",
-    "YOU CANNOT DESCEND FROM HERE",
+    "There is no exit that way.",
+    "There is no exit south.",
+    "You cannot go in that direction.",
+    "There is no way west.",
+    "There is no way up from here.",
+    "You cannot descend from here.",
 };

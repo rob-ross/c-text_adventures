@@ -25,7 +25,11 @@
 // VOBJ: verb's object
 #define VOBJ "(.*)"
 
-static const char * const REGEX_LOOK   = RSL "(LOOK)" REL;
+static const char * const REGEX_LOOK        = RSL "(LOOK)" REL;
+static const char * const REGEX_INVENTORY   = RSL "(INVENTORY|INV)" REL;
+static const char * const REGEX_STATS       = RSL "(STATS)" REL;
+static const char * const REGEX_SCORE       = RSL "(SCORE)" REL;
+
 
 static const char * const REGEX_HELP   = RSL "(HELP)" REL;
 static const char * const REGEX_QUIT   = RSL "(QUIT)" REL;
@@ -40,7 +44,7 @@ static const char * const REGEX_WEST   = RSL "(WEST|W)" REL;
 static const char * const REGEX_UP     = RSL "(UP|U)" REL;
 static const char * const REGEX_DOWN   = RSL "(DOWN|D)" REL;
 
-static const char * const REGEX_PAY  = RSL "(BRIBE|PAY)" SP VOBJ REL;
+static const char * const REGEX_PAY    = RSL "(BRIBE|PAY)" SP VOBJ REL;
 static const char * const REGEX_DRINK  = RSL "(DRINK|SWALLOW)" SP VOBJ REL;
 
 static const char * const REGEX_DROP = RSL "(DROP|PUT|THROW|BREAK)" SP VOBJ REL;
@@ -50,6 +54,9 @@ static const char * const REGEX_MOVE = RSL "(GO|MOVE|CLIMB|RUN|WALK)" SP VOBJ RE
 
 static const char * const REGEX_DIRECTION = RSL "(NORTH|SOUTH|EAST|WEST|UP|DOWN|N|S|E|W|U|D)" REL;
 static const char * const REGEX_FIGHT     = RSL "(FIGHT|STAB|KILL|KICK|PUNCH|SLAY|ATTACK)" SP VOBJ REL;
+
+static const char * const REGEX_GODMODE     = "^(I AM CORNHOLIO)$";
+
 
 #undef VOBJ
 #undef REL
@@ -74,18 +81,27 @@ static RegexPattern patterns[] = {
     {REGEX_WEST,        {}, "WEST",  CMD_WEST  },
     {REGEX_UP,          {}, "UP",    CMD_UP    },
     {REGEX_DOWN,        {}, "DOWN",  CMD_DOWN  },
+    // <----- Don't add new items above here ----->
 
-    {REGEX_LOOK,        {}, "PAY",   CMD_LOOK }  ,
+    {REGEX_LOOK,        {}, "LOOK",  CMD_LOOK  },
+    {REGEX_INVENTORY,   {}, "INV",   CMD_INV   },
+    {REGEX_STATS,       {}, "STATS", CMD_STATS },
+    {REGEX_SCORE,       {}, "SCORE", CMD_SCORE },
 
-    {REGEX_PAY,         {}, "PAY",        CMD_PAY }  ,
-    {REGEX_DRINK,       {}, "DRINK"},
+
+    {REGEX_PAY,         {}, "PAY",        CMD_PAY    } ,
+    {REGEX_DRINK,       {}, "DRINK", CMD_DRINK  },
     {REGEX_DROP,        {}, "DROP",       CMD_DROP  },
     {REGEX_TAKE,        {}, "TAKE",       CMD_TAKE  } ,
     {REGEX_MOVE,        {}, "MOVE",       CMD_MOVE  },
     {REGEX_FIGHT,       {}, "FIGHT",      CMD_FIGHT },
 
-    // DO NOT ADD NEW ITEMS BELOW REGEX_DIRECTION
-    // {REGEX_DIRECTION,   {}, "DIRECTION"},
+    {REGEX_GODMODE,     {}, "GODMODE",    CMD_GOD },
+
+
+
+
+
     {nullptr, {}, nullptr, CMD_NONE}  // sentinel value, end of array
 };
 constexpr int NUM_PATTERNS = sizeof(patterns) / sizeof(patterns[0]) - 1;
@@ -93,9 +109,6 @@ constexpr int NUM_PATTERNS = sizeof(patterns) / sizeof(patterns[0]) - 1;
 // todo (rob) these indices are fragile. We need a map structure to hold these
 constexpr int REGEX_NORTH_INDEX =  5;
 constexpr int REGEX_DOWN_INDEX  = 10;
-
-// constexpr int REGEX_VERB_OBJECT_INDEX = NUM_PATTERNS - 1;
-// constexpr int REGEX_DIRECTION_INDEX   = NUM_PATTERNS - 2;
 
 // This will hold the patterns for the directions,
 // from patterns[REGEX_NORTH_INDEX] to patterns[REGEX_DOWN_INDEX] inclusive.

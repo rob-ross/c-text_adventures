@@ -110,6 +110,8 @@ constexpr int ROOM_UNEVEN        = 34;
 
 constexpr int ROOM_GARGOYLE      = 37;  // death
 constexpr int ROOM_TROPHY        = 40;
+constexpr int ROOM_SECRET_ROOM   = 41;
+
 constexpr int ROOM_TURRET        = 44;
 
 extern Room ROOMS[NUM_ROOMS];

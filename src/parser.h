@@ -23,9 +23,14 @@ enum Command {
     CMD_UP,
     CMD_DOWN,
 
-    CMD_READ  = 24875,  // oewn-00626756-v (Interlingual Index: i24875)
+    CMD_INV,       // equivalent to "show inventory"
+    CMD_STATS,     // show character attributes/stats
+    CMD_SCORE,     // show current score
 
+
+    CMD_READ  = 24875,  // oewn-00626756-v (Interlingual Index: i24875)
     CMD_FIGHT = 27047,  // oewn-01092746-v (Interlingual Index: i27047)
+    CMD_DRINK = 27466,  // oewn-01172332-v (Interlingual Index: i27466)
     CMD_TAKE  = 27693,  // oewn-01216829-v (Interlingual Index: i27693)
     CMD_OPEN  = 28422,  // oewn-01348685-v (Interlingual Index: i28422)
     CMD_MOVE  = 30898,  // oewn-01839438-v (Interlingual Index: i30898)
@@ -37,6 +42,8 @@ enum Command {
 
     CMD_HELP  = 34433,  // oewn-02553283-v (Interlingual Index: i34433)
     CMD_QUIT  = 35062,  // oewn-02686624-v (Interlingual Index: i35062)
+
+    CMD_GOD,
 };
 
 constexpr size_t PC_BUFFER_LEN = 1024;
