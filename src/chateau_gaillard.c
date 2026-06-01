@@ -499,8 +499,8 @@ static int actor_object_id_for_partial_name(const GameState *gs, char const item
         if (gs->items[i] != 0) {
             const Object *o = obj_find_object(gs->items[i]);
             if (strncmp(item_name, o->name, strlen(item_name)) == 0) {
-                printf("actor_object_id_for_partial_name: item_name: %s, items[%d].name:%s, strlen:%zd\n",
-                       item_name, i, o->name, strlen(item_name));
+                // printf("actor_object_id_for_partial_name: item_name: %s, items[%d].name:%s, strlen:%zd\n",
+                //        item_name, i, o->name, strlen(item_name));
                 return o->id;
             }
         }
@@ -757,7 +757,7 @@ static bool cmd_read(GameState *gs, const ParsedCommand *pc) {
     // try to read this object by name
     const object_id id = actor_object_id_for_partial_name(gs, pc->verb_object);
     if ( id == OBJ_NOT_FOUND) {
-        vdisplay_line("You can't read a %s", pc->verb_object);
+        vdisplay_line("You don't have a %s", pc->verb_object);
         return false;
     }
 
@@ -817,6 +817,9 @@ bool action_take(GameState *gs, const object_id id) {
             gs->items[i] = id;
             room_remove_object(&ROOMS[room_id], id);
             obj_relocate_object(id, -1);
+            // todo (rob) need to define location ids, player vs room. -1 means "player" but is a kludge
+            // in zork, everything had a unique string id, ie, "player", "room-1", "axe", so there was one
+            // global namespace for ids.
             return true;
         }
     }
@@ -962,17 +965,63 @@ static bool cmd_pay(GameState *gs, const ParsedCommand *pc) {
     return perform_action(gs, CMD_PAY, MONSTER_DWARF, 0, 0);
 }
 
-static bool can_drink(const GameState *gs, const object_id object_id, const bool verbose) {
+static bool can_drink_item(const GameState *gs, const object_id id, const bool verbose) {
+    if (!id || !actor_has_item(gs, id)) {
+        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
+        return false;
+    }
+    const Object *o = obj_find_object(id);
+    if ( !o ) {
+        if (verbose) vdisplay_line("unknown object id=%d", id);
+        return false;
+    }
+    if ( !o->is_drinkable_bit) {
+        if (verbose) vdisplay_line("You can't drink the %s", o->name);
+        return false;
+    }
+    return true;
+}
 
+static bool action_drink( GameState *gs, object_id id) {
+    if (!can_drink_item(gs, id, false)) return false;
+    // currently there is only one potion in the game
+    if (id != OBJECT_HEALING_POTION) return false;
+
+    gs->stats.strength = 20;
+    actor_remove_object(gs, id);
 
     return true;
 }
 
-
+// Entry point for the human user path.
+// This finds the item in the VO, and passes those to
+// drink_action(), the ML entry point for the read action.
 static bool cmd_drink(GameState *gs, const ParsedCommand *pc) {
+    // this command requires a verb object.
+    // DESIGN: some commands require vo, some do not, some are optional.
+    // This code can be pulled up and reused whenever a verb requires a vo
+    // but one was not provided, or when the vo doesn't match anything in the user's inventory
+    if (!pc->has_verb_object) {
+        vdisplay_line("%s what?", pc->verb);
+        return false;
+    }
+    // try to read this object by name
+    const object_id id = actor_object_id_for_partial_name(gs, pc->verb_object);
+    if ( id == OBJ_NOT_FOUND) {
+        vdisplay_line("You can't %s a %s", pc->verb, pc->verb_object);
+        return false;
+    }
 
+    // Pre-check: If the user doesn't have the item, skip the action
+    if (!can_drink_item(gs, id, true)) return false;
 
-    return true;
+    // currently there is only one potion in the game
+    if (id == OBJECT_HEALING_POTION) {
+        display_line("You are instantly filled with healing, and your strength is restored.");
+        display_line("The bottle holding the potion magically fades from view.");
+    }
+
+    return perform_action(gs, CMD_DRINK, id, 0, 0);
 }
 
 
@@ -1027,6 +1076,9 @@ bool perform_action(GameState *gs, enum Command const cmd, const int arg1, const
             break;
         case CMD_PAY:
             result = action_pay(gs, arg1);
+            break;
+        case CMD_DRINK:
+            result = action_drink(gs, arg1);
             break;
         default:
             result = false;

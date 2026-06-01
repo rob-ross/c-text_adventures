@@ -64,7 +64,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 15, 24,  0, 32,  0,  0,  0,  0,  0,  0 },  //  ROOM 21
     {  0, 26, 23, 20,  0,  0,  0,  0,  0,  0 },  //  ROOM 22
     { 19,  0,  0, 22,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
-    { 21,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 24
+    { 21,  0,  0,  0, 10,  0,  0,  0,  0,  0 },  //  ROOM 24
     { 20, 25, 25, 25, 25, 25,  0,  0,  0,  0 },  //  ROOM 25
     { 22,  0,  0,  0,  0, 33,  0,  0,  0,  0 },  //  ROOM 26
     {  0,  0,  0,  0,  0, 17,  0,  0,  0,  0 },  //  ROOM 27, ENTRANCE
@@ -79,7 +79,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0, 40, 37, 35,  0,  0,  0,  0,  0,  0 },  //  ROOM 36
     { 37, 37, 37, 37, 37, 37,  0,  0,  0,  0 },  //  ROOM 37, DEATH
     { 34,  0, 43, 39,  0,  0,  0,  0,  0,  0 },  //  ROOM 38
-    {  0,  0, 38,  0, 10,  0,  0,  0,  0,  0 },  //  ROOM 39
+    {  0,  0, 38,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 39
     { 36, 41, 44, 33,  0,  0, 20,  0,  0,  0 },  //  ROOM 40
     { 40, 41, 41, 42, 41, 41,  0,  0,  0,  0 },  //  ROOM 41
     { 33, 42, 41, 42, 42, 42,  0,  0,  0,  0 },  //  ROOM 42
@@ -100,6 +100,7 @@ constexpr int OBJECT_FALCHION      =  7;
 constexpr int OBJECT_AMULET        =  9;
 
 constexpr int OBJECT_MYSTIC_SCROLL = 12;
+constexpr int OBJECT_HEALING_POTION = 13;
 
 constexpr int OBJECT_DIADEM      = 16;
 constexpr int OBJECT_SILVER_KEY  = 17;

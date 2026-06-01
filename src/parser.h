@@ -15,7 +15,7 @@ enum Command {
     CMD_ERROR = -1,
     CMD_NONE  =  0,
 
-    // these are single word direction commands. Their ids match enum Direction.
+    // these are single word direction commands. Their ids match `enum Direction`.
     CMD_NORTH = 1,
     CMD_SOUTH,
     CMD_EAST,
