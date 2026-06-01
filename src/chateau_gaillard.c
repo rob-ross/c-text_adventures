@@ -357,7 +357,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
 
     monster_tally += m->stats.as_array[stat1];
     monster_tally += m->stats.as_array[stat2];
-    printf("before multiplying ff: ferocity_factor = %d, ferocity_multiplier=%g, monster_tally=%d\n", m->ferocity_factor, ferocity_multiplier, monster_tally);
+    // printf("before multiplying ff: ferocity_factor = %d, ferocity_multiplier=%g, monster_tally=%d\n", m->ferocity_factor, ferocity_multiplier, monster_tally);
     monster_tally = (int)(monster_tally * ferocity_multiplier);
 
 
@@ -1008,7 +1008,7 @@ static bool cmd_drink(GameState *gs, const ParsedCommand *pc) {
     // try to read this object by name
     const object_id id = actor_object_id_for_partial_name(gs, pc->verb_object);
     if ( id == OBJ_NOT_FOUND) {
-        vdisplay_line("You can't %s a %s", pc->verb, pc->verb_object);
+        vdisplay_line("You don't have a %s to %s", pc->verb_object, pc->verb);
         return false;
     }
 
@@ -1509,7 +1509,7 @@ void reset(GameState *gs, const uint32_t seed) {
 
     ROOM_GRAPH[ROOM_EERIE][RGINDEX_TREASURE]       = OBJECT_SILVER_KEY;
     ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE]      = OBJECT_SWORD;
-    ROOM_GRAPH[ROOM_L_SHAPED][RGINDEX_TREASURE]    = OBJECT_AXE;
+    ROOM_GRAPH[ROOM_DUNGEON][RGINDEX_TREASURE]     = OBJECT_AXE;
     ROOM_GRAPH[ROOM_KITCHEN][RGINDEX_TREASURE]     = 99; // locked door i  99??
     ROOM_GRAPH[ROOM_MIRROR][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
     ROOM_GRAPH[ROOM_UNEVEN][RGINDEX_TREASURE]      = 100; // locked door ii  100?
@@ -1524,7 +1524,7 @@ void reset(GameState *gs, const uint32_t seed) {
 
     room_add_object(&ROOMS[ROOM_EERIE], OBJECT_SILVER_KEY);
     room_add_object(&ROOMS[ROOM_WOODEN], OBJECT_SWORD);
-    room_add_object(&ROOMS[ROOM_L_SHAPED], OBJECT_AXE);
+    room_add_object(&ROOMS[ROOM_DUNGEON], OBJECT_AXE);
     // add_object_to_room(&ROOMS[ROOM_KITCHEN], OBJECT_SILVER_KEY);
     room_add_object(&ROOMS[ROOM_MIRROR], OBJECT_STONE_CHEST);
     // add_object_to_room(&ROOMS[ROOM_UNEVEN], OBJECT_SILVER_KEY);

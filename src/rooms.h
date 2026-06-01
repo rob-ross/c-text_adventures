@@ -108,6 +108,7 @@ constexpr int ROOM_ACID          = 31;  // death
 constexpr int ROOM_SPIDER        = 32;  // death
 constexpr int ROOM_UNEVEN        = 34;
 
+constexpr int ROOM_DUNGEON       = 36;
 constexpr int ROOM_GARGOYLE      = 37;  // death
 constexpr int ROOM_TROPHY        = 40;
 constexpr int ROOM_SECRET_ROOM   = 41;

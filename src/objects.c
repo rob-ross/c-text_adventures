@@ -1,4 +1,4 @@
-// room_objects.c
+// objects.c
 //
 // Copyright (c) Rob Ross 2026.
 //
@@ -9,11 +9,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "objects.h"
-
 #include <string.h>
 
+
+#include "objects.h"
 
 
 typedef struct ObjectStore {
@@ -80,8 +79,8 @@ int obj_id_for_partial_name(char const item_name[static 1]) {
     const size_t size = pvt_objects->size;
     for (int i = 1; i < size; ++i) {
         if (strncmp(item_name, pvt_objects->objects[i].name, strlen(item_name)) == 0 ) {
-            printf("room_objects_id_for_partial_name: item_name: %s, objects[%d].name:%s, strlen:%zd\n",
-                item_name, i, pvt_objects->objects[i].name, strlen(item_name));
+            // printf("obj_id_for_partial_name: item_name: %s, objects[%d].name:%s, strlen:%zd\n",
+            //     item_name, i, pvt_objects->objects[i].name, strlen(item_name));
             return pvt_objects->objects[i].id;
         }
     }
