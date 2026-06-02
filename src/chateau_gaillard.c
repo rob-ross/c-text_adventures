@@ -92,15 +92,15 @@ static int count_rooms_visited(const GameState *gs) {
 }
 
 static int actor_calc_inventory_value(const GameState *gs);
-static int calc_score(const GameState *gs) {
+static int calc_score(GameState *gs) {
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
                          gs->stats.intelligence + gs->stats.wisdom + gs->stats.constitution;
     int cash = actor_calc_inventory_value(gs);
-    int score_bonus = 0;
-    if (gs->completed && !gs->is_dead) {
-        score_bonus = 100;
-    }
-    return score_bonus+ 20 * cash + 47 * gs->monsters_killed + 3 * sum_attributes + gs->turns;
+    gs->cash = cash;
+    // printf("score_bonus:%d, cash:%d, mk:%d, sum_attributes:%d, turns:%d, QU:%d\n",
+    //     score_bonus, cash, gs->monsters_killed, sum_attributes    ,gs->turns, gs->QU);
+
+    return (int) ((gs->SC + 20 * cash + 47 * gs->monsters_killed + 3 * sum_attributes + gs->turns) / gs->QU);
 }
 
 //// ------------------------------------------------------------
@@ -109,7 +109,7 @@ static int calc_score(const GameState *gs) {
 ////
 //// ------------------------------------------------------------
 
-static void display_score(const GameState *gs) {
+static void display_score(GameState *gs) {
     if (GLOBAL_silent_mode) return;
     const int rooms_visited = count_rooms_visited(gs);
 
@@ -872,7 +872,7 @@ static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
 static void set_state_death_by_dwarf(GameState *gs) {
     gs->QU = 3;
     gs->is_dead = true;
-    gs->completed = true;
+    gs->game_over = true;
 }
 
 static bool can_pay(const GameState *gs, const monster_id unused, const bool verbose) {
@@ -1285,6 +1285,13 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     return perform_action(gs, CMD_FIGHT, weapon_choice, first_skill, second_skill);
 }
 
+static bool cmd_quit( GameState *gs) {
+    gs->QU = 4;
+    gs->game_over = true;
+    gs->ended_by_quitting = true;
+    // todo (rob) ask for confirmation?
+    return END_GAME;
+}
 
 /**
  * Death and Win condition check
@@ -1292,14 +1299,45 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
  * The caller should check gs->is_dead or gs->completed to see the outcome.
  */
 bool check_game_over(GameState *gs) {
-    if (gs->completed) return true;
+    if (gs->game_over) return true;
+    const room_id room = gs->room;
 
-    if (gs->room == ROOM_END ||
-        gs->room == ROOM_STONE ||
-        (gs->room >= ROOM_TRAPPED && gs->room <= ROOM_SPIDER) ||
-        gs->room == ROOM_GARGOYLE) {
-        if (gs->room != ROOM_END) gs->is_dead = true;
-        gs->completed = true;
+    if ( room == ROOM_END ||
+         room == ROOM_STONE ||
+         ( room >= ROOM_TRAPPED && gs->room <= ROOM_SPIDER ) ||
+         room == ROOM_GARGOYLE) {
+
+        gs->game_over = true;
+        if (room == ROOM_END) {
+            gs->completed = true;
+            gs->SC = 100;
+        } else {
+            gs->is_dead = true;
+            if (room == ROOM_STONE) {
+                gs->QU = 2;
+                gs->SC = 50;
+            } else if (room == ROOM_TRAPPED ) {
+                gs->QU = 3.5;
+                gs->SC = 100; // todo (rob) this makes no sense.
+            } else if (room == ROOM_PIT_OF_FLAMES ) {
+                gs->QU = 3.4;
+                gs->SC = 10;
+            } else if (room == ROOM_ACID ) {
+                gs->QU = 3;
+                gs->SC = 20;
+            } else if (room == ROOM_SPIDER ) {
+                gs->QU = 5;
+                gs->SC = 3;
+            }  else if (room == ROOM_GARGOYLE ) {
+                gs->QU = 0;
+                gs->SC = 3;
+            }
+        }
+
+
+
+
+
         return true;
     }
 
@@ -1311,7 +1349,7 @@ bool check_game_over(GameState *gs) {
                 gs->QU = 2;
             }
             gs->is_dead = true;
-            gs->completed = true;
+            gs->game_over = true;
             return true;
         }
     }
@@ -1356,13 +1394,15 @@ bool adjust_stats(GameState *gs) {
     return check_game_over(gs);
 }
 
-void check_dwarf(GameState *gs) {
+void do_room_actions(GameState *gs) {
     // process dwarf
     if (gs->room == ROOM_YELLOW &&
         (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == MONSTER_DWARF) &&
         rnd_d(gs) < .16) {
         display_paginated("You hear a whispered voice warning you: 'You must do something about the dwarf.'",
                           80);
+    } else if (gs->room == ROOM_CHARISMA_REDUCE ) {
+        gs->stats.charisma--;
     }
 }
 
@@ -1411,13 +1451,6 @@ ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
 
 
     return pc;
-}
-
-static bool cmd_quit( GameState *gs) {
-    gs->QU = 4;
-    display_line("COWARD...QUITTER....TURNCOAT.....");
-    // todo (rob) ask for confirmation?
-    return END_GAME;
 }
 
 static bool main_game_loop(GameState *gs) {
@@ -1478,7 +1511,8 @@ static bool main_game_loop(GameState *gs) {
         }
     }
 
-    check_dwarf(gs);
+    // todo (rob) we need a framework hook for action routines for rooms and objects
+    do_room_actions(gs);
 
     if (room_id == ROOM_START && gs->room_prev == 0 ) {
         // first room, we display initial inventory. Afterward, the user can view them with explicit "inv" command
@@ -1492,6 +1526,7 @@ static bool main_game_loop(GameState *gs) {
     // display("You chose ");
     // printf("%d %s\n",pc.command, pc.object);
     const enum Command cmd = pc.verb_command;
+
 
     // -----------------------------------------------------------------
     //      Player Presentation Only
@@ -1561,6 +1596,8 @@ static bool main_game_loop(GameState *gs) {
     return CONTINUE_GAME;
 }
 
+
+
 int sum_character_stats(const CharStats *s) {
     int total = 0;
     for (int i = 1; i < STAT_COUNT; ++i) {
@@ -1569,7 +1606,18 @@ int sum_character_stats(const CharStats *s) {
     return total;
 }
 
-// called at the start of each new game
+
+
+//// ------------------------------------------------------------
+////
+////    INITIALIZE
+////
+//// ------------------------------------------------------------
+
+
+// -----------------------------------------------------------------
+//      called at the start of each new game
+// -----------------------------------------------------------------
 void reset(GameState *gs, const uint32_t seed) {
     // reset GameState
     *gs = (GameState){.seed = seed, .player_name = gs->player_name, .room = ROOM_START, .has_torch = true, .QU = 1};
@@ -1593,7 +1641,7 @@ void reset(GameState *gs, const uint32_t seed) {
     ROOM_GRAPH[ROOM_MAGICIAN][RGINDEX_TREASURE]    = OBJECT_SILVER_KEY;
     ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE]      = OBJECT_SWORD;
     ROOM_GRAPH[ROOM_DUNGEON][RGINDEX_TREASURE]     = OBJECT_AXE;
-    ROOM_GRAPH[ROOM_MIRROR][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
+    ROOM_GRAPH[ROOM_CHARISMA_REDUCE][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
     ROOM_GRAPH[ROOM_TROPHY][RGINDEX_TREASURE]      = OBJECT_IRON_CHEST;
     ROOM_GRAPH[ROOM_SECRET_ROOM][RGINDEX_TREASURE] = OBJECT_AMULET;
     ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE]      = OBJECT_GOLD_KEY;
@@ -1609,7 +1657,7 @@ void reset(GameState *gs, const uint32_t seed) {
     room_add_object(&ROOMS[ROOM_MAGICIAN], OBJECT_SILVER_KEY);
     room_add_object(&ROOMS[ROOM_WOODEN], OBJECT_SWORD);
     room_add_object(&ROOMS[ROOM_DUNGEON], OBJECT_AXE);
-    room_add_object(&ROOMS[ROOM_MIRROR], OBJECT_STONE_CHEST);
+    room_add_object(&ROOMS[ROOM_CHARISMA_REDUCE], OBJECT_STONE_CHEST);
     room_add_object(&ROOMS[ROOM_TROPHY], OBJECT_IRON_CHEST);
     room_add_object(&ROOMS[ROOM_SECRET_ROOM], OBJECT_AMULET);
     room_add_object(&ROOMS[ROOM_TURRET], OBJECT_GOLD_KEY);
@@ -1683,10 +1731,25 @@ void reset(GameState *gs, const uint32_t seed) {
     // update_perception(gs);
 }
 
+RandomTextArray * create_rta(int length) {
+    const size_t mem_size = sizeof(RandomTextArray) + sizeof(RandomText) * length;
+    RandomTextArray * result = calloc(1, mem_size);
+    result->length = length;
+    return result;
+}
+
 static void init_rooms(void) {
-    // random text for rooms 4,
-    // special code for room 5 QU=2, SC=50, room 13 CH=CH-1, room 29 QU=3.5, room 30 SC=10, QU=3.4, room 31 sc=20, QU=3
-    // room 32 counts down from 10 to 1 as you die from a spider bite, SC=3, QU=5, room 37 SC=0  QU=3
+    // random text for rooms 4
+    ROOMS[4].epilog = create_rta(1);
+    ROOMS[4].epilog->lines[0] = (RandomText){
+        .chance_percent = .5,
+        .text="A mouse scampers across the floor.",
+        .else_text = "A bat flits across the ceiling."};
+
+
+    // special code for
+    // room 32 counts down from 10 to 1 as you die from a spider bite
+    // todo (rob) more console display features like a countdown
 }
 
 

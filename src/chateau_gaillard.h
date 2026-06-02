@@ -139,13 +139,15 @@ typedef struct GameState {
 
     bool has_torch;
 
-    bool is_dead;
     bool completed; // true if reached final room
+    bool game_over;
+    bool is_dead;
     bool ended_by_quitting;
     object_id  items[MAX_ITEMS];  //
     bool rooms_visited[NUM_ROOMS];
 
-    int QU;  // end-of-game flag? Quit flag, used in final scoring
+    double QU;  // end-of-game flag? Quit flag, used in final scoring
+    int SC;  // score bonus, depending on how game ends.
     int BOX; // chest flag?
 
 

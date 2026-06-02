@@ -22,7 +22,9 @@
 typedef struct RandomText {
     const char *text;  // displayed if chance_percent is satisfied
     const char *else_text; // if not null, displayed when chance_percent not satisfied
-    double chance_percent;  // between 0 and 1. Random number between 0 and 1  must be less (<) than this to be displayed
+    // chance_percent: A random roll between 0 and 1 must be less (<) than this value for
+    // `text` to be displayed, else `else_text` is displayed
+    double chance_percent;  // between 0 and 1.
 } RandomText;
 
 
@@ -99,7 +101,7 @@ constexpr int ROOM_STONE         =  5;  // death
 constexpr int ROOM_L_SHAPED      =  6;
 
 constexpr int ROOM_KITCHEN       =  8;
-constexpr int ROOM_MIRROR        = 13;
+constexpr int ROOM_CHARISMA_REDUCE = 13;
 constexpr int ROOM_YELLOW        = 16;
 constexpr int ROOM_CRAMPED       = 17;
 constexpr int ROOM_TRAPPED       = 29;  // death
