@@ -31,7 +31,7 @@ Room ROOMS[NUM_ROOMS] = {
 {.id =  8,  .name= "Kitchen",     .desc = "This must be the Chateau's main kitchen, but any food left here has long rotted away. A door leads to the north, and there is one to the west." },
 {.id =  9,  .name= "Black Dragon",     .desc = "You find yourself in a small room, which makes you feel claustrophobic. There is a picture of a black dragon painted on the north wall, above the door." },
 {.id = 10,  .name= "Landing",    .desc = "A stairwell ends in this 'room', which is more of a landing than an actual room. The door to the north is made of iron, which has rusted over the centuries." },
-{.id = 11,  .name= "Stone Archway",    .desc = "There is a stone archway to the north. You are in a very long room. You are in a very long room.\nFresh air blows down some stairs and rich red drapes cover the walls. You can see doors to the south and east." },
+{.id = 11,  .name= "Stone Archway",    .desc = "There is a stone archway to the north. You are in a very long room.\nFresh air blows down some stairs and rich red drapes cover the walls. You can see doors to the east." },
 {.id = 12,  .name= "Whirling Smoke",    .desc = "You have entered a room filled with swirling, choking smoke. You must leave quickly to remain healthy enough to continue your chosen quest." },
 {.id = 13,  .name= "Charism Reduction",    .desc = "There is a mirror in the corner. You glance at it, and feel suddenly very ill.\nYou realize the looking-glass has been infused with a Spell of Charisma Reduction... oh dear...." },
 {.id = 14,  .name= "White Marble",    .desc = "This room is richly finished with a white marble floor. Strange footprints lead to the two doors from this room. Dare you follow them?" },

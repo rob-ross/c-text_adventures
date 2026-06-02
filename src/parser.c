@@ -71,7 +71,7 @@ static const char * const REGEX_GODMODE     = "^(I AM CORNHOLIO)$";
 static RegexPattern patterns[] = {
     {REGEX_HELP,        {}, "HELP",      CMD_HELP  },
     {REGEX_QUIT,        {}, "QUIT",      CMD_QUIT  },
-    {REGEX_UNLOCK,      {}, "UNLOCK" },
+    {REGEX_UNLOCK,      {}, "UNLOCK",  CMD_UNLOCK  },
     {REGEX_OPEN,        {}, "OPEN",      CMD_OPEN  },
     {REGEX_READ,        {}, "READ",      CMD_READ  },
 
@@ -89,8 +89,8 @@ static RegexPattern patterns[] = {
     {REGEX_SCORE,       {}, "SCORE", CMD_SCORE },
 
 
-    {REGEX_PAY,         {}, "PAY",        CMD_PAY    } ,
-    {REGEX_DRINK,       {}, "DRINK", CMD_DRINK  },
+    {REGEX_PAY,         {}, "PAY",        CMD_PAY   } ,
+    {REGEX_DRINK,       {}, "DRINK",      CMD_DRINK },
     {REGEX_DROP,        {}, "DROP",       CMD_DROP  },
     {REGEX_TAKE,        {}, "TAKE",       CMD_TAKE  } ,
     {REGEX_MOVE,        {}, "MOVE",       CMD_MOVE  },

@@ -662,7 +662,7 @@ static int calc_score(const GameState * gs) {
     return 3 * gs->cash +  30 * gs->monsters_killed + 3 * sum_attributes + gs->turns  ;
 }
 
-static bool process_quit(const GameState * gs) {
+static bool cmd_quit(const GameState * gs) {
     display_line("COWARD...QUITTER....TURNCOAT.....");
     // todo (rob) ask for confirmation?
     return END_GAME;
@@ -1302,7 +1302,7 @@ static bool main_game_loop(GameState * gs) {
 
     if (cmd == 'Q') {
         set_char_sleep(saved_sleep_duration);
-        return process_quit(gs);
+        return cmd_quit(gs);
     }
 
     if ( !monster_check(gs, cmd) ) {

@@ -64,8 +64,8 @@ void obj_clear_location(const object_id id) {
 
 char const * obj_name_for_object_id(const object_id id) {
     const Object *o = pvt_find_object(id);
-    if (!o) {
-        return pvt_objects->objects[0].name;
+    if ( o == nullptr) {
+        return pvt_objects->objects[0].name;  //name of the null object
     }
     return o->name;
 }

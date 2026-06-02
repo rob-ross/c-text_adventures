@@ -33,6 +33,9 @@ enum Command {
     CMD_DRINK = 27466,  // oewn-01172332-v (Interlingual Index: i27466)
     CMD_TAKE  = 27693,  // oewn-01216829-v (Interlingual Index: i27693)
     CMD_OPEN  = 28422,  // oewn-01348685-v (Interlingual Index: i28422)
+
+    CMD_UNLOCK = 28436, // oewn-01351387-v (Interlingual Index: i28436)
+
     CMD_MOVE  = 30898,  // oewn-01839438-v (Interlingual Index: i30898)
     CMD_DROP  = 31618,  // oewn-01981715-v (Interlingual Index: i31618)
 

@@ -91,10 +91,16 @@ static int count_rooms_visited(const GameState *gs) {
     return result;
 }
 
+static int actor_calc_inventory_value(const GameState *gs);
 static int calc_score(const GameState *gs) {
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
                          gs->stats.intelligence + gs->stats.wisdom + gs->stats.constitution;
-    return 3 * gs->cash + 30 * gs->monsters_killed + 3 * sum_attributes + gs->turns;
+    int cash = actor_calc_inventory_value(gs);
+    int score_bonus = 0;
+    if (gs->completed && !gs->is_dead) {
+        score_bonus = 100;
+    }
+    return score_bonus+ 20 * cash + 47 * gs->monsters_killed + 3 * sum_attributes + gs->turns;
 }
 
 //// ------------------------------------------------------------
@@ -176,13 +182,6 @@ static void display_room_monster(GameState *gs) {
 
 static void display_room_treasure(const GameState *gs) {
     if (GLOBAL_silent_mode) return;
-    const int treasure_index = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    const int rgindex1 = ROOM_GRAPH[gs->room][RGINDEX_TREASURE2];
-    const int rgindex2 = ROOM_GRAPH[gs->room][RGINDEX_TREASURE3];
-
-    if (treasure_index > 98 && rgindex1 == 0 && rgindex2 == 0) {
-        return; // todo (rob) these are currently magic numbers until we figure out what they do
-    }
 
     const Room *room = &ROOMS[gs->room];
     if (room_count_of_objects(room) > 0) {
@@ -201,14 +200,7 @@ static void display_room_treasure(const GameState *gs) {
 
 static void display_room_content(GameState *gs) {
     if (GLOBAL_silent_mode) return;
-
     display_room_treasure(gs);
-
-    const int treasure_index = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    if (treasure_index > 98) {
-        display_paginated("One of the doors is locked, preventing you from exploring further.", 80);
-    }
-
     display_room_monster(gs);
 }
 
@@ -270,6 +262,12 @@ bool check_can_move(GameState *gs, int const direction, const bool verbose) {
             vdisplay_line("runtime error: next_room_index is out of bounds: %d, expected range [0, %d]",
                           next_room_id, NUM_ROOMS - 1);
         }
+        return false;
+    }
+
+    if ( ( next_room_id == ROOM_KITCHEN || next_room_id == ROOM_UNEVEN ) &&
+           ROOM_GRAPH[next_room_id][RGINDEX_REQUIRED_KEY] > 0 ) {
+        display_line("The door is locked.");
         return false;
     }
 
@@ -557,6 +555,16 @@ static bool actor_has_any_items(const GameState *gs) {
     return false;
 }
 
+static int actor_calc_inventory_value(const GameState *gs) {
+    int cash = 0;
+    for (int i = 0; i < MAX_ITEMS; ++i) {
+        if (gs->items[i] != 0) {
+            const Object *o = obj_find_object(gs->items[i]);
+            cash += o->value;
+        }
+    }
+    return cash;
+}
 
 static void actor_display_inventory(const GameState *gs) {
     if (GLOBAL_silent_mode) return;
@@ -995,7 +1003,7 @@ static bool action_drink( GameState *gs, object_id id) {
 
 // Entry point for the human user path.
 // This finds the item in the VO, and passes those to
-// drink_action(), the ML entry point for the read action.
+// drink_action(), the ML entry point for the drink action.
 static bool cmd_drink(GameState *gs, const ParsedCommand *pc) {
     // this command requires a verb object.
     // DESIGN: some commands require vo, some do not, some are optional.
@@ -1024,6 +1032,75 @@ static bool cmd_drink(GameState *gs, const ParsedCommand *pc) {
     return perform_action(gs, CMD_DRINK, id, 0, 0);
 }
 
+
+static bool can_unlock_room(const GameState *gs, const room_id room, const object_id key, const bool verbose) {
+    if (room < 1 || room >= NUM_ROOMS) {
+        if (verbose) vdisplay_line("Room id out of bounds: %d", room);
+        return false;
+    }
+    if (key != OBJECT_SILVER_KEY && key != OBJECT_GOLD_KEY) {
+        if (verbose) vdisplay_line("Invalid key id: %d", key);
+    }
+    if (! actor_has_item(gs, key)) {
+        const char *obj_name = obj_name_for_object_id(key);
+        if (verbose) vdisplay_line("You don't have the %s.", obj_name);
+        return false;
+    }
+    if (ROOM_GRAPH[room][RGINDEX_REQUIRED_KEY] == 0 ) {
+        if (verbose) display_line("There are no locked doors here. ");
+        return false;
+    }
+    if (ROOM_GRAPH[room][RGINDEX_REQUIRED_KEY] != key) {
+        if (verbose) display_line("That key does not fit the door.");
+        return false;
+    }
+
+    return true;
+}
+
+static bool action_unlock( GameState *gs, const room_id room, const object_id key ) {
+    if (!can_unlock_room(gs, room, key, false)) return false;
+
+    ROOM_GRAPH[room][RGINDEX_REQUIRED_KEY] = 0; // door is unlocked now.
+    actor_remove_object(gs, key);
+    display_line("There is a creak as the key turns.\nThe door is now unlocked.");
+    return true;
+}
+
+
+
+static bool cmd_unlock(GameState *gs, const ParsedCommand *pc) {
+
+    // check if unlock is needed
+    const room_id current_room = gs->room;
+    // until we can place an object in a room like a door guard for a particular edge, we have to kludge this here.
+    // For the current room we look at all possible traversable edges.
+    struct room_key { room_id room; object_id key;} room_key = {};
+    for (int direction = RGINDEX_NORTH; direction <= RGINDEX_DOWN; ++direction) {
+        room_id next_room =  ROOM_GRAPH[current_room][direction];
+        // kludge method stops at first locked door found
+        if ( next_room > 0 && ROOM_GRAPH[next_room][RGINDEX_REQUIRED_KEY] > 0 ) {
+            room_key.room = next_room;
+            room_key.key = ROOM_GRAPH[next_room][RGINDEX_REQUIRED_KEY] ;
+            break;
+        }
+    }
+
+    if (room_key.room == 0) {
+        display_line("There is nothing to unlock here.");
+        return false;
+    }
+
+
+    if (!actor_has_item(gs, room_key.key)) {
+        display_line("You do not have the key.");
+        return false;
+    }
+
+    if (!can_unlock_room(gs, room_key.room, room_key.key, true)) return false;
+
+    return perform_action(gs, CMD_UNLOCK, room_key.room, room_key.key, 0);
+}
 
 // debugging tool, increase player stats to max
 // useful while debugging so monsters don't kill player
@@ -1079,6 +1156,9 @@ bool perform_action(GameState *gs, enum Command const cmd, const int arg1, const
             break;
         case CMD_DRINK:
             result = action_drink(gs, arg1);
+            break;
+        case CMD_UNLOCK:
+            result = action_unlock(gs, arg1, arg2);
             break;
         default:
             result = false;
@@ -1333,7 +1413,8 @@ ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
     return pc;
 }
 
-static bool process_quit(const GameState *gs) {
+static bool cmd_quit( GameState *gs) {
+    gs->QU = 4;
     display_line("COWARD...QUITTER....TURNCOAT.....");
     // todo (rob) ask for confirmation?
     return END_GAME;
@@ -1418,7 +1499,7 @@ static bool main_game_loop(GameState *gs) {
 
     if (cmd == CMD_QUIT) {
         set_char_sleep(saved_sleep_duration);
-        return process_quit(gs);
+        return cmd_quit(gs);
     }
     if (cmd == CMD_HELP) {
         display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
@@ -1460,6 +1541,8 @@ static bool main_game_loop(GameState *gs) {
         cmd_pay(gs, &pc);
     } else if (cmd == CMD_DRINK) {
         cmd_drink(gs, &pc);
+    } else if (cmd == CMD_UNLOCK) {
+        cmd_unlock(gs, &pc);
     } else {
         // Now the human call and the ML call use the exact same entry point
         perform_action(gs, cmd, 0, 0, 0);
@@ -1501,33 +1584,32 @@ void reset(GameState *gs, const uint32_t seed) {
         // note: if we dynamically modify the edge graph, we'll need to reset those edges here
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
-        ROOM_GRAPH[room_index][RGINDEX_TREASURE2] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
         ROOM_GRAPH[room_index][RGINDEX_TREASURE3] = 0;
         ROOMS[room_index].monster = 0;
     }
     monsters_clear_all();
 
-    ROOM_GRAPH[ROOM_EERIE][RGINDEX_TREASURE]       = OBJECT_SILVER_KEY;
+    ROOM_GRAPH[ROOM_MAGICIAN][RGINDEX_TREASURE]    = OBJECT_SILVER_KEY;
     ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE]      = OBJECT_SWORD;
     ROOM_GRAPH[ROOM_DUNGEON][RGINDEX_TREASURE]     = OBJECT_AXE;
-    ROOM_GRAPH[ROOM_KITCHEN][RGINDEX_TREASURE]     = 99; // locked door i  99??
     ROOM_GRAPH[ROOM_MIRROR][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
-    ROOM_GRAPH[ROOM_UNEVEN][RGINDEX_TREASURE]      = 100; // locked door ii  100?
     ROOM_GRAPH[ROOM_TROPHY][RGINDEX_TREASURE]      = OBJECT_IRON_CHEST;
     ROOM_GRAPH[ROOM_SECRET_ROOM][RGINDEX_TREASURE] = OBJECT_AMULET;
     ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE]      = OBJECT_GOLD_KEY;
+
+    ROOM_GRAPH[ROOM_KITCHEN][RGINDEX_REQUIRED_KEY]     = OBJECT_SILVER_KEY; // locked door i, requires silver key
+    ROOM_GRAPH[ROOM_UNEVEN][RGINDEX_REQUIRED_KEY]      = OBJECT_GOLD_KEY; // locked door ii, requires golden key
 
 
     // -----------------------------------------------------------------
     //      NEW OBJECT ALLOCATION METHOD
     // -----------------------------------------------------------------
 
-    room_add_object(&ROOMS[ROOM_EERIE], OBJECT_SILVER_KEY);
+    room_add_object(&ROOMS[ROOM_MAGICIAN], OBJECT_SILVER_KEY);
     room_add_object(&ROOMS[ROOM_WOODEN], OBJECT_SWORD);
     room_add_object(&ROOMS[ROOM_DUNGEON], OBJECT_AXE);
-    // add_object_to_room(&ROOMS[ROOM_KITCHEN], OBJECT_SILVER_KEY);
     room_add_object(&ROOMS[ROOM_MIRROR], OBJECT_STONE_CHEST);
-    // add_object_to_room(&ROOMS[ROOM_UNEVEN], OBJECT_SILVER_KEY);
     room_add_object(&ROOMS[ROOM_TROPHY], OBJECT_IRON_CHEST);
     room_add_object(&ROOMS[ROOM_SECRET_ROOM], OBJECT_AMULET);
     room_add_object(&ROOMS[ROOM_TURRET], OBJECT_GOLD_KEY);

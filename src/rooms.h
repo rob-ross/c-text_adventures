@@ -69,7 +69,7 @@ enum RoomGraphIndex {
     RGINDEX_DOWN,
     RGINDEX_TREASURE,
     RGINDEX_MONSTER,
-    RGINDEX_TREASURE2,
+    RGINDEX_REQUIRED_KEY,
     RGINDEX_TREASURE3,
     RGINDEX_COUNT
 };
@@ -92,7 +92,7 @@ constexpr int ROOM_END           = 28;
 // these constants are nice for static compiler checks but won't scale to a real world app. We're using these constants
 // to add things to a room, (treasure, monster), exclude things from being added, check special conditions, e.g.,
 // do you have the right key to unlock the door, etc. These should all be pushed into the data layer.
-constexpr int ROOM_EERIE         =  2;
+constexpr int ROOM_MAGICIAN      =  2;
 constexpr int ROOM_MATTRESS      =  3;
 constexpr int ROOM_WOODEN        =  4;
 constexpr int ROOM_STONE         =  5;  // death

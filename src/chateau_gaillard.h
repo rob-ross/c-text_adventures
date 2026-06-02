@@ -35,12 +35,10 @@ char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
 
 
 
-// ROOM_GRAPH: in column RGITREASURE > 98 indicates a locked door
-// last two columns are related to unlocking somehow??
-//indices 9 and 10 act like extra slots when dropping items, so each room can have 3 items in it.
+
 static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
-
+//                                T   M   K
     {  1,  1,  2,  1,  1,  1,  0,  0,  0,  0 },  //  ROOM 1
     {  0, 29,  3,  1,  0,  0, 17,  0,  0,  0 },  //  ROOM 2
     {  0,  8,  4,  2,  0,  0,  0,  0,  0,  0 },  //  ROOM 3
@@ -48,7 +46,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {  5,  5,  5,  5,  5,  5,  0,  0,  0,  0 },  //  ROOM 5, DEATH
     {  0, 11,  7, 30,  0,  0,  0,  0,  0,  0 },  //  ROOM 6
     {  0,  0,  8,  6,  0,  0,  0,  0,  0,  0 },  //  ROOM 7
-    {  3,  0,  0,  7,  0,  0, 99,  0,  0,  0 },  //  ROOM 8
+    {  3,  0,  0,  7,  0,  0,  0,  0, 17,  0 },  //  ROOM 8, KITCHEN, locked, need silver key
     {  4, 10,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 9
     {  9,  0,  0,  0,  0, 39,  0,  0,  0,  0 },  //  ROOM 10
     {  6,  0,  0,  0, 28,  0,  0,  0,  0,  0 },  //  ROOM 11
@@ -74,7 +72,7 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 31, 31, 31, 31, 31, 31,  0,  0,  0,  0 },  //  ROOM 31, DEATH
     { 32, 32, 32, 32, 32, 32,  0,  0,  0,  0 },  //  ROOM 32, DEATH
     { 43, 42, 40,  0, 26,  0,  0,  0,  0,  0 },  //  ROOM 33
-    {  0, 38, 35,  0,  0,  0,100,  0,  0,  0 },  //  ROOM 34
+    {  0, 38, 35,  0,  0,  0,  0,  0, 18,  0 },  //  ROOM 34, UNEVEN ROOM, locked, need golden key
     {  0, 43, 36, 34,  0,  0,  0,  0,  0,  0 },  //  ROOM 35
     {  0, 40, 37, 35,  0,  0,  1,  0,  0,  0 },  //  ROOM 36
     { 37, 37, 37, 37, 37, 37,  0,  0,  0,  0 },  //  ROOM 37, DEATH
@@ -143,6 +141,7 @@ typedef struct GameState {
 
     bool is_dead;
     bool completed; // true if reached final room
+    bool ended_by_quitting;
     object_id  items[MAX_ITEMS];  //
     bool rooms_visited[NUM_ROOMS];
 
