@@ -1,0 +1,25 @@
+// this is a comment
+# this is also a comment
+/* and why not, sure there's a comment. Multi line? Ok. Let's support this.
+this is part of the above comment and shouldn't be parsed.
+*/ And we'll just call this text part of the comment even though it wouldn't be a valid C comment
+Dwarf
+Monoceros
+Paradrus
+Vampyre
+Wrnach
+Giolla Dacker
+Kraken
+Fenris Wolf
+Calopus
+Basilisk
+Grimoire
+Flying Buffalo
+Ber Serkoid
+Wyrm
+Crowtherwood
+Gygax
+Ragnarok
+Fomorine
+Hafgygr
+Grendel

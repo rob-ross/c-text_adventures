@@ -15,6 +15,19 @@ typedef struct CharBuffer {
     char const buffer[]; // flexible array
 } CharBuffer;
 
+typedef const char* string;
+
+typedef struct len_str_s {
+    size_t len;
+    string s;
+} LenStr;
+
+typedef struct len_str_array_s {
+    size_t size;
+    LenStr array[]; // flexible array
+} LenStrArray;
 
 // Returns true if `str` strats with `prefix`, ignoring case.
 bool string_starts_with_ignore_case(const char *prefix, const char *str);
+// remove leading and trailing whitespace characters in-place, as defined by isspace()
+void string_trim(char *s);

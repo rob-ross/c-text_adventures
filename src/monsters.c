@@ -37,6 +37,17 @@ char const * const MONSTER_NAMES[NUM_MONSTERS] = {
 
 static Monster monsters[NUM_MONSTERS];
 
+// reads a text file where each line is a string. This function will skip line comments and blank lines as well as
+// multiline comments. Line comments start with '//' or '#' and multiline comments are C-style /* */
+// Leading and trailing whitespace is trimmed.
+static int monster_read_string_file(const char * monster_filename) {
+
+}
+
+int monsters_init(const char * monster_filename) {
+
+}
+
 
 static Monster * pvt_monsters_find_monster(const monster_id id) {
     return &monsters[id];

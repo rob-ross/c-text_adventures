@@ -4,7 +4,7 @@ project(text_adventures C)
 set(CMAKE_C_STANDARD 23)
 
 add_executable(text_adventures
-        src/chateau_gaillard.c
+        src/chateau_gaillard/chateau_gaillard.c
         src/mersenne_twister.c
         src/common/console_utils.c
         src/parser.c

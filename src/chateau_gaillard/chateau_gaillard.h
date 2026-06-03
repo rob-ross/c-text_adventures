@@ -9,14 +9,14 @@
 #pragma once
 
 
-#include "common/console_utils.h"
+#include "../common/console_utils.h"
 
-#include "mersenne_twister.h"
-#include "rooms.h"
-#include "monsters.h"
-#include "objects.h"
-#include "directions.h"
-#include "parser.h"
+#include "../mersenne_twister.h"
+#include "../rooms.h"
+#include "../monsters.h"
+#include "../objects.h"
+#include "../directions.h"
+#include "../parser.h"
 
 #ifdef _WIN32
 #include <conio.h>

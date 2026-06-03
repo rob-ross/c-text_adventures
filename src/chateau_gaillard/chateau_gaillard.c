@@ -1,5 +1,12 @@
 // chateau_gaillard.c
 //
+// Copyright (c) Rob Ross 2026.
+//
+//
+// Created 2026/06/02 21:58:37 PDT
+
+// chateau_gaillard.c
+//
 // ported by Rob Ross
 // from a BASIC text adventure by Tim Hartnell, 1983
 //
@@ -1333,7 +1340,7 @@ bool check_game_over(GameState *gs) {
                 gs->SC = 3;
             }
         }
-        
+
         return true;
     }
 

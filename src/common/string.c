@@ -12,6 +12,7 @@
 #include "string.h"
 
 #include <ctype.h>
+#include <string.h>
 
 
 // Returns true if str strats with prefix, ignoring case.
@@ -44,4 +45,28 @@ bool string_starts_with_ignore_case(const char *prefix, const char *str) {
     // If we reached the end of partial_string, it means all characters matched.
     // So, full_string starts with partial_string.
     return prefix[i] == '\0';
+}
+
+
+void string_trim(char *s) {
+    if (s == NULL || *s == '\0') {
+        return;
+    }
+
+    size_t len = strlen(s);
+    char *p = s;
+
+    // Trim trailing whitespace
+    while (len > 0 && isspace((unsigned char)p[len - 1])) {
+        p[--len] = 0;
+    }
+
+    // Trim leading whitespace
+    while (*p && isspace((unsigned char)*p)) {
+        ++p;
+        --len;
+    }
+
+    // Move the trimmed string back to the start
+    memmove(s, p, len + 1);
 }
