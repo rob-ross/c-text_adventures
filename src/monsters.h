@@ -19,11 +19,8 @@ typedef struct Room Room;
 ////
 //// ------------------------------------------------------------
 
-constexpr int NUM_MONSTERS      = 21;
 
-constexpr int MONSTER_DWARF = 1;
 
-extern char const * const MONSTER_NAMES[NUM_MONSTERS];
 
 typedef int monster_id;
 
@@ -37,7 +34,9 @@ typedef struct Monster {
     };
 } Monster;
 
-
+int monsters_init(const char * monster_filename);
+void monsters_destroy(void);
+int monsters_num_monsters(void);
 void monsters_names_repr(void);
 bool monsters_monster_is_in_room( const char *monster_name, const Room *r );
 const char * monsters_name_for_id(monster_id id);

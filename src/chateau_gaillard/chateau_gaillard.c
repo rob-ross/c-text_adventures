@@ -21,8 +21,8 @@
  * DEBUG:
 clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
-    -std=c23 -o chateau_gaillard.out chateau_gaillard.c mersenne_twister.c \
-     common/console_utils.c common/string.c parser.c objects.c rooms.c monsters.c
+    -std=c23 -o chateau_gaillard.out chateau_gaillard.c ../mersenne_twister.c \
+     ../common/console_utils.c ../common/string.c ../parser.c ../objects.c ../rooms.c ../monsters.c
 
 */
 #include "chateau_gaillard.h"
@@ -35,6 +35,8 @@ clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werro
 uint32_t DEBUG_NORMAL_SLEEP = 0;
 uint32_t DEBUG_VISITED_SLEEP = 0;
 bool DEBUG = true;
+
+constexpr int MONSTER_DWARF = 1;
 
 static void cleanup(GameState *gs);
 
@@ -1510,11 +1512,11 @@ static bool main_game_loop(GameState *gs) {
 
     display_room_content(gs);
 
-    const int monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    if (monster_index > MONSTER_DWARF && rnd_d(gs) < .3) {
+    const monster_id id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
+    if (id > MONSTER_DWARF && rnd_d(gs) < .3) {
         // forced fight, monster attacks first
         display("The ");
-        display(MONSTER_NAMES[monster_index]);
+        display(monsters_name_for_id(id));
         display_line(" attacks!");
     } else {
         // we just lose points randomly here for some reason.
@@ -1707,14 +1709,14 @@ void reset(GameState *gs, const uint32_t seed) {
     CharStats stats = random_monster_stats(gs);
     int ff = sum_character_stats(&stats);
     monsters_update_monster( &(Monster) {
-                                    .name = MONSTER_NAMES[MONSTER_DWARF],
+                                    .name = monsters_name_for_id(MONSTER_DWARF),
                                     .id = MONSTER_DWARF,
                                     .ferocity_factor = ff,
                                     .stats = random_monster_stats(gs),
     });
 
     // allot random monsters
-    for (int monster_index = MONSTER_DWARF + 1; monster_index < NUM_MONSTERS; ++monster_index) {
+    for (int monster_index = MONSTER_DWARF + 1; monster_index < monsters_num_monsters(); ++monster_index) {
         for (;;) {
             int rand_room = rnd_range(gs, 1, NUM_ROOMS);
             if (!(ROOM_GRAPH[rand_room][RGINDEX_MONSTER] ||
@@ -1730,7 +1732,7 @@ void reset(GameState *gs, const uint32_t seed) {
                 ff = sum_character_stats(&stats);
                 ROOMS[rand_room].monster = monster_index;
                 monsters_update_monster( &(Monster) {
-                            .name = MONSTER_NAMES[monster_index],
+                            .name = monsters_name_for_id(monster_index),
                             .id = monster_index,
                             .ferocity_factor = ff,
                             .stats = stats
@@ -1799,6 +1801,7 @@ static struct ObjectData {
 static void initialize() {
     // note: random data is initialized in reset()
     parser_init();
+    monsters_init("monsters.txt");
     obj_init(20, get_object_data().data);
     init_rooms();
 }
@@ -1875,6 +1878,7 @@ static void cleanup(GameState *gs) {
     void *free_ptr = (void *) gs->player_name;
     gs->player_name = nullptr;
     free(free_ptr);
+    monsters_destroy();
 }
 
 

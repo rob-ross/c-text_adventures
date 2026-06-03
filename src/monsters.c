@@ -8,10 +8,11 @@
 
 #include <stdio.h>
 #include "common/string.h"
+#include "common/files.c"
 #include "monsters.h"
 
 
-char const * const MONSTER_NAMES[NUM_MONSTERS] = {
+/*char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "NULL MONSTER",
     "Dwarf",
     "Monoceros",
@@ -34,20 +35,51 @@ char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "Hafgygr",
     "Grendel",
 };
+*/
 
-static Monster monsters[NUM_MONSTERS];
+static Monster *monsters = nullptr;
+static LenStrArray *global_lsa;
 
 // reads a text file where each line is a string. This function will skip line comments and blank lines as well as
 // multiline comments. Line comments start with '//' or '#' and multiline comments are C-style /* */
 // Leading and trailing whitespace is trimmed.
 static int monster_read_string_file(const char * monster_filename) {
-
+    int err = process_file( monster_filename, create_string_array, (void**) &global_lsa);
+    // if (err == 0) {
+    //     printf("In main, LenStrArray from monsters.txt is:\n");
+    //     for (int i = 0; i < lsa->size; ++i) {
+    //         printf("(%zd):%s\n",lsa->array[i].len, lsa->array[i].s);
+    //     }
+    // }
+    return err;
 }
 
 int monsters_init(const char * monster_filename) {
-
+    int result = monster_read_string_file(monster_filename);
+    if (result != 0) {
+        return result;
+    }
+    monsters = malloc(sizeof(Monster) * monsters_num_monsters());
+    if (!monsters) {
+        free_LenStrArray(global_lsa);
+        global_lsa = nullptr;
+        return ENOMEM;
+    }
+    return 0;
 }
 
+// Frees resources used by this module
+void monsters_destroy(void) {
+    free_LenStrArray(global_lsa);
+    global_lsa = nullptr;
+    free(monsters);
+    monsters = nullptr;
+}
+
+
+int monsters_num_monsters(void) {
+    return (int)global_lsa->size;
+}
 
 static Monster * pvt_monsters_find_monster(const monster_id id) {
     return &monsters[id];
@@ -63,14 +95,16 @@ Monster * monsters_find_monster(const monster_id id) {
 
 // overwrites the state of the monster object in storage for the argument's id member.
 void monsters_update_monster(const Monster *m) {
-    if (!m || m->id < 0 || m->id > NUM_MONSTERS - 1 ) {
+    const int num_monsters = monsters_num_monsters();
+    if (!m || m->id < 0 || m->id > num_monsters - 1 ) {
         return;
     }
     monsters[m->id] = *m;
 }
 
 void monsters_clear_all(void) {
-    for (int i = 0; i < NUM_MONSTERS; ++i) {
+    const int num_monsters = monsters_num_monsters();
+    for (int i = 0; i < num_monsters; ++i) {
         monsters[i] = (Monster){};
     }
 }
@@ -85,18 +119,17 @@ bool monsters_monster_is_in_room( const char *monster_name, const Room *r ) {
 }
 
 void monsters_names_repr(void) {
-    printf("MONSTER_NAMES[%d] {\n", NUM_MONSTERS);
-    for (int i = 0; i < NUM_MONSTERS; ++i) {
-        printf("'%s',\n", MONSTER_NAMES[i]);
+    const int num_monsters = monsters_num_monsters();
+    printf("MONSTER_NAMES[%d] {\n", num_monsters);
+    for (int i = 0; i < num_monsters; ++i) {
+        printf("'%s',\n", global_lsa->array[i].s);
     }
     printf("};\n");
 }
 
 const char * monsters_name_for_id(const monster_id id) {
-    if (id < 0 || id > NUM_MONSTERS - 1) return "null";
+    const size_t num_monsters = global_lsa->size;
+    if (id < 0 || id > num_monsters - 1) return "null";
 
-    const Monster *m =  pvt_monsters_find_monster(id);
-    if (!m || !m->name) return "null";
-
-    return m->name;
+    return global_lsa->array[id].s;
 }

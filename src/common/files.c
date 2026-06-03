@@ -199,6 +199,7 @@ int create_string_array(FILE *fptr, void **result_out) {
     size_t result_counter = 0;
     LenStr *results = malloc(sizeof(LenStr) * results_capacity);
     if (!results) return ENOMEM;
+    results[result_counter++] = (LenStr){.s = strdup("NULL"), .len=strlen("NULL") };
 
     char buffer[1024] = {};
     constexpr size_t buffer_len = sizeof(buffer);
@@ -344,7 +345,7 @@ int process_file(string file_name, file_process_action function, void **result_p
 // make:
 // clang -g -std=c23 -fsanitize=address -fsanitize=leak files.c string.c -o files_test.out
 
-int main(void) {
+/*int main(void) {
 
 
     printf("\n\n");
@@ -359,4 +360,4 @@ int main(void) {
     printf("\n");
     free_LenStrArray(lsa);
     return 0;
-}
+}*/
