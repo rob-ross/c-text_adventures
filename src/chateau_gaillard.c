@@ -1333,11 +1333,7 @@ bool check_game_over(GameState *gs) {
                 gs->SC = 3;
             }
         }
-
-
-
-
-
+        
         return true;
     }
 
@@ -1358,13 +1354,23 @@ bool check_game_over(GameState *gs) {
 
 // return true if stats are too low to continue (end game) otherwise return false.
 bool adjust_stats(GameState *gs) {
-    // we just lose points randomly here for some reason.
+    // we just lose strength points randomly here for some reason.
+    if (rnd_d(gs) < .16) --gs->stats.strength;
+
+    // clamp stats to min 0
+    for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
+        if (gs->stats.as_array[i] == 0) {
+            gs->stats.as_array[i] = 0;
+        }
+    }
+
+    /*
     if (gs->stats.strength < 0) {
         gs->stats.strength = 0;
     } else {
         if (rnd_d(gs) < .16) --gs->stats.strength;
     }
-    if (gs->stats.charisma < 0) {
+   if (gs->stats.charisma < 0) {
         gs->stats.charisma = 0;
     } else {
         if (rnd_d(gs) < .16) --gs->stats.charisma;
@@ -1388,7 +1394,7 @@ bool adjust_stats(GameState *gs) {
         gs->stats.constitution = 0;
     } else {
         if (rnd_d(gs) < .16) --gs->stats.constitution;
-    }
+    }*/
 
 
     return check_game_over(gs);

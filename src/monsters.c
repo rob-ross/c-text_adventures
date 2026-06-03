@@ -7,12 +7,9 @@
 
 
 #include <stdio.h>
+#include "common/string.h"
 #include "monsters.h"
 
-#include <ctype.h>
-#include <string.h>
-
-#include "common/string.h"
 
 char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "NULL MONSTER",
@@ -38,7 +35,7 @@ char const * const MONSTER_NAMES[NUM_MONSTERS] = {
     "Grendel",
 };
 
-static Monster monsters[NUM_ROOMS];
+static Monster monsters[NUM_MONSTERS];
 
 
 static Monster * pvt_monsters_find_monster(const monster_id id) {
@@ -85,10 +82,10 @@ void monsters_names_repr(void) {
 }
 
 const char * monsters_name_for_id(const monster_id id) {
-    if (id < 0 || id > NUM_ROOMS - 1) return "null";
+    if (id < 0 || id > NUM_MONSTERS - 1) return "null";
 
     const Monster *m =  pvt_monsters_find_monster(id);
     if (!m || !m->name) return "null";
 
-    return pvt_monsters_find_monster(id)->name;
+    return m->name;
 }
