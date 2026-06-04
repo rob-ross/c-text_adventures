@@ -39,7 +39,7 @@ static inline enum Direction calc_room_graph_direction_index(int const direction
         case 'W': return DIRECTION_WEST  - 1;
         case 'U': return DIRECTION_UP    - 1;
         case 'D': return DIRECTION_DOWN  - 1;
-        default:  return DIRECTION_ERR   - 1;
+        default:  return DIRECTION_ERR      ;
     }
 }
 

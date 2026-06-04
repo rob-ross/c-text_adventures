@@ -102,13 +102,13 @@ static CharStats random_monster_stats(GameState * gs) {
 
 static void display_char_attributes(const CharStats stats) {
     if (GLOBALS.silent_mode) return;
-    vdisplay_line("Strength:  %2d  Charisma:     %2d\n",
+    vdisplay_line("Strength:  %2d  Charisma:     %2d",
         stats.strength, stats.charisma);
 
-    vdisplay_line("Dexterity: %2d  Intelligence: %2d\n",
+    vdisplay_line("Dexterity: %2d  Intelligence: %2d",
         stats.dexterity, stats.intelligence );
 
-    vdisplay_line( "Wisdom:    %2d  Constitution: %2d\n",
+    vdisplay_line( "Wisdom:    %2d  Constitution: %2d",
         stats.wisdom, stats.constitution);
 }
 
@@ -116,13 +116,11 @@ static void display_char_attributes(const CharStats stats) {
 static void actor_display_inventory(const GameState * gs) {
     if (GLOBALS.silent_mode) return;
 
-    display_line("\nItems:");
+    display_line("Items:");
     int item_count = 0;
     for (int bag_index = 1; bag_index < ITEM_COUNT; ++bag_index ) {
         if (gs->items[bag_index]) {
-            printf("%d. ", bag_index);
-            display(obj_name_for_id(gs->items[bag_index]));
-            display("  ");
+            vdisplay("%d. %s ", bag_index, obj_name_for_id(gs->items[bag_index]));
             item_count++;
             if ( ! (item_count % 3) ) {
                 display_line("");  // display 3 items per line
@@ -142,15 +140,18 @@ static void actor_display_inventory(const GameState * gs) {
 
 static void display_status(const GameState * gs) {
     if (GLOBALS.silent_mode ) return;
-    display("magic spells: ");
-    printf("%d\n", gs->magic);
+    vdisplay("magic spells: %d, ", gs->magic);
 
     if (!gs->cash) {
         display_line("You have no money.");
     } else {
-        display("You have $");
-        printf("%d.\n", gs->cash);
+        vdisplay_line("You have $%d.", gs->cash);
     }
+}
+
+static void display_inventory(const GameState * gs) {
+    actor_display_inventory(gs);
+    display_status(gs);
 }
 
 static void display_random_room_text(GameState * gs, const RandomTextArray *rta) {
@@ -169,7 +170,6 @@ static void display_random_room_text(GameState * gs, const RandomTextArray *rta)
 static void display_room_desc(GameState * gs) {
     if (GLOBALS.silent_mode) return;
 
-    display_line("");
     if (!gs->has_torch && ROOM_GRAPH[gs->room][RGINDEX_TREASURE] != 1 ) {
         display_line("IT IS TOO DARK TO SEE ANYTHING!\n");
     } else {
@@ -178,7 +178,7 @@ static void display_room_desc(GameState * gs) {
             display_random_room_text(gs, r->preamble);
         }
 
-        display_line(r->desc);
+        display_paginated(r->desc, 80);
 
         if (r->epilog) {
             display_random_room_text(gs, r->epilog);
@@ -217,16 +217,12 @@ static void display_room_treasure(const GameState * gs) {
     }
     const Room *room = room_find_room(gs->room);
 
-    if (room_count_of_objects(room) > 0) {
-        display("You can see\n");
-    } else {
-        return;
-    }
+    if (room_count_of_objects(room) == 0) return;
 
+    display("You can see ");
     for (int i = 0; i < 10; ++i) {
         if (room->objects[i]) {
             const Object *o = obj_find_object(room->objects[i]);
-            const char * obj_name = obj_name_for_id(room->objects[i]);
             if ( o->value == 0 ) display_line(o->name);
             else vdisplay_line( "%s worth $%d", o->name, o->value);
         }
@@ -484,54 +480,54 @@ static RoomData get_room_data(void) {
     return (RoomData){
         .size = num_roomz,
         .data = {
-            {.id =  0,  .name= "NULL ROOM",  .desc = "NULL ROOM"},
-            {.id =  1,  .name= "ROOM 1",  .desc = "An underground river flows swiftly by."},
-            {.id =  2,  .name= "ROOM 2",  .desc = "You are in the Citadel's food storage area.\nOld cheeses and black loaves of bread can\nbe seen, as well as many sacks of supplies."},
-            {.id =  3,  .name= "ROOM 3",  .desc = "You are in the Citadel's kitchen. A Huge\njoint of meat turns slowly over a raging\nfire. Doors lead into cupboards, as well\nas to the west and to the south."},
-            {.id =  4,  .name= "ROOM 4",  .desc = "This is the Central Library. Leather-bound\nvolumes line the walls, right up to the\nornately carved ceiling."},
-            {.id =  5,  .name= "ROOM 5",  .desc = "This room is an awful mess. It used to be\nan artist's studio. Paint and old\neasels lie around the floor."},
-            {.id =  6,  .name= "ROOM 6",  .desc = "This is the entrance to the Citadel of Pershu.\nTurn now, if you wish. Many stronger than you\nhave taken fright at its menacing towers and\ndark portals. If you wish to proceed, move\neast towards the black gaping doorway."},
-            {.id =  7,  .name= "ROOM 7",  .desc = "A stone altar stands in the middle of the room\nwith two dead candles on it. An old book lies\non one part of the altar top, and a faded red\nparchment cloth covers the front of it."},
-            {.id =  8,  .name= "ROOM 8",  .desc = "You stand high on the black tower, the\nCitadel stretches to the north, south\nand east of you.\nThere is only one way out."},
-            {.id =  9,  .name= "ROOM 9",  .desc = "You are in the northern section of the\nCitadel's large wine cellar. Heavy\nbarrels lie all around you in this end\nof the cellar. There is a door to the north\nand one to the south."},
-            {.id = 10,  .name= "ROOM 10", .desc = "You are in the west wing of the wine\ncellar. There is a door to the west and\none to the east. The central circular\npart of the cellar lies beyond the\neast door."},
-            {.id = 11,  .name= "ROOM 11", .desc = "You are in the central circular\narea of the wine cellar. There is\na door at each compass point."},
-            {.id = 12,  .name= "ROOM 12", .desc = "You are in the east section of the\nwine cellar. There is a door to the\nwest and one - which you cannot use,\nas it only allows entrance to where\nyou now stand - to the east."},
-            {.id = 13,  .name= "ROOM 13", .desc = "There are many, many wine bottles here\nlying on their sides in this southern\nsection of the wine cellar. There is a\ndark, unfriendly-looking hole to the west\nand doors to the north and to the south."},
-            {.id = 14,  .name= "ROOM 14", .desc = "This is the Citadel's armory. Row upon row\nof shiny suits of armor are stored here." },
-            {.id = 15,  .name= "ROOM 15", .desc = "You are in the ruler's bedchamber.\nA large fire burns in the south of\nthe room, with a small door beside\nit. Other exits are to the north\nand to the west." },
-            {.id = 16,  .name= "ROOM 16", .desc = "Sand covers the floor of this curious\nroom, heaped into drifts.\nBy peeping over the 'dunes' you can\nsee a golden passage way leads to the\nwest, and there is a door to the south. You are not sure whether or not you\nhave seen all the exits." },
-            {.id = 17,  .name= "ROOM 17", .desc = "You are in the picture gallery. Portraits\nof long-dead princes line all of the\nwalls. The room is dominated by a huge\nlandsape, hanging above the exit to the\neast which leads, via the gold passage way\nback to that curious room of sand." },
-            {.id = 18,  .name= "ROOM 18", .desc = "You are on a remote tower balcony.\nThere are stairs here." },
-            {.id = 19,  .name= "ROOM 19", .desc = "You walk beneath a stone archway.\nYou can only walk north or south\nunless you decide to take the stairs." },
-            {.id = 20,  .name= "ROOM 20", .desc = "This vast hall has a marble floor, and\nthe slightest sound echos violently.\nThere are purple drapes concealing\nthe exits from this hall." },
-            {.id = 21,  .name= "ROOM 21", .desc = "You are in the glove storeroom->\nThe west door radiates heat.\nAnother door leads to the south." },
-            {.id = 22,  .name= "ROOM 22", .desc = "You are in the silver crosses storeroom->\nThere are only two exits." },
-            {.id = 23,  .name= "ROOM 23", .desc = "You are in the amulet storeroom->\nDoors lead north and south." },
-            {.id = 24,  .name= "ROOM 24", .desc = "You are in the kazoo storeroom->\nThere are two exits." },
-            {.id = 25,  .name= "ROOM 25", .desc = "You are in the satchel storeroom->" },
-            {.id = 26,  .name= "ROOM 26", .desc = "You are in the storeroom for wooden\nboxes... There are two exits." },
-            {.id = 27,  .name= "ROOM 27", .desc = "This is where printed vases are\nstored... As you can easily see." },
-            {.id = 28,  .name= "ROOM 28", .desc = "The heavy air of this area seems to make\nyour torch very dim-> You can hardly see\nthat air is rushing up from somewhere.\nYou can just make out that this area must\nbe a mine of some sort." },
-            {.id = 29,  .name= "ROOM 29", .desc = "You appear to be in an endless labyrinth,\nlined with paintings.........\nWhichever way you turn, there seems to be\nmore tunnels, all lined with paintings." },
-            {.id = 30,  .name= "ROOM 30", .desc = "This is the southern tower of the Citadel." },
-            {.id = 31,  .name= "ROOM 31", .desc = "Well done, you have managed to find the exit.\nTake a deep breath of good, clean air..........." },
-            {.id = 32,  .name= "ROOM 32", .desc = "This room is filled with swirling smoke,\nso you cannot see... Air rushes past a\nstatue of the goddess Diana. This\nmust be the Citadel's meditation chamber." },
-            {.id = 33,  .name= "ROOM 33", .desc = "A small forked bridge crosses a stream here.\nYou can move north, south, or west." },
-            {.id = 34,  .name= "ROOM 34", .desc = "You are in a rough stone cavern. Stairs\nlead up from here.\nThere is also a single door which\nleads away from the cavern." },
-            {.id = 35,  .name= "ROOM 35", .desc = "This is the former Citadel underground\nstable. It smells terrible." },
-            {.id = 36,  .name= "ROOM 36", .desc = "You find yourself in an underground\ncourtyard. Strange, twisted trees are\naround you, and a wind of incredible\ncoldness blows from the east." },
-            {.id = 37,  .name= "ROOM 37", .desc = "This is the Oracle Room, although the\nmystic voice has not spoken for many\nyears." },
-            {.id = 38,  .name= "ROOM 38", .desc = "Horrors. A cold shudder passes through you as you\nrealize this is the priests' sacrifice room->\nDried-up blood is on the floor and a\nskull grins at you from high on the wall." },
-            {.id = 39,  .name= "ROOM 39", .desc = "Old straw mattresses and rings chained to the\nwall tell you this was the Citadel's dungeon. The dungeon seems to stretch forever, with many\nsmall partitioned areas...." },
-            {.id = 40,  .name= "ROOM 40", .desc = "You are in a small alcove, with a solid\ngray granite throne in the middle of it." },
-            {.id = 41,  .name= "ROOM 41", .desc = "This is the orc's guardroom, way below\nthe ground. A stairwell ends here and\na door leads to the east." },
-            {.id = 42,  .name= "ROOM 42", .desc = "There is a healing pool here, with a\ndangerous, swirling area of water." },
-            {.id = 43,  .name= "ROOM 43", .desc = "The Underpriests of Odric used this\ntiny hall for their forbidden worship\neons ago. It is an unpleasant area,\nso you are thrilled to see a set of\nstone stairs." },
+            {.id =  0,  .name= "NULL ROOM",   .desc = "NULL ROOM"},
+            {.id =  1,  .name= "River",       .desc = "An underground river flows swiftly by."},
+            {.id =  2,  .name= "Food Store",  .desc = "You are in the Citadel's food storage area.\nOld cheeses and black loaves of bread can be seen, as well as many sacks of supplies."},
+            {.id =  3,  .name= "Kitchen",     .desc = "You are in the Citadel's kitchen. A huge joint of meat turns slowly over a raging fire. Doors lead into cupboards, as well as to the west and to the south."},
+            {.id =  4,  .name= "Library",     .desc = "This is the Central Library. Leather-bound volumes line the walls, right up to the ornately carved ceiling."},
+            {.id =  5,  .name= "Studio",      .desc = "This room is an awful mess. It used to be an artist's studio. Paint and old easels lie around the floor."},
+            {.id =  6,  .name= "Entrance",    .desc = "This is the entrance to the Citadel of Pershu.\nTurn now, if you wish. Many stronger than you have taken fright at its menacing towers and dark portals. If you wish to proceed, move east towards the black gaping doorway."},
+            {.id =  7,  .name= "Altar",       .desc = "A stone altar stands in the middle of the room with two dead candles on it. An old book lies on one part of the altar top, and a faded red parchment cloth covers the front of it."},
+            {.id =  8,  .name= "Black Tower", .desc = "You stand high on the black tower, the Citadel stretches to the north, south and east of you.\nThere is only one way out."},
+            {.id =  9,  .name= "North Cellar",.desc = "You are in the northern section of the Citadel's large wine cellar. Heavy barrels lie all around you in this end of the cellar. There is a door to the north and one to the south."},
+            {.id = 10,  .name= "West Cellar", .desc = "You are in the west wing of the wine cellar. There is a door to the west and one to the east. The central circular part of the cellar lies beyond the east door."},
+            {.id = 11,  .name= "Wine Cellar", .desc = "You are in the central circular area of the wine cellar. There is a door at each compass point."},
+            {.id = 12,  .name= "East Cellar", .desc = "You are in the east section of the wine cellar. There is a door to the west and one - which you cannot use,as it only allows entrance to where you now stand - to the east."},
+            {.id = 13,  .name= "South Cellar",.desc = "There are many, many wine bottles here lying on their sides in this southern section of the wine cellar. There is a dark, unfriendly-looking hole to the west and doors to the north and to the south."},
+            {.id = 14,  .name= "Armory",      .desc = "This is the Citadel's armory. Row upon row of shiny suits of armor are stored here." },
+            {.id = 15,  .name= "Bedchamber",    .desc = "You are in the ruler's bedchamber.\nA large fire burns in the south of the room, with a small door beside it. Other exits are to the north and to the west." },
+            {.id = 16,  .name= "Sand",          .desc = "Sand covers the floor of this curious room, heaped into drifts.\nBy peeping over the 'dunes' you can see a golden passage way leads to the west, and there is a door to the south. You are not sure whether or not you have seen all the exits." },
+            {.id = 17,  .name= "Gallery",       .desc = "You are in the picture gallery. Portraits of long-dead princes line all of the walls. The room is dominated by a huge landscape, hanging above the exit to the east which leads, via the gold passage way back to that curious room of sand." },
+            {.id = 18,  .name= "Tower Balcony", .desc = "You are on a remote tower balcony.\nThere are stairs here." },
+            {.id = 19,  .name= "Archway",       .desc = "You walk beneath a stone archway.\nYou can only walk north or south unless you decide to take the stairs." },
+            {.id = 20,  .name= "Marble Hall",       .desc = "This vast hall has a marble floor, and the slightest sound echos violently.\nThere are purple drapes concealing the exits from this hall." },
+            {.id = 21,  .name= "Glove Storeroom",   .desc = "You are in the glove storeroom->\nThe west door radiates heat.\nAnother door leads to the south." },
+            {.id = 22,  .name= "Silver Storeroom",  .desc = "You are in the silver crosses storeroom->\nThere are only two exits." },
+            {.id = 23,  .name= "Amulet Storeroom",  .desc = "You are in the amulet storeroom->\nDoors lead north and south." },
+            {.id = 24,  .name= "Kazoom Storeroom",  .desc = "You are in the kazoo storeroom->\nThere are two exits." },
+            {.id = 25,  .name= "Satchel Storeroom", .desc = "You are in the satchel storeroom->" },
+            {.id = 26,  .name= "Wooden Storeroom",  .desc = "You are in the storeroom for wooden boxes... There are two exits." },
+            {.id = 27,  .name= "Vase Storage",      .desc = "This is where printed vases are stored... As you can easily see." },
+            {.id = 28,  .name= "Mine",              .desc = "The heavy air of this area seems to make your torch very dim-> You can hardly see that air is rushing up from somewhere.\nYou can just make out that this area must be a mine of some sort." },
+            {.id = 29,  .name= "Tunnels", .desc = "You appear to be in an endless labyrinth,lined with paintings.........\nWhichever way you turn, there seems to be more tunnels, all lined with paintings." },
+            {.id = 30,  .name= "South Tower", .desc = "This is the southern tower of the Citadel." },
+            {.id = 31,  .name= "Exit", .desc = "Well done, you have managed to find the exit.\nTake a deep breath of good, clean air..........." },
+            {.id = 32,  .name= "Meditation Room", .desc = "This room is filled with swirling smoke,so you cannot see... Air rushes past a statue of the goddess Diana. This must be the Citadel's meditation chamber." },
+            {.id = 33,  .name= "Bridge", .desc = "A small forked bridge crosses a stream here.\nYou can move north, south, or west." },
+            {.id = 34,  .name= "Cavern", .desc = "You are in a rough stone cavern. Stairs lead up from here.\nThere is also a single door which leads away from the cavern." },
+            {.id = 35,  .name= "Stable", .desc = "This is the former Citadel underground stable. It smells terrible." },
+            {.id = 36,  .name= "Courtyard", .desc = "You find yourself in an underground courtyard. Strange, twisted trees are around you, and a wind of incredible coldness blows from the east." },
+            {.id = 37,  .name= "Oracle", .desc = "This is the Oracle Room, although the mystic voice has not spoken for many years." },
+            {.id = 38,  .name= "Sacrifice Room", .desc = "Horrors. A cold shudder passes through you as you realize this is the priests' sacrifice room->\nDried-up blood is on the floor and a skull grins at you from high on the wall." },
+            {.id = 39,  .name= "Dungeon", .desc = "Old straw mattresses and rings chained to the wall tell you this was the Citadel's dungeon. The dungeon seems to stretch forever, with many small partitioned areas...." },
+            {.id = 40,  .name= "Alcove",  .desc = "You are in a small alcove, with a solid gray granite throne in the middle of it." },
+            {.id = 41,  .name= "Orc Guardroom", .desc = "This is the orc's guardroom, way below the ground. A stairwell ends here and a door leads to the east." },
+            {.id = 42,  .name= "Healing Pool",  .desc = "There is a healing pool here, with a dangerous, swirling area of water." },
+            {.id = 43,  .name= "Hall of Odric", .desc = "The Underpriests of Odric used this tiny hall for their forbidden worship eons ago. It is an unpleasant area,so you are thrilled to see a set of stone stairs." },
 
             {.id = 44,  .name= "DEATH BY DROWNING",  .desc = "Water covers your head.\nYou are drowning.\nGLUG... GASP............" },
             {.id = 45,  .name= "DEATH BY BURNING",  .desc = "The flames strike at you...\nas you slowly burn to death..."},
-            {.id = 46,  .name= "DEATH BY FREEZING", .desc = "You are hit by a freezing spell\nand turn into a block of perpetual\nliving stone. This is the end."},
+            {.id = 46,  .name= "DEATH BY FREEZING", .desc = "You are hit by a freezing spell and turn into a block of perpetual living stone. This is the end."},
             {.id = 47,  .name= "BOTTOMLESS PIT",    .desc = "You tumble down a bottomless pit.\nDown, down, down..."},
 
         }
@@ -663,6 +659,7 @@ static bool cmd_move(GameState * gs, char const first_letter) {
         printf("%c'\n", first_letter);
         return false;
     }
+    gs->room_prev = gs->room;
 
     if (ROOM_GRAPH[location][direction_index] > 0) {
         gs->room = ROOM_GRAPH[location][direction_index];
@@ -699,6 +696,7 @@ static bool pick_up_treasure(GameState * gs) {
     }
 
     room_remove_object(room, treasure_index);
+    display_line("Taken.");
     return true;
 }
 
@@ -1187,7 +1185,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
             result = true;
             break;
         case 'I':
-            actor_display_inventory(gs);
+            display_inventory(gs);
             result = true;
             break;
         case 'A':
@@ -1248,7 +1246,7 @@ uint32_t DEBUG_NORMAL_SLEEP = 0;
 uint32_t DEBUG_VISITED_SLEEP = 0;
 
 static bool main_game_loop(GameState * gs) {
-    uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
+    uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
 
@@ -1261,10 +1259,10 @@ static bool main_game_loop(GameState * gs) {
         }
     }
 
-    printf("---------------------------------------------------------------------- %d\n", gs->turns);
+    // printf("---------------------------------------------------------------------- %d\n", gs->turns);
+    vdisplay_line("%s ----------", current_room->name);
+    // display_status(gs);
 
-    display_status(gs);
-    display_line("");
     if (gs->room != gs->room_last_turn) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
@@ -1278,6 +1276,12 @@ static bool main_game_loop(GameState * gs) {
     }
 
     display_room_content(gs);
+
+    if (room_id == ROOM_START && gs->room_prev == 0 ) {
+        // first room, we display initial inventory. Afterward, the user can view them with an explicit "inv" command
+        display_line("");
+        display_inventory(gs);
+    }
 
     flush_input();
     char cmd = get_command_char("\n> ", VALID_COMMANDS, nullptr);
@@ -1319,8 +1323,16 @@ static bool main_game_loop(GameState * gs) {
     }
 
     set_char_sleep(saved_sleep_duration);
-    room_set_visited_flag(current_room);
 
+    display_line("");
+    if (room_id == gs->room) {
+        // if room at end of turn is same as start of turn, update this so we don't display the room desc again
+        gs->room_last_turn = room_id;
+    } else {
+        gs->room_last_turn = gs->room_prev;
+    }
+
+    room_set_visited_flag(current_room);
     return CONTINUE_GAME;
 }
 

@@ -242,8 +242,6 @@ void display_paginated_recursive(char const* msg, const int num_columns) {
 // paginate msg text to column size
 void display_paginated(char const* msg, const int num_columns) {
     display_paginated_recursive(msg, num_columns);
-
-    char * foo = "While out walking one day, you come across a small, ramshackle shed in the woods";
 }
 
 
