@@ -86,5 +86,7 @@ logs/
 # compiled files
 *.out
 **/*.dSYM/*
-
 **/out/
+
+# AI Agents
+.junie/
