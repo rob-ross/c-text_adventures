@@ -6,70 +6,11 @@
 // Created 2026/05/28 21:38:52 PDT
 
 
-#include "rooms.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/*
- *  Word wrap notes:
- *      We don't break words. Only wrap whole words. If word ends with punctuation like period or comma or semicolon,
- *      and punctuation makes the word long enough to wrap, keep it on the same line even if it exceeds max length by 3 chars max for an ellipses.
- *      If first characters of a new line is whitespace, eat it.
- *      A newline will force a new line with an extra line before the new line. Think of newline as new paragraph
- *
- */
-
-/*
-Room ROOMS[NUM_ROOMS] = {
-{.id =  0,  .name= "NULL ROOM",  .desc = "" },
-{.id =  1,  .name= "Battlements",     .desc = "You are out on the battlements of the Chateau. There is only one way back." },
-{.id =  2,  .name= "Magician's Room",     .desc = "This is an eerie room, where once magicians consorted with evil sprites and werebeasts. Exits lead in three directions. An evil smell comes from the south." },
-{.id =  3,  .name= "Straw Mattress",     .desc = "An old straw mattress lies in one corner. It has been ripped apart to find any treasure which was hidden in it. Light comes fitfully from a window to the north, and around the doors to south, east, and west." },
-{.id =  4,  .name= "Wooden Panels",     .desc = "This wooden-panelled room makes you feel damp and uncomfortable. There are three doors leading from this room, one made of iron. Your sixth sense warns you to choose carefully..." },
-{.id =  5,  .name= "Living Stone",     .desc = "You ignore your intuition... A Spell of Living Stone, primed to trap the first intruder has been set on you. With your last seconds of life you have time only to feel profound regret..." },
-{.id =  6,  .name= "L-Shaped Room",     .desc = "You are in an L-shaped room. Heavy parchment lines the walls. You can see through an archway to the east, but that is not the only exit from this room." },
-{.id =  7,  .name= "Archway",     .desc = "There is an archway to the west, leading to an L-shaped room. A door leads in the opposite direction." },
-{.id =  8,  .name= "Kitchen",     .desc = "This must be the Chateau's main kitchen, but any food left here has long rotted away. A door leads to the north, and there is one to the west." },
-{.id =  9,  .name= "Black Dragon",     .desc = "You find yourself in a small room, which makes you feel claustrophobic. There is a picture of a black dragon painted on the north wall, above the door." },
-{.id = 10,  .name= "Landing",    .desc = "A stairwell ends in this 'room', which is more of a landing than an actual room. The door to the north is made of iron, which has rusted over the centuries." },
-{.id = 11,  .name= "Stone Archway",    .desc = "There is a stone archway to the north. You are in a very long room.\nFresh air blows down some stairs and rich red drapes cover the walls. You can see doors to the east." },
-{.id = 12,  .name= "Whirling Smoke",    .desc = "You have entered a room filled with swirling, choking smoke. You must leave quickly to remain healthy enough to continue your chosen quest." },
-{.id = 13,  .name= "Charism Reduction",    .desc = "There is a mirror in the corner. You glance at it, and feel suddenly very ill.\nYou realize the looking-glass has been infused with a Spell of Charisma Reduction... oh dear...." },
-{.id = 14,  .name= "White Marble",    .desc = "This room is richly finished with a white marble floor. Strange footprints lead to the two doors from this room. Dare you follow them?" },
-{.id = 15,  .name= "Red Drapes",    .desc = "You are in a long, long hallway, lined on each side with rich, red drapes.\nThey are parted halfway down the east wall where there is a door." },
-{.id = 16,  .name= "Yellow Room",    .desc = "Someone has spent a long time painting this room a bright yellow.\nYou remember reading that yellow is the Ancient Oracle's Color of Warning..." },
-{.id = 17,  .name= "Ladder",    .desc = "As you stumble down the ladder you fall into the room. The ladder crashes down behind you. There is now no way back.\nA small door leads east from this very cramped room." },
-{.id = 18,  .name= "Hall of Mirrors",    .desc = "You find yourself in the Hall of Mirrors, and see yourself reflected a hundred times or more. Through the bright glare you can make out doors in all directions. You notice the mirrors around the east door are heavily tarnished." },
-{.id = 19,  .name= "Long Corridor",    .desc = "You find yourself in a long corridor... Your footsteps echo as you walk." },
-{.id = 20,  .name= "Timbered Ceiling",    .desc = "You feel as if you've been wandering around this Chateau forever, and you begin to despair of ever escaping.\nStill, you can't get too depressed but must struggle on. Looking around, you see that you are in a room which has a heavy timbered ceiling and white roughly-finished walls.\nThere are two doors..." },
-{.id = 21,  .name= "Alcove",    .desc = "You are in a small alcove. You look around, but can see nothing in the gloom. Perhaps if you wait a while your eyes will adjust to the murky dark of this alcove." },
-{.id = 22,  .name= "Courtyard",    .desc = "A dried-up fountain stands in the center of this courtyard, which once held beautiful flowers but have have long since died." },
-{.id = 23,  .name= "Dying Flowers",    .desc = "The scent of dying flowers fills this brightly-lit room.\nThere are two exits from it." },
-{.id = 24,  .name= "Cavern",    .desc = "This is a round stone cavern off the side of the alcove to your north." },
-{.id = 25,  .name= "Games Room",    .desc = "You are in an enormous circular room, which looks as if it was used as a games room. Rubble covers the floor, partially blocking the only exit." },
-{.id = 26,  .name= "Potting Shed",    .desc = "Through the dim mustiness of this small potting shed you can see a stairwell." },
-{.id = 27,  .name= "Ramshackle Shed",    .desc = "You begin this Adventure in a small wood outside the Chateau.\nWhile out walking one day, you come across a small, ramshackle shed in the woods. Entering it, you see a hole in one corner. An old ladder leads down from the hole." },
-{.id = 28,  .name= "End",    .desc = "How wonderful! Fresh air, sunlight, birds are singing. You are free at last." },
-{.id = 29,  .name= "Death Trap",    .desc = "The smell came from bodies rotting in huge traps. One springs shut on you, trapping you forever!" },
-{.id = 30,  .name= "Hot hot hot",    .desc = "You fall into a pit of flames." },
-{.id = 31,  .name= "Acid Pool",    .desc = "Aaaaahhh... you have fallen into a pool of acid. Now you know - too late - why the mirrors were so badly tarnished." },
-{.id = 32,  .name= "Spider",    .desc = "It's too bad you chose that exit from the alcove. A giant funnel-web spider leaps on you, and before you can react, bites you on the neck. You have 10 seconds to live." },
-{.id = 33,  .name= "Hovel",    .desc = "A stairwell leads into this room, a poor and common hovel with many doors and exits." },
-{.id = 34,  .name= "Uneven Floor",    .desc = "It is hard to see in this room and you slip slightly on the uneven, rocky floor." },
-{.id = 35,  .name= "Torture Chamber",    .desc = "Horrors! This room was once the torture chamber of the Chateau.\nSkeletons lie on the floor, still with chains around their bones." },
-{.id = 36,  .name= "Dungeon",    .desc = "Another room with very unpleasant memories.\nThis foul hole was used as the Chateau dungeon." },
-{.id = 37,  .name= "Gargoyle",    .desc = "Oh no, this is a gargoyle's lair. It has been held prisoner here for three hundred years.\nIn his frenzy he thrashes out at you and... breaks your neck!!" },
-{.id = 38,  .name= "Dancing Hall",    .desc = "This was the Lower Dancing Hall. With doors to the north, the east, and to the west, you would seem to be able to flee any danger." },
-{.id = 39,  .name= "Dingy Pit",    .desc = "This is a dingy pit at the foot of some extremely dubious-looking stairs. A door leads to the east." },
-{.id = 40,  .name= "Trophy Room",    .desc = "Doors open to each compass point from the Trophy Room of the Chateau.\nThe heads of strange creatures shot by the ancestral owners are mounted high up on each wall." },
-{.id = 41,  .name= "Secret Room",    .desc = "You have stumbled on to a secret room.\nDown here, eons ago, the ancient Necromancers of Thorin plied their evil craft... and the remnant of their spells hangs heavy on the air." },
-{.id = 42,  .name= "Room of Shadows",    .desc = "Cobwebs brush your face as you make your way through the gloom of this room of shadows." },
-{.id = 43,  .name= "Gloomy Passage",    .desc = "This gloomy passage lies at the intersection of three rooms." },
-{.id = 44,  .name= "Rear Turret",    .desc = "You are in the rear turret room, below the extreme western wall of the ancient Chateau." },
-};
-*/
+#include "rooms.h"
 
 typedef struct RoomStore {
     size_t capacity;
@@ -151,7 +92,7 @@ bool room_contains_object(const Room *r, const object_id id) {
 }
 
 bool room_clear_monster(room_id id) {
-    pvt_rooms->rooms->monster = 0;
+    pvt_rooms->rooms[id].monster = 0;
     return true;
 }
 
@@ -164,7 +105,7 @@ int room_count_visited() {
     int count = 0;
     const int num_rooms = (int)pvt_rooms->size;
     for (int i = 0; i < num_rooms; ++i) {
-        if ( pvt_rooms->rooms->is_visited_bit ) count++;
+        if ( pvt_rooms->rooms[i].is_visited_bit ) count++;
     }
     return count;
 }

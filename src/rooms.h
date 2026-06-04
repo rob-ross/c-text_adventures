@@ -53,7 +53,6 @@ typedef struct Room {
     RandomTextArray  * preamble;
     RandomTextArray  * epilog;
     monster_id monster;
-    /*[[deprecated]]*/ Object   treasure;
 
     // flags. eventually can be bit flags for efficiency
     bool is_lit_bit; // The room has light, thus can be seen without a light source like a torch

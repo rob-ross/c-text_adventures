@@ -260,7 +260,7 @@ static void display_score(const GameState * gs) {
     display("\nSCORE: ");
     printf("%d\n", calc_score(gs));
     const int rooms_visited = room_count_visited();
-    printf("\nturns: %d, cash: %d, monsters fought: %d, killed: %d, rooms: %d\n",
+    printf("\nturns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d\n",
         gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
     printf("You completed %3.0f%% of the quest.\n", (double)rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1 ) );
 
@@ -289,11 +289,14 @@ void display_globals(void) {
 }
 
 void display_game_state(const GameState *gs) {
-    printf("\nGameState:\n");
-    printf("player_name=%s, room=%d, turns=%d, cash=%d, killed=%d, fought=%d, magic=%d, "
-           "has_torch=%d, is_dead=%d, completed=%d, must_fight=%d\n",
-        gs->player_name->buffer, gs->room, gs->turns, gs->cash, gs->monsters_killed,gs->monsters_fought, gs->magic,
+    printf("\n(GameState){ player_name=%s, room=%d, turns=%d, cash=%d, killed=%d, fought=%d, magic=%d, "
+           "has_torch=%d, is_dead=%d, completed=%d, must_fight=%d }\n",
+        gs->player_name->buffer, gs->room,  gs->turns, gs->cash, gs->monsters_killed,gs->monsters_fought, gs->magic,
         gs->has_torch, gs->is_dead, gs->completed, gs->must_fight);
+    struct ObservationSpace os = gs->perception;
+    printf("(ObservationSpace){ .monster_is_visible=%d, .treasure_is_visible=%d, .must_fight=%d, .current_monster.id=%d, .current_treasure.id=%d }\n",
+        os.monster_is_visible, os.treasure_is_visible, os.must_fight, os.current_monster.id, os.current_treasure.id);
+    room_repr(room_find_room(gs->room));
     display_char_attributes(gs->stats);
     actor_display_inventory(gs);
     printf("\n");
@@ -443,6 +446,7 @@ void reset(GameState * gs, const uint32_t seed) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER]  = monster_index;
                 CharStats stats = random_monster_stats(gs);
                 int ff = sum_character_stats(&stats);
+                room_set_monster(room_find_room(rand_room), monster_index);
                 monsters_update_monster(
                     &(Monster){
                         .name = monsters_name_for_id(monster_index),
@@ -689,8 +693,8 @@ static bool pick_up_treasure(GameState * gs) {
     const Room *room = room_find_room(gs->room);
 
     if (treasure_index > ITEM_WAND) {
-        const Object treasure = room->treasure;
-        gs->cash += treasure.value;
+        const Object *treasure = obj_find_object(treasure_index);
+        gs->cash += treasure->value;
     } else {
         gs->items[treasure_index] = treasure_index;
     }
