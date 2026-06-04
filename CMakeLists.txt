@@ -3,34 +3,44 @@ project(text_adventures C)
 
 set(CMAKE_C_STANDARD 23)
 
-add_executable(text_adventures
+function(add_adventure_executable target_name main_source macro_name)
+    add_executable(${target_name}
+            ${main_source}
+            src/mersenne_twister.c
+            src/common/console_utils.c
+            src/parser.c
+            src/rooms.c
+            src/objects.c
+            src/monsters.c
+            src/common/string.c)
+
+    target_include_directories(${target_name} PUBLIC include)
+    target_compile_definitions(${target_name} PRIVATE ${macro_name})
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(${target_name} PRIVATE
+            -g
+            -fsanitize=address
+            -fsanitize=leak
+            -Wall
+            -Werror
+            -Wno-unused-const-variable
+            -Wno-unused-variable
+            -Wno-unused-function
+        )
+        target_link_options(${target_name} PRIVATE
+            -fsanitize=address
+            -fsanitize=leak
+        )
+    endif()
+endfunction()
+
+add_adventure_executable(chateau_gaillard
         src/chateau_gaillard/chateau_gaillard.c
-        src/mersenne_twister.c
-        src/common/console_utils.c
-        src/parser.c
-        src/rooms.c
-        src/objects.c
-        src/monsters.c
-        src/common/string.c)
+        CHATEAU_GAILLARD_MAIN)
 
-target_include_directories(text_adventures PUBLIC include)
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(text_adventures PRIVATE
-        -DCHATEAU_GAILLARD_MAIN
-        -g
-        -fsanitize=address
-        -fsanitize=leak
-        -Wall
-        -Werror
-        -Wno-unused-const-variable
-        -Wno-unused-variable
-        -Wno-unused-function
-    )
-    target_link_options(text_adventures PRIVATE
-        -fsanitize=address
-        -fsanitize=leak
-    )
-endif()
+add_adventure_executable(citadel_of_pershu
+        src/citadel_of_pershu/citadel_of_pershu.c
+        CITADEL_OF_PERSHU_MAIN)
 
 add_executable(regex_tests src/regex_tests.c)
