@@ -13,7 +13,7 @@
 
 //// ------------------------------------------------------------
 ////
-////    ROOM OBJECTS
+////    OBJECTS
 ////      weapons, treasures, things in a room you can interact with
 ////      or pick up
 ////
@@ -86,12 +86,20 @@ constexpr int OBJ_NOT_FOUND = -1;
 constexpr int OBJ_NULL_OBJECT_NAME = 0;
 
 int  obj_init(size_t size, Object data[static size]);
-void obj_free(void);
-void obj_repr(void);
-int  obj_relocate_object( int id,  int new_location);
-int  obj_id_for_partial_name(char const item_name[static 1]);
-char const * obj_name_for_object_id(object_id id);
-const Object * obj_find_object(object_id id);
-bool obj_set_open_flag(object_id id);
+void obj_destroy(void);
+
 void obj_clear_location(object_id id);
+
+int  obj_relocate_object( int id,  int new_location);
+
+int  obj_id_for_partial_name(char const item_name[static 1]);
+
+char const * obj_name_for_id(object_id id);
+int obj_num_objects( void );
+
+const Object * obj_find_object(object_id id);
+
+bool obj_set_open_flag(object_id id);
+void obj_touch( object_id id);
+void obj_repr(void);
 

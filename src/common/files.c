@@ -191,133 +191,6 @@ void free_LenStrArray(LenStrArray *lsa) {
     free(lsa);
 }
 
-// reads the text file from the argument stream pointer and extracts each line into an array element in LenStrArray
-// returns the result in the out ptr, a *LenStrArray
-int create_string_array(FILE *fptr, void **result_out) {
-
-    size_t results_capacity = 100;
-    size_t result_counter = 0;
-    LenStr *results = malloc(sizeof(LenStr) * results_capacity);
-    if (!results) return ENOMEM;
-    results[result_counter++] = (LenStr){.s = strdup("NULL"), .len=strlen("NULL") };
-
-    char buffer[1024] = {};
-    constexpr size_t buffer_len = sizeof(buffer);
-    bool in_block_comment = false;
-
-    // Dynamic buffer to accumulate the string
-    size_t val_capacity = 128;
-    size_t val_len = 0;
-    char *val_buffer = malloc(val_capacity);
-    if (!val_buffer) {
-        free(results);
-        return ENOMEM;
-    }
-
-    while ( get_next_line_chunk(fptr, buffer_len, buffer) == 0 ) {
-        // strip leading and trailing spaces
-        string_trim(buffer);
-        int buffer_index = 0;
-        val_len = 0;
-        while (buffer[buffer_index] != '\0') {
-            char c = buffer[buffer_index++];
-            bool one_more_char = buffer[buffer_index] != '\0';
-            
-            if (in_block_comment) {
-                if (c == '*' && one_more_char && buffer[buffer_index] == '/') {
-                    // end of block comment
-                    in_block_comment = false;
-                    break; // match original behavior: skip rest of line
-                }
-                // Skip all characters while in block comment
-                continue;
-            }
-
-            // Check for comment starts anywhere on the line
-            if (c == '#') break;
-            if (c == '/' && one_more_char) {
-                if (buffer[buffer_index] == '/') break; // line comment
-                if (buffer[buffer_index] == '*') {
-                    in_block_comment = true;
-                    break; // match original behavior: skip rest of line
-                }
-            }
-
-            if ( add_to_expandable_buffer(c, &val_len, &val_capacity, &val_buffer) != 0 ) {
-                free(val_buffer);
-                free_LenStr(result_counter, results);
-                free(results);
-                return ENOMEM;
-            }
-        }
-        
-        if ( val_len ) {
-            // save this string if it's not empty
-            val_buffer[val_len] = '\0';
-            // Trim trailing spaces that might remain before a comment
-            string_trim(val_buffer);
-            size_t trimmed_len = strlen(val_buffer);
-            if (trimmed_len == 0) continue;
-
-            if (result_counter >= results_capacity) {
-                results_capacity *= 2;
-                LenStr *temp = realloc(results, sizeof(LenStr) * results_capacity);
-                if (!temp) {
-                    free_LenStr(result_counter, results);
-                    free(results);
-                    free(val_buffer);
-                    return ENOMEM;
-                }
-                results = temp;
-            }
-
-            char *s = strdup(val_buffer);
-            if (!s) {
-                free_LenStr(result_counter, results);
-                free(results);
-                free(val_buffer);
-                return ENOMEM;
-            }
-            results[result_counter++] = (LenStr){.len=trimmed_len, .s = s};
-        }
-    }
-    free(val_buffer);
-
-    LenStrArray *lsa = malloc(sizeof(LenStrArray) + sizeof(LenStr) * result_counter);
-    if (!lsa) {
-        free_LenStr(result_counter, results);
-        free(results);
-        return ENOMEM;
-    }
-
-    lsa->size = result_counter;
-
-    for (int i = 0; i < (int)result_counter; ++i) {
-        lsa->array[i] = results[i];
-    }
-    free(results);
-    (*result_out) = lsa;
-
-    return 0;
-}
-
-int echo_file( FILE *fptr) {
-    printf("In echo file!\n");
-
-    char buffer[1024];
-    while (fgets(buffer, sizeof(buffer), fptr) != nullptr ) {
-        printf("%s",buffer);
-    }
-
-    if (ferror(fptr)) {
-        fprintf(stderr, "\nError reading file during echo_file.\n");
-        return errno;
-    }
-
-    putchar('\n');
-    return 0;
-}
-
 
 int process_file(string file_name, file_process_action function, void **result_ptr) {
     FILE *fptr = nullptr;
@@ -345,19 +218,18 @@ int process_file(string file_name, file_process_action function, void **result_p
 // make:
 // clang -g -std=c23 -fsanitize=address -fsanitize=leak files.c string.c -o files_test.out
 
-/*int main(void) {
+//test can we redefine a const qualified global?
 
+static int ROOM_NUM = 0;
 
-    printf("\n\n");
-    LenStrArray *lsa;
-    int err = process_file("../chateau_gaillard/monsters.txt", create_string_array, (void**) &lsa);
-    if (err == 0) {
-        printf("In main, LenStrArray from monsters.txt is:\n");
-        for (int i = 0; i < lsa->size; ++i) {
-            printf("(%zd):%s\n",lsa->array[i].len, lsa->array[i].s);
-        }
-    }
-    printf("\n");
-    free_LenStrArray(lsa);
-    return 0;
-}*/
+// int main(void) {
+//
+//     printf("original:\nROOM_NUM:%d\n", ROOM_NUM);
+//     //try to change it
+//     int new_value = 24;
+//     memcpy((void*)&ROOM_NUM, &new_value, sizeof(int));
+//
+//     printf("after memcpy;\nROOM_NUM:%d\n", ROOM_NUM);
+//
+//     return 0;
+// }

@@ -207,6 +207,9 @@ typedef struct GameState {
     MTState mt_state;
 
     int room;  // current room
+    room_id room_prev; // room user was in before this one
+    room_id room_last_turn; // updates every turn, if user in same room as last turn, will be same as `room`
+
     int turns; // 1 point per turn
     int cash;
 

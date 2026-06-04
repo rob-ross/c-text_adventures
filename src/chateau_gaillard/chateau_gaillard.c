@@ -25,12 +25,13 @@ clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werro
      ../common/console_utils.c ../common/string.c ../parser.c ../objects.c ../rooms.c ../monsters.c
 
 */
-#include "chateau_gaillard.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+#include "chateau_gaillard.h"
 
 uint32_t DEBUG_NORMAL_SLEEP = 0;
 uint32_t DEBUG_VISITED_SLEEP = 0;
@@ -92,14 +93,6 @@ static CharStats random_monster_stats(GameState *gs) {
 }
 
 
-static int count_rooms_visited(const GameState *gs) {
-    int result = 0;
-    for (int i = 0; i < NUM_ROOMS; ++i) {
-        result += gs->rooms_visited[i];
-    }
-    return result;
-}
-
 static int actor_calc_inventory_value(const GameState *gs);
 static int calc_score(GameState *gs) {
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
@@ -120,12 +113,13 @@ static int calc_score(GameState *gs) {
 
 static void display_score(GameState *gs) {
     if (GLOBAL_silent_mode) return;
-    const int rooms_visited = count_rooms_visited(gs);
+    const int rooms_visited = room_count_visited();
+    const int num_rooms = room_num_rooms();
 
     vdisplay_line("SCORE: %d", calc_score(gs) );
     vdisplay_line("turns: %d, cash: %d, monsters fought: %d, killed: %d, rooms: %d",
                   gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
-    vdisplay_line("You completed %3.0f%% of the quest.", (double) rooms_visited * 100.0 / (NUM_ROOMS - NUM_DEATH_ROOMS - 1));
+    vdisplay_line("You completed %3.0f%% of the quest.", (double) rooms_visited * 100.0 / (num_rooms - NUM_DEATH_ROOMS - 1));
 }
 
 static void display_conclusion(const GameState *gs) {
@@ -163,15 +157,15 @@ static void display_room_desc(GameState *gs) {
     if (!gs->has_torch && ROOM_GRAPH[gs->room][RGINDEX_TREASURE] != 1) {
         display_line("It is too dark to see anything.\n");
     } else {
-        Room r = ROOMS[gs->room];
-        if (r.preamble) {
-            display_random_room_text(gs, r.preamble);
+        const Room *r = room_find_room(gs->room);
+        if (r->preamble) {
+            display_random_room_text(gs, r->preamble);
         }
 
-        display_paginated(ROOMS[gs->room].desc, 80);
+        display_paginated(r->desc, 80);
 
-        if (r.epilog) {
-            display_random_room_text(gs, r.epilog);
+        if (r->epilog) {
+            display_random_room_text(gs, r->epilog);
         }
     }
 }
@@ -192,7 +186,7 @@ static void display_room_monster(GameState *gs) {
 static void display_room_treasure(const GameState *gs) {
     if (GLOBAL_silent_mode) return;
 
-    const Room *room = &ROOMS[gs->room];
+    const Room *room = room_find_room(gs->room);
     if (room_count_of_objects(room) > 0) {
         display("You can see\n");
     } else {
@@ -202,7 +196,7 @@ static void display_room_treasure(const GameState *gs) {
     for (int i = 0; i < 10; ++i) {
         if (room->objects[i]) {
             // vdisplay_line("(id=%d) %s\n", room->objects[i], obj_name_for_object_id(room->objects[i]));
-            display_line(obj_name_for_object_id(room->objects[i]));
+            display_line(obj_name_for_id(room->objects[i]));
         }
     }
 }
@@ -215,27 +209,21 @@ static void display_room_content(GameState *gs) {
 
 static void display_char_attributes(const CharStats stats) {
     if (GLOBAL_silent_mode) return;
-    display("Strength:  ");
-    printf("%2d", stats.strength);
-    display("  Charisma:     ");
-    printf("%2d\n", stats.charisma);
+    vdisplay_line("Strength:  %2d  Charisma:     %2d\n",
+        stats.strength, stats.charisma);
 
-    display("Dexterity: ");
-    printf("%2d", stats.dexterity);
-    display("  Intelligence: ");
-    printf("%2d\n", stats.intelligence);
+    vdisplay_line("Dexterity: %2d  Intelligence: %2d\n",
+        stats.dexterity, stats.intelligence );
 
-    display("Wisdom:    ");
-    printf("%2d", stats.wisdom);
-    display("  Constitution: ");
-    printf("%2d\n", stats.constitution);
+    vdisplay_line( "Wisdom:    %2d  Constitution: %2d\n",
+        stats.wisdom, stats.constitution);
 }
 
 
 // clear the monster in the current room and its entry in the ROOMS array
 static void clear_monster(const GameState *gs) {
     ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
-    ROOMS[gs->room].monster = 0;
+    room_clear_monster(gs->room);
 }
 
 // Returns true if the user can move from the current room via the direction
@@ -266,10 +254,12 @@ bool check_can_move(GameState *gs, int const direction, const bool verbose) {
         return false;
     }
 
-    if (next_room_id < 0 || next_room_id >= NUM_ROOMS) {
+    const int num_rooms = room_num_rooms();
+
+    if (next_room_id < 0 || next_room_id >= num_rooms) {
         if (verbose) {
             vdisplay_line("runtime error: next_room_index is out of bounds: %d, expected range [0, %d]",
-                          next_room_id, NUM_ROOMS - 1);
+                          next_room_id, num_rooms - 1);
         }
         return false;
     }
@@ -350,7 +340,8 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
 
     gs->monsters_fought++;
     // gs->must_fight = false;
-    const monster_id mid = ROOMS[gs->room].monster;
+    const Room *room = room_find_room(gs->room);
+    const monster_id mid = room->monster;
     const Monster *m = monsters_find_monster(mid);
     const char * monster_name = monsters_name_for_id(mid);
     int monster_tally = 0;
@@ -470,7 +461,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
 // Returns true if the user was carrying this item, or false if the item was not present.
 // after this method completes, the object id will no longer be in the agent's item list.
 static bool actor_remove_object(GameState *gs, const object_id id) {
-    if (id < 1 || id >= NUM_OBJECTS) {
+    if (id < 1 || id >= obj_num_objects()) {
         return false;
     }
 
@@ -542,7 +533,7 @@ static bool actor_has_item_named(const GameState *gs, char const *item_name) {
 
 // return true if the user is carrying this item
 static bool actor_has_item(const GameState *gs, const object_id id) {
-    if (id < 1 || id >= NUM_OBJECTS) {
+    if (id < 1 || id >= obj_num_objects()) {
         return false;
     }
     for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
@@ -648,7 +639,7 @@ static bool cmd_open(GameState *gs, const struct ParsedCommand *pc) {
     if (!can_open(gs, true)) {
         return false;
     }
-    const Room *r = &ROOMS[gs->room];
+    const Room *r = room_find_room(gs->room);
     const Object *o;
     if (room_contains_object(r, OBJECT_IRON_CHEST)) {
         o = obj_find_object(OBJECT_IRON_CHEST);
@@ -686,7 +677,8 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
         if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
         return false;
     }
-    if (room_is_full(&ROOMS[gs->room])) {
+    const Room *r = room_find_room(gs->room);
+    if ( room_is_full(r)) {
         if (verbose) {
             display_line("This room already holds its maximum number of objects.");
         }
@@ -696,13 +688,14 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
 }
 
 /** Logic Entry Point: ML and Human both end up here */
-bool acton_drop(GameState *gs, int object_id) {
+bool action_drop(GameState *gs, int object_id) {
     if (!can_drop_item(gs, object_id, false)) return false;
 
     if (!actor_remove_object(gs, object_id)) {
         return false;
     }
-    return room_add_object(&ROOMS[gs->room], object_id) == ROOM_SUCCESS;
+    const Room *r = room_find_room(gs->room);
+    return room_add_object( r, object_id ) == ROOM_SUCCESS;
 }
 
 // Entry point for the human user path.
@@ -798,12 +791,12 @@ static bool cmd_read(GameState *gs, const ParsedCommand *pc) {
  * Prints error messages only if verbose is true.
  */
 static bool can_take_item(const GameState *gs, const object_id id, const bool verbose) {
-    if (id < 1 || id >= NUM_OBJECTS) {
+    if (id < 1 || id >= obj_num_objects()) {
         if (verbose) display_line("What's that?");
         return false;
     }
-
-    if (room_index_for_object(&ROOMS[gs->room], id) == ROOM_ERR_OBJECT_NOT_FOUND) {
+    const Room *r = room_find_room(gs->room);
+    if (room_index_for_object(r, id) == ROOM_ERR_OBJECT_NOT_FOUND) {
         if (verbose) {
             vdisplay_line("object_id:%d", id);
             display_line("That object is not here.");
@@ -832,7 +825,8 @@ bool action_take(GameState *gs, const object_id id) {
         if (!gs->items[i]) {
             room_id room_id = gs->room;
             gs->items[i] = id;
-            room_remove_object(&ROOMS[room_id], id);
+            const Room *r = room_find_room(gs->room);
+            room_remove_object( r, id);
             obj_relocate_object(id, -1);
             // todo (rob) need to define location ids, player vs room. -1 means "player" but is a kludge
             // in zork, everything had a unique string id, ie, "player", "room-1", "axe", so there was one
@@ -845,7 +839,7 @@ bool action_take(GameState *gs, const object_id id) {
 
 static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
     object_id id = 0;
-    const Room *current_room = &ROOMS[gs->room];
+    const Room *current_room = room_find_room(gs->room);
     if (!pc->has_verb_object) {
         if (room_count_of_objects(current_room) == 1) {
             // if only one object, we'll take whatever is in the room
@@ -871,7 +865,7 @@ static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
 
     if (success) {
         // vdisplay_line("You now have the object_index:%d, %s", id, obj_name_for_object_id(id));
-        vdisplay_line("%s taken.", obj_name_for_object_id(id));
+        vdisplay_line("%s taken.", obj_name_for_id(id));
     }
 
 
@@ -885,7 +879,7 @@ static void set_state_death_by_dwarf(GameState *gs) {
 }
 
 static bool can_pay(const GameState *gs, const monster_id unused, const bool verbose) {
-    const Room *r = &ROOMS[gs->room];
+    const Room *r = room_find_room(gs->room);
     const monster_id mid = r->monster;
 
     if (mid != MONSTER_DWARF) {
@@ -938,7 +932,7 @@ bool action_pay(GameState *gs, const monster_id unused ) {
 // pc->verb_object. pc->verb is also used for error messages.
 //
 static bool verify_monster_choice(const GameState *gs, const ParsedCommand *pc) {
-    const Room *current_room = &ROOMS[gs->room];
+    const Room *current_room = room_find_room(gs->room);
     // case 1 no monster
     if (current_room->monster == 0) {
         if (pc->has_verb_object) {
@@ -962,7 +956,7 @@ static bool verify_monster_choice(const GameState *gs, const ParsedCommand *pc) 
 
 
 static bool cmd_pay(GameState *gs, const ParsedCommand *pc) {
-    const Room *current_room = &ROOMS[gs->room];
+    const Room *current_room = room_find_room(gs->room);
     if (! verify_monster_choice(gs, pc) ) return false;
 
     // case 2, monster is present
@@ -1043,7 +1037,9 @@ static bool cmd_drink(GameState *gs, const ParsedCommand *pc) {
 
 
 static bool can_unlock_room(const GameState *gs, const room_id room, const object_id key, const bool verbose) {
-    if (room < 1 || room >= NUM_ROOMS) {
+    const int num_rooms = room_num_rooms();
+
+    if (room < 1 || room >= num_rooms) {
         if (verbose) vdisplay_line("Room id out of bounds: %d", room);
         return false;
     }
@@ -1051,7 +1047,7 @@ static bool can_unlock_room(const GameState *gs, const room_id room, const objec
         if (verbose) vdisplay_line("Invalid key id: %d", key);
     }
     if (! actor_has_item(gs, key)) {
-        const char *obj_name = obj_name_for_object_id(key);
+        const char *obj_name = obj_name_for_id(key);
         if (verbose) vdisplay_line("You don't have the %s.", obj_name);
         return false;
     }
@@ -1137,7 +1133,6 @@ static bool cmd_god_mode(GameState *gs, const ParsedCommand *pc) {
   */
 bool perform_action(GameState *gs, enum Command const cmd, const int arg1, const int arg2, const int arg3) {
     gs->turns++;
-    gs->rooms_visited[gs->room] = true;
 
     bool result = false;
 
@@ -1149,7 +1144,7 @@ bool perform_action(GameState *gs, enum Command const cmd, const int arg1, const
             result = action_move(gs, arg1);
             break;
         case CMD_DROP:
-            result = acton_drop(gs, arg1);
+            result = action_drop(gs, arg1);
             break;
         case CMD_TAKE:
             result = action_take(gs, arg1);
@@ -1186,7 +1181,9 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
         display_line("The dwarf refuses to fight and his magic protects him.");
         return false;
     }
-    const monster_id mid = ROOMS[gs->room].monster;
+    const Room *r = room_find_room(gs->room);
+
+    const monster_id mid = r->monster;
     Monster *m = monsters_find_monster(mid);
     const char * monster_name = monsters_name_for_id(mid);
     display_line("--------------------------------------");
@@ -1481,8 +1478,6 @@ static bool main_game_loop(GameState *gs) {
         }
     }
 
-    gs->rooms_visited[room_id] = true;
-    room_set_visited_flag(current_room);
     char room_buffer[81] = "--------------------------------------------------------------------------------";
     const size_t room_name_len = strlen(current_room->name);
     for (int i = 0; i < room_name_len; ++i) {
@@ -1507,6 +1502,7 @@ static bool main_game_loop(GameState *gs) {
 
     if (check_game_over(gs)) {
         set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
         return END_GAME;
     }
 
@@ -1549,6 +1545,7 @@ static bool main_game_loop(GameState *gs) {
 
     if (cmd == CMD_QUIT) {
         set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
         return cmd_quit(gs);
     }
     if (cmd == CMD_HELP) {
@@ -1608,6 +1605,7 @@ static bool main_game_loop(GameState *gs) {
         gs->room_last_turn = gs->room_prev;
     }
 
+    room_set_visited_flag(current_room);
     return CONTINUE_GAME;
 }
 
@@ -1635,21 +1633,23 @@ int sum_character_stats(const CharStats *s) {
 // -----------------------------------------------------------------
 void reset(GameState *gs, const uint32_t seed) {
     // reset GameState
-    *gs = (GameState){.seed = seed, .player_name = gs->player_name, .room = ROOM_START, .has_torch = true, .QU = 1};
+    *gs = (GameState){ .seed = seed, .player_name = gs->player_name, .room = ROOM_START, .has_torch = true, .QU = 1};
 
     mt_initialize_state(&gs->mt_state, seed); // initialize the PRNG
 
     gs->stats = random_hero_stats(gs);
 
+    const int num_rooms = room_num_rooms();
 
     //clear all monsters, treasure
-    for (int room_index = 0; room_index < NUM_ROOMS; ++room_index) {
+    for (int room_index = 0; room_index < num_rooms; ++room_index) {
         // note: if we dynamically modify the edge graph, we'll need to reset those edges here
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
         ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
         ROOM_GRAPH[room_index][RGINDEX_TREASURE3] = 0;
-        ROOMS[room_index].monster = 0;
+        room_clear_monster( room_index );
+        room_remove_all_objects(room_index);
     }
     monsters_clear_all();
 
@@ -1669,13 +1669,13 @@ void reset(GameState *gs, const uint32_t seed) {
     //      NEW OBJECT ALLOCATION METHOD
     // -----------------------------------------------------------------
 
-    room_add_object(&ROOMS[ROOM_MAGICIAN], OBJECT_SILVER_KEY);
-    room_add_object(&ROOMS[ROOM_WOODEN], OBJECT_SWORD);
-    room_add_object(&ROOMS[ROOM_DUNGEON], OBJECT_AXE);
-    room_add_object(&ROOMS[ROOM_CHARISMA_REDUCE], OBJECT_STONE_CHEST);
-    room_add_object(&ROOMS[ROOM_TROPHY], OBJECT_IRON_CHEST);
-    room_add_object(&ROOMS[ROOM_SECRET_ROOM], OBJECT_AMULET);
-    room_add_object(&ROOMS[ROOM_TURRET], OBJECT_GOLD_KEY);
+    room_add_object(room_find_room(ROOM_MAGICIAN), OBJECT_SILVER_KEY);
+    room_add_object(room_find_room(ROOM_WOODEN), OBJECT_SWORD);
+    room_add_object(room_find_room(ROOM_DUNGEON), OBJECT_AXE);
+    room_add_object(room_find_room(ROOM_CHARISMA_REDUCE), OBJECT_STONE_CHEST);
+    room_add_object(room_find_room(ROOM_TROPHY), OBJECT_IRON_CHEST);
+    room_add_object(room_find_room(ROOM_SECRET_ROOM), OBJECT_AMULET);
+    room_add_object(room_find_room(ROOM_TURRET), OBJECT_GOLD_KEY);
 
 
     // allot random treasure
@@ -1684,8 +1684,9 @@ void reset(GameState *gs, const uint32_t seed) {
         if (obj_find_object(treasure_index)->location != 0 ) {
             continue;
         }
+
         for (;;) {
-            int rand_room = rnd_range(gs, 1, NUM_ROOMS);
+            int rand_room = rnd_range(gs, 1, num_rooms);
             // todo (rob) this is an inefficient check. Put valid rooms in a list, shuffle the list, choose first N rooms
             if (!(ROOM_GRAPH[rand_room][RGINDEX_TREASURE] ||
                   rand_room == ROOM_START ||
@@ -1697,7 +1698,7 @@ void reset(GameState *gs, const uint32_t seed) {
                   rand_room == ROOM_GARGOYLE)) {
                 ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure_index;
                 // new way to manage objects
-                room_add_object(&ROOMS[rand_room], treasure_index);
+                room_add_object(room_find_room( rand_room ), treasure_index);
                 break;
             }
         }
@@ -1705,20 +1706,20 @@ void reset(GameState *gs, const uint32_t seed) {
 
 
     ROOM_GRAPH[ROOM_YELLOW][RGINDEX_MONSTER] = MONSTER_DWARF;
-    ROOMS[ROOM_YELLOW].monster = MONSTER_DWARF;
+    room_set_monster(room_find_room(ROOM_YELLOW), MONSTER_DWARF);
     CharStats stats = random_monster_stats(gs);
     int ff = sum_character_stats(&stats);
     monsters_update_monster( &(Monster) {
                                     .name = monsters_name_for_id(MONSTER_DWARF),
                                     .id = MONSTER_DWARF,
                                     .ferocity_factor = ff,
-                                    .stats = random_monster_stats(gs),
+                                    .stats = stats,
     });
 
     // allot random monsters
     for (int monster_index = MONSTER_DWARF + 1; monster_index < monsters_num_monsters(); ++monster_index) {
         for (;;) {
-            int rand_room = rnd_range(gs, 1, NUM_ROOMS);
+            int rand_room = rnd_range(gs, 1, num_rooms);
             if (!(ROOM_GRAPH[rand_room][RGINDEX_MONSTER] ||
                   rand_room == ROOM_START ||
                   rand_room == ROOM_END ||
@@ -1730,7 +1731,7 @@ void reset(GameState *gs, const uint32_t seed) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = monster_index;
                 stats = random_monster_stats(gs);
                 ff = sum_character_stats(&stats);
-                ROOMS[rand_room].monster = monster_index;
+                room_set_monster(room_find_room(rand_room), monster_index);
                 monsters_update_monster( &(Monster) {
                             .name = monsters_name_for_id(monster_index),
                             .id = monster_index,
@@ -1755,23 +1756,87 @@ RandomTextArray * create_rta(int length) {
 
 static void init_rooms(void) {
     // random text for rooms 4
-    ROOMS[4].epilog = create_rta(1);
-    ROOMS[4].epilog->lines[0] = (RandomText){
+    RandomTextArray *rta = create_rta(1);
+    rta->lines[0] = (RandomText){
         .chance_percent = .5,
         .text="A mouse scampers across the floor.",
         .else_text = "A bat flits across the ceiling."};
 
+    room_set_epilog(4, rta);
 
     // special code for
     // room 32 counts down from 10 to 1 as you die from a spider bite
     // todo (rob) more console display features like a countdown
 }
 
+static constexpr size_t num_roomz = 45;
+typedef struct RoomData {
+    size_t size;
+    Room data[num_roomz];
+} RoomData;
 
-static struct ObjectData {
-    Object data[20];
-} get_object_data(void) {
-    return (struct ObjectData){
+static RoomData get_room_data(void) {
+    return (RoomData){
+        .size = num_roomz,
+        .data = {
+        {.id =  0,  .name= "NULL ROOM",  .desc = "" },
+        {.id =  1,  .name= "Battlements",     .desc = "You are out on the battlements of the Chateau. There is only one way back." },
+        {.id =  2,  .name= "Magician's Room",     .desc = "This is an eerie room, where once magicians consorted with evil sprites and werebeasts. Exits lead in three directions. An evil smell comes from the south." },
+        {.id =  3,  .name= "Straw Mattress",     .desc = "An old straw mattress lies in one corner. It has been ripped apart to find any treasure which was hidden in it. Light comes fitfully from a window to the north, and around the doors to south, east, and west." },
+        {.id =  4,  .name= "Wooden Panels",     .desc = "This wooden-panelled room makes you feel damp and uncomfortable. There are three doors leading from this room, one made of iron. Your sixth sense warns you to choose carefully..." },
+        {.id =  5,  .name= "Living Stone",     .desc = "You ignore your intuition... A Spell of Living Stone, primed to trap the first intruder has been set on you. With your last seconds of life you have time only to feel profound regret..." },
+        {.id =  6,  .name= "L-Shaped Room",     .desc = "You are in an L-shaped room. Heavy parchment lines the walls. You can see through an archway to the east, but that is not the only exit from this room." },
+        {.id =  7,  .name= "Archway",     .desc = "There is an archway to the west, leading to an L-shaped room. A door leads in the opposite direction." },
+        {.id =  8,  .name= "Kitchen",     .desc = "This must be the Chateau's main kitchen, but any food left here has long rotted away. A door leads to the north, and there is one to the west." },
+        {.id =  9,  .name= "Black Dragon",     .desc = "You find yourself in a small room, which makes you feel claustrophobic. There is a picture of a black dragon painted on the north wall, above the door." },
+        {.id = 10,  .name= "Landing",    .desc = "A stairwell ends in this 'room', which is more of a landing than an actual room. The door to the north is made of iron, which has rusted over the centuries." },
+        {.id = 11,  .name= "Stone Archway",    .desc = "There is a stone archway to the north. You are in a very long room.\nFresh air blows down some stairs and rich red drapes cover the walls. You can see doors to the east." },
+        {.id = 12,  .name= "Whirling Smoke",    .desc = "You have entered a room filled with swirling, choking smoke. You must leave quickly to remain healthy enough to continue your chosen quest." },
+        {.id = 13,  .name= "Charism Reduction",    .desc = "There is a mirror in the corner. You glance at it, and feel suddenly very ill.\nYou realize the looking-glass has been infused with a Spell of Charisma Reduction... oh dear...." },
+        {.id = 14,  .name= "White Marble",    .desc = "This room is richly finished with a white marble floor. Strange footprints lead to the two doors from this room. Dare you follow them?" },
+        {.id = 15,  .name= "Red Drapes",    .desc = "You are in a long, long hallway, lined on each side with rich, red drapes.\nThey are parted halfway down the east wall where there is a door." },
+        {.id = 16,  .name= "Yellow Room",    .desc = "Someone has spent a long time painting this room a bright yellow.\nYou remember reading that yellow is the Ancient Oracle's Color of Warning..." },
+        {.id = 17,  .name= "Ladder",    .desc = "As you stumble down the ladder you fall into the room. The ladder crashes down behind you. There is now no way back.\nA small door leads east from this very cramped room." },
+        {.id = 18,  .name= "Hall of Mirrors",    .desc = "You find yourself in the Hall of Mirrors, and see yourself reflected a hundred times or more. Through the bright glare you can make out doors in all directions. You notice the mirrors around the east door are heavily tarnished." },
+        {.id = 19,  .name= "Long Corridor",    .desc = "You find yourself in a long corridor... Your footsteps echo as you walk." },
+        {.id = 20,  .name= "Timbered Ceiling",    .desc = "You feel as if you've been wandering around this Chateau forever, and you begin to despair of ever escaping.\nStill, you can't get too depressed but must struggle on. Looking around, you see that you are in a room which has a heavy timbered ceiling and white roughly-finished walls.\nThere are two doors..." },
+        {.id = 21,  .name= "Alcove",    .desc = "You are in a small alcove. You look around, but can see nothing in the gloom. Perhaps if you wait a while your eyes will adjust to the murky dark of this alcove." },
+        {.id = 22,  .name= "Courtyard",    .desc = "A dried-up fountain stands in the center of this courtyard, which once held beautiful flowers but have have long since died." },
+        {.id = 23,  .name= "Dying Flowers",    .desc = "The scent of dying flowers fills this brightly-lit room.\nThere are two exits from it." },
+        {.id = 24,  .name= "Cavern",    .desc = "This is a round stone cavern off the side of the alcove to your north." },
+        {.id = 25,  .name= "Games Room",    .desc = "You are in an enormous circular room, which looks as if it was used as a games room. Rubble covers the floor, partially blocking the only exit." },
+        {.id = 26,  .name= "Potting Shed",    .desc = "Through the dim mustiness of this small potting shed you can see a stairwell." },
+        {.id = 27,  .name= "Ramshackle Shed",    .desc = "You begin this Adventure in a small wood outside the Chateau.\nWhile out walking one day, you come across a small, ramshackle shed in the woods. Entering it, you see a hole in one corner. An old ladder leads down from the hole." },
+        {.id = 28,  .name= "End",    .desc = "How wonderful! Fresh air, sunlight, birds are singing. You are free at last." },
+        {.id = 29,  .name= "Death Trap",    .desc = "The smell came from bodies rotting in huge traps. One springs shut on you, trapping you forever!" },
+        {.id = 30,  .name= "Hot hot hot",    .desc = "You fall into a pit of flames." },
+        {.id = 31,  .name= "Acid Pool",    .desc = "Aaaaahhh... you have fallen into a pool of acid. Now you know - too late - why the mirrors were so badly tarnished." },
+        {.id = 32,  .name= "Spider",    .desc = "It's too bad you chose that exit from the alcove. A giant funnel-web spider leaps on you, and before you can react, bites you on the neck. You have 10 seconds to live." },
+        {.id = 33,  .name= "Hovel",    .desc = "A stairwell leads into this room, a poor and common hovel with many doors and exits." },
+        {.id = 34,  .name= "Uneven Floor",    .desc = "It is hard to see in this room and you slip slightly on the uneven, rocky floor." },
+        {.id = 35,  .name= "Torture Chamber",    .desc = "Horrors! This room was once the torture chamber of the Chateau.\nSkeletons lie on the floor, still with chains around their bones." },
+        {.id = 36,  .name= "Dungeon",    .desc = "Another room with very unpleasant memories.\nThis foul hole was used as the Chateau dungeon." },
+        {.id = 37,  .name= "Gargoyle",    .desc = "Oh no, this is a gargoyle's lair. It has been held prisoner here for three hundred years.\nIn his frenzy he thrashes out at you and... breaks your neck!!" },
+        {.id = 38,  .name= "Dancing Hall",    .desc = "This was the Lower Dancing Hall. With doors to the north, the east, and to the west, you would seem to be able to flee any danger." },
+        {.id = 39,  .name= "Dingy Pit",    .desc = "This is a dingy pit at the foot of some extremely dubious-looking stairs. A door leads to the east." },
+        {.id = 40,  .name= "Trophy Room",    .desc = "Doors open to each compass point from the Trophy Room of the Chateau.\nThe heads of strange creatures shot by the ancestral owners are mounted high up on each wall." },
+        {.id = 41,  .name= "Secret Room",    .desc = "You have stumbled on to a secret room.\nDown here, eons ago, the ancient Necromancers of Thorin plied their evil craft... and the remnant of their spells hangs heavy on the air." },
+        {.id = 42,  .name= "Room of Shadows",    .desc = "Cobwebs brush your face as you make your way through the gloom of this room of shadows." },
+        {.id = 43,  .name= "Gloomy Passage",    .desc = "This gloomy passage lies at the intersection of three rooms." },
+        {.id = 44,  .name= "Rear Turret",    .desc = "You are in the rear turret room, below the extreme western wall of the ancient Chateau." },
+        }
+    };
+}
+
+constexpr size_t num_objectz = 20;
+typedef struct ObjectData {
+    size_t size;
+    Object data[num_objectz];
+} ObjectData;
+
+static ObjectData get_object_data(void) {
+    return (ObjectData){
+        .size = num_objectz,
         .data = {
             {.id = 1, .name = "axe", .is_weapon = true },
             {.id = 2, .name = "sword", .is_weapon = true },
@@ -1799,10 +1864,16 @@ static struct ObjectData {
 
 // once time inits. Per-game inits happen in reset()
 static void initialize() {
-    // note: random data is initialized in reset()
+    // note: randomized data is initialized in reset()
+    RoomData rd = get_room_data();
+    room_init(rd.size,rd.data);
+
     parser_init();
     monsters_init("monsters.txt");
-    obj_init(20, get_object_data().data);
+
+    ObjectData od = get_object_data();
+    obj_init(od.size, od.data);
+
     init_rooms();
 }
 
@@ -1866,19 +1937,15 @@ int main_chateau_gaillard(void) {
 ////
 //// ------------------------------------------------------------
 
-static void destroy_rooms() {
-    for (int room_index = 0; room_index < NUM_ROOMS; ++room_index) {
-        free(ROOMS[room_index].preamble);
-        free(ROOMS[room_index].epilog);
-    }
-}
+
 
 static void cleanup(GameState *gs) {
-    destroy_rooms();
+    room_destroy();
     void *free_ptr = (void *) gs->player_name;
     gs->player_name = nullptr;
     free(free_ptr);
     monsters_destroy();
+    obj_destroy();
 }
 
 
@@ -1891,12 +1958,14 @@ static void cleanup(GameState *gs) {
 void display_all_room_desc() {
     const uint32_t saved_sleep = GLOBAL_char_sleep_duration;
     set_char_sleep(0);
+    const int num_rooms = room_num_rooms();
 
-    for (int i = 1; i < NUM_ROOMS; ++i) {
+    for (int i = 1; i < num_rooms; ++i) {
+        const Room *r = room_find_room(i);
         display_line("");
-        display_line(ROOMS[i].name);
+        display_line(r->name);
         display_line("-------------------------------------------------------------------");
-        display_paginated(ROOMS[i].desc, 80);
+        display_paginated(r->desc, 80);
     }
 
     // restore previous sleep duration

@@ -102,20 +102,14 @@ static CharStats random_monster_stats(GameState * gs) {
 
 static void display_char_attributes(const CharStats stats) {
     if (GLOBALS.silent_mode) return;
-    display("Strength:  ");
-    printf("%2d", stats.strength);
-    display("  Charisma:     ");
-    printf("%2d\n", stats.charisma);
+    vdisplay_line("Strength:  %2d  Charisma:     %2d\n",
+        stats.strength, stats.charisma);
 
-    display("Dexterity: ");
-    printf("%2d", stats.dexterity);
-    display("  Intelligence: ");
-    printf("%2d\n", stats.intelligence);
+    vdisplay_line("Dexterity: %2d  Intelligence: %2d\n",
+        stats.dexterity, stats.intelligence );
 
-    display("Wisdom:    ");
-    printf("%2d", stats.wisdom);
-    display("  Constitution: ");
-    printf("%2d\n", stats.constitution);
+    vdisplay_line( "Wisdom:    %2d  Constitution: %2d\n",
+        stats.wisdom, stats.constitution);
 }
 
 
@@ -233,7 +227,7 @@ static void display_room_treasure(const GameState * gs) {
         if (room->objects[i]) {
             const Object *o = obj_find_object(room->objects[i]);
             const char * obj_name = obj_name_for_id(room->objects[i]);
-            if ( o->value > 0 ) display_line(o->name);
+            if ( o->value == 0 ) display_line(o->name);
             else vdisplay_line( "%s worth $%d", o->name, o->value);
         }
     }
@@ -242,8 +236,8 @@ static void display_room_treasure(const GameState * gs) {
 static void display_room_content(GameState * gs) {
     if (GLOBALS.silent_mode) return;
 
-    display_room_monster(gs);
     display_room_treasure(gs);
+    display_room_monster(gs);
 }
 
 
@@ -269,7 +263,7 @@ static void display_score(const GameState * gs) {
 
     display("\nSCORE: ");
     printf("%d\n", calc_score(gs));
-    const int rooms_visited = count_rooms_visited(gs);
+    const int rooms_visited = room_count_visited();
     printf("\nturns: %d, cash: %d, monsters fought: %d, killed: %d, rooms: %d\n",
         gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
     printf("You completed %3.0f%% of the quest.\n", (double)rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1 ) );
@@ -1249,33 +1243,44 @@ bool check_game_over(GameState *gs) {
     return false;
 }
 
-
+bool DEBUG = true;
+uint32_t DEBUG_NORMAL_SLEEP = 0;
+uint32_t DEBUG_VISITED_SLEEP = 0;
 
 static bool main_game_loop(GameState * gs) {
     uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
 
-    if ( current_room->is_visited_bit ) {
+    if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
-        set_char_sleep(1'000);  // 1ms
+        if (DEBUG) {
+            set_char_sleep(DEBUG_VISITED_SLEEP);
+        } else {
+            set_char_sleep(1'000); // 1ms
+        }
     }
 
     printf("---------------------------------------------------------------------- %d\n", gs->turns);
 
     display_status(gs);
     display_line("");
-    display_room_desc(gs);
+    if (gs->room != gs->room_last_turn) {
+        // only display room desc once when first entering room. Reduces screen clutter and scrolling.
+        // user can always type "look" to re-display room desc.
+        display_room_desc(gs);
+    }
 
     if (check_game_over(gs)){
         set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
         return END_GAME;
     }
 
     display_room_content(gs);
 
     flush_input();
-    char cmd = get_command_char("\nWhat do you want to do? ", VALID_COMMANDS, nullptr);
+    char cmd = get_command_char("\n> ", VALID_COMMANDS, nullptr);
 
     //todo (rob) debug code
     if (cmd == 'L') {
@@ -1293,10 +1298,13 @@ static bool main_game_loop(GameState * gs) {
 
     if (cmd == 'Q') {
         set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+
         return cmd_quit(gs);
     }
 
     if ( !monster_check(gs, cmd) ) {
+        room_set_visited_flag(current_room);
         return true;
     }
 
@@ -1322,8 +1330,17 @@ static bool main_game_loop(GameState * gs) {
 ////
 //// ------------------------------------------------------------
 
+
+
 int main_citadel_of_pershu(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
+    set_silent_mode(false);
+
+    if (DEBUG) {
+        set_char_sleep(DEBUG_NORMAL_SLEEP);
+    } else {
+        set_char_sleep(10'000);
+    }
 
     const CharBuffer *player_name = get_player_name();
     GameState gs = {.player_name = player_name};
@@ -1333,6 +1350,10 @@ int main_citadel_of_pershu(void) {
     display_line("Your attributes are:");
     display_char_attributes(gs.stats);
     display_line("");
+
+    // obj_repr();
+    // monsters_names_repr();
+    // room_rooms_repr();
 
     bool continue_loop;
     do {

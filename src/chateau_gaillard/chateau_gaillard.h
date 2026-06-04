@@ -1,5 +1,12 @@
 // chateau_gaillard.h
 //
+// Copyright (c) Rob Ross 2026.
+//
+//
+// Created 2026/06/03 15:38:58 PDT
+
+// chateau_gaillard.h
+//
 // ported by Rob Ross
 // from a BASIC text adventure by Tim Hartnell, 1983
 //
@@ -36,7 +43,7 @@ char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
 
 
 
-static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
+static int ROOM_GRAPH[][RGINDEX_COUNT] = {
     {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
 //                                T   M   K
     {  1,  1,  2,  1,  1,  1,  0,  0,  0,  0 },  //  ROOM 1
@@ -86,8 +93,6 @@ static int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
 };
 
 
-constexpr int NUM_OBJECTS = 21;  // todo (rob) make data driven
-
 constexpr int OBJECT_AXE           =  1;
 constexpr int OBJECT_SWORD         =  2;
 constexpr int OBJECT_DAGGER        =  3;
@@ -106,6 +111,39 @@ constexpr int OBJECT_GOLD_KEY    = 18;
 constexpr int OBJECT_STONE_CHEST = 19;
 constexpr int OBJECT_IRON_CHEST  = 20;
 
+constexpr int NUM_TREASURES     = 21;
+
+constexpr int NUM_DEATH_ROOMS    =  6;
+
+
+constexpr int ROOM_START         = 27;
+constexpr int ROOM_END           = 28;
+
+// these constants are nice for static compiler checks but won't scale to a real world app. We're using these constants
+// to add things to a room, (treasure, monster), exclude things from being added, check special conditions, e.g.,
+// do you have the right key to unlock the door, etc. These should all be pushed into the data layer.
+constexpr int ROOM_MAGICIAN      =  2;
+constexpr int ROOM_MATTRESS      =  3;
+constexpr int ROOM_WOODEN        =  4;
+constexpr int ROOM_STONE         =  5;  // death
+constexpr int ROOM_L_SHAPED      =  6;
+
+constexpr int ROOM_KITCHEN       =  8;
+constexpr int ROOM_CHARISMA_REDUCE = 13;
+constexpr int ROOM_YELLOW        = 16;
+constexpr int ROOM_CRAMPED       = 17;
+constexpr int ROOM_TRAPPED       = 29;  // death
+constexpr int ROOM_PIT_OF_FLAMES = 30;  // death
+constexpr int ROOM_ACID          = 31;  // death
+constexpr int ROOM_SPIDER        = 32;  // death
+constexpr int ROOM_UNEVEN        = 34;
+
+constexpr int ROOM_DUNGEON       = 36;
+constexpr int ROOM_GARGOYLE      = 37;  // death
+constexpr int ROOM_TROPHY        = 40;
+constexpr int ROOM_SECRET_ROOM   = 41;
+
+constexpr int ROOM_TURRET        = 44;
 
 
 
@@ -144,7 +182,6 @@ typedef struct GameState {
     bool is_dead;
     bool ended_by_quitting;
     object_id  items[MAX_ITEMS];  //
-    bool rooms_visited[NUM_ROOMS];
 
     double QU;  // end-of-game flag? Quit flag, used in final scoring
     int SC;  // score bonus, depending on how game ends.

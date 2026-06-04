@@ -9,6 +9,8 @@
 #include "rooms.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  *  Word wrap notes:
@@ -19,6 +21,7 @@
  *
  */
 
+/*
 Room ROOMS[NUM_ROOMS] = {
 {.id =  0,  .name= "NULL ROOM",  .desc = "" },
 {.id =  1,  .name= "Battlements",     .desc = "You are out on the battlements of the Chateau. There is only one way back." },
@@ -66,14 +69,75 @@ Room ROOMS[NUM_ROOMS] = {
 {.id = 43,  .name= "Gloomy Passage",    .desc = "This gloomy passage lies at the intersection of three rooms." },
 {.id = 44,  .name= "Rear Turret",    .desc = "You are in the rear turret room, below the extreme western wall of the ancient Chateau." },
 };
+*/
 
+typedef struct RoomStore {
+    size_t capacity;
+    size_t size;
+    Room rooms[]; // flexible array
+} RoomStore;
+
+// This store manages each object as a unique identity.
+// E.g., the "chest of stone" is a single unique object in the global environment.
+// If we want to populate many "chest of stone" objects in multiple locations, we need a higher-level data structure
+// like a Class or a prototype for each type of such objects.
+static RoomStore * pvt_rooms = {};
+
+
+int room_init(size_t size, Room data[static size]) {
+    // we add one extra Object element for the null object element, id = 0.
+    const size_t capacity = size + 1;
+    pvt_rooms  = calloc( 1, sizeof( RoomStore) +  ( sizeof(Room) * capacity ) );
+    if (! pvt_rooms ) {
+        return - 1;
+    }
+
+    pvt_rooms->capacity = capacity;
+
+    int room_index = 0;
+    pvt_rooms->rooms[room_index++] = (Room){ .id =  0, .name="NULL ROOM" };
+    for (int data_index = 0 ; data_index < size; ++data_index) {
+        if (data[data_index].id < 1) {
+            continue;  // only copy ids > 0
+        }
+        pvt_rooms->size = room_index;
+        pvt_rooms->rooms[room_index++] = data[data_index];
+    }
+    pvt_rooms->size = room_index;
+
+    return 0;
+}
+
+static void pvt_destroy_rooms() {
+    const int num_rooms = room_num_rooms();
+    for (int room_index = 0; room_index < num_rooms; ++room_index) {
+        const Room *r = room_find_room(room_index);
+        free(r->preamble);
+        free(r->epilog);
+    }
+}
+
+void room_destroy() {
+    pvt_destroy_rooms();
+    void * saved = pvt_rooms;
+    pvt_rooms = nullptr;
+    free(saved);
+}
+
+
+
+
+// Returns the number of rooms
+int room_num_rooms(void) {
+    return (int)pvt_rooms->size;
+}
 
 const Room * room_find_room(const room_id id) {
-    return &ROOMS[id];
+    return &pvt_rooms->rooms[id];
 }
 
 Room * pvt_room_find_room(const room_id id) {
-    return &ROOMS[id];
+    return &pvt_rooms->rooms[id];
 }
 
 // Returns true if the object in the argument is located in the room, otherwise returns false.
@@ -86,9 +150,23 @@ bool room_contains_object(const Room *r, const object_id id) {
     return false;
 }
 
+bool room_clear_monster(room_id id) {
+    pvt_rooms->rooms->monster = 0;
+    return true;
+}
+
 void room_set_visited_flag(const Room *r) {
     Room *mutable_room = pvt_room_find_room(r->id);
     mutable_room->is_visited_bit = true;
+}
+
+int room_count_visited() {
+    int count = 0;
+    const int num_rooms = (int)pvt_rooms->size;
+    for (int i = 0; i < num_rooms; ++i) {
+        if ( pvt_rooms->rooms->is_visited_bit ) count++;
+    }
+    return count;
 }
 
 // Returns ROOM_ERR_OBJECT_NOT_FOUND if object_id is not present in the room.
@@ -135,9 +213,10 @@ int room_count_of_objects(const Room *r) {
     return count;
 }
 
-int room_remove_object(Room *r, const int object_id) {
+int room_remove_object(const Room *room, const int object_id) {
     for (int i = 0; i < 10; ++i) {
-        if ( r->objects[i] == object_id ) {
+        if ( room->objects[i] == object_id ) {
+            Room *r = (void*)room;
             r->objects[i] = 0;
             obj_relocate_object(object_id, 0);
             return ROOM_SUCCESS;
@@ -146,19 +225,42 @@ int room_remove_object(Room *r, const int object_id) {
     return ROOM_ERR_OBJECT_NOT_FOUND;
 }
 
-int room_add_object(Room *r, const int object_id) {
-    if (room_index_for_object(r, object_id) != ROOM_ERR_OBJECT_NOT_FOUND ) {
+void room_remove_all_objects(room_id id) {
+    Room *r = pvt_room_find_room(id);
+    memset(r->objects, 0, sizeof(object_id[10]));
+}
+
+int room_add_object(const Room *room, const int object_id) {
+    if (room_index_for_object(room, object_id) != ROOM_ERR_OBJECT_NOT_FOUND ) {
         return ROOM_ERR_ALREADY_GOT_ONE_YOU_SEE_ITS_VERY_NICE;
     }
 
     for (int i = 0; i < 10; ++i) {
-        if ( r->objects[i] == 0) {
-            obj_relocate_object(object_id, r->id);
+        if ( room->objects[i] == 0) {
+            obj_relocate_object(object_id, room->id);
+            Room *r = (void*)room;
             r->objects[i] = object_id;
             return ROOM_SUCCESS;
         }
     }
     return ROOM_ERR_ROOM_FULL;
+}
+
+// Takes ownership of the RandomTextArray and frees it in room_destroy().
+bool room_set_epilog(room_id id, RandomTextArray *rta) {
+    pvt_rooms->rooms[id].epilog = rta;
+    return true;
+}
+
+// Takes ownership of the RandomTextArray and frees it in room_destroy().
+bool room_set_preamble(room_id id, RandomTextArray *rta) {
+    pvt_rooms->rooms[id].preamble = rta;
+    return true;
+}
+
+bool room_set_monster(const Room *r, monster_id id) {
+    ((Room *)r)->monster = id;
+    return true;
 }
 
 void room_repr(const Room *r) {
@@ -167,9 +269,10 @@ void room_repr(const Room *r) {
 }
 
 void room_rooms_repr() {
-    printf("ROOMS[%d] = {\n", NUM_ROOMS);
-    for (int i = 0; i < NUM_ROOMS; ++i) {
-        room_repr(&ROOMS[i]);
+    int num_rooms = (int)pvt_rooms->size;
+    printf("ROOMS[%d] = {\n", num_rooms);
+    for (int i = 0; i < num_rooms; ++i) {
+        room_repr(&pvt_rooms->rooms[i]);
     }
     printf("};\n");
 }

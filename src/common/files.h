@@ -30,7 +30,7 @@ typedef struct value_pos_s {
 
 typedef int (*file_process_action)( FILE *fptr, void **result_ptr);
 
-int create_string_array(FILE *fptr, void **result_out);
+
 int process_file(string file_name, file_process_action function, void **result_ptr);
 void free_LenStrArray(LenStrArray *lsa);
 

@@ -230,7 +230,6 @@ void display_room_desc(struct GameState * gs);
 void display_room_content(struct GameState * gs);
 void display_help_info(void);
 void flush_input(void);
-struct StringBuffer {char buffer[1024];} get_str(char const *  prompt);
 char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);
 int get_int(char const * const prompt, int min, int max);
 bool cmd_move(struct GameState * gs, char first_letter);

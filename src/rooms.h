@@ -44,13 +44,13 @@ typedef int monster_id;
 typedef int room_id;
 
 typedef struct Room {
-    [[maybe_unused]] const int id;
-    [[maybe_unused]] char const * name;
+    int id;
+    char const * name;
     char const * desc;
     RandomTextArray  * preamble;
     RandomTextArray  * epilog;
     monster_id monster;
-    [[deprecated]] Object   treasure;
+    /*[[deprecated]]*/ Object   treasure;
 
     // flags. eventually can be bit flags for efficiency
     bool is_lit_bit; // The room has light, thus can be seen without a light source like a torch
@@ -81,52 +81,40 @@ constexpr int ROOM_ERR_ROOM_FULL = -2;
 constexpr int ROOM_ERR_ALREADY_GOT_ONE_YOU_SEE_ITS_VERY_NICE =  -1;
 constexpr int ROOM_SUCCESS = 0;
 
-constexpr int NUM_TREASURES     = 21;
 
+int room_init(size_t size, Room data[static size]);
+void room_destroy();
 
-constexpr int NUM_ROOMS          = 45;  // todo (rob) these values should be data driven
-constexpr int NUM_DEATH_ROOMS    =  6;
+int room_num_rooms(void);
 
+int  room_add_object(const Room *room, int object_id);
 
-constexpr int ROOM_START         = 27;
-constexpr int ROOM_END           = 28;
+bool room_clear_monster(room_id id);
 
-// these constants are nice for static compiler checks but won't scale to a real world app. We're using these constants
-// to add things to a room, (treasure, monster), exclude things from being added, check special conditions, e.g.,
-// do you have the right key to unlock the door, etc. These should all be pushed into the data layer.
-constexpr int ROOM_MAGICIAN      =  2;
-constexpr int ROOM_MATTRESS      =  3;
-constexpr int ROOM_WOODEN        =  4;
-constexpr int ROOM_STONE         =  5;  // death
-constexpr int ROOM_L_SHAPED      =  6;
+bool room_contains_object(const Room *r, object_id id);
 
-constexpr int ROOM_KITCHEN       =  8;
-constexpr int ROOM_CHARISMA_REDUCE = 13;
-constexpr int ROOM_YELLOW        = 16;
-constexpr int ROOM_CRAMPED       = 17;
-constexpr int ROOM_TRAPPED       = 29;  // death
-constexpr int ROOM_PIT_OF_FLAMES = 30;  // death
-constexpr int ROOM_ACID          = 31;  // death
-constexpr int ROOM_SPIDER        = 32;  // death
-constexpr int ROOM_UNEVEN        = 34;
-
-constexpr int ROOM_DUNGEON       = 36;
-constexpr int ROOM_GARGOYLE      = 37;  // death
-constexpr int ROOM_TROPHY        = 40;
-constexpr int ROOM_SECRET_ROOM   = 41;
-
-constexpr int ROOM_TURRET        = 44;
-
-extern Room ROOMS[NUM_ROOMS];
+int  room_count_of_objects(const Room *r);
 
 const Room * room_find_room(room_id id);
-int  room_add_object(Room *r, int object_id);
-int  room_remove_object(Room *r, int object_id);
-bool room_is_full(const Room *r );
-int  room_index_for_object(const Room *r, int object_id );
-int  room_count_of_objects(const Room *r);
+
 int  room_first_object_id(const Room *r);
-bool room_contains_object(const Room *r, object_id id);
-void room_set_visited_flag(const Room *r);
+
+int  room_index_for_object(const Room *r, int object_id );
+
+bool room_is_full(const Room *r );
+
+int  room_remove_object(const Room *room, int object_id);
+void room_remove_all_objects(room_id id);
+
 void room_repr(const Room *r);
+
 void room_rooms_repr();
+
+bool room_set_epilog(room_id id, RandomTextArray *rta);
+bool room_set_prolog(room_id id, RandomTextArray *rta);
+
+bool room_set_monster(const Room *r, monster_id id);
+
+void room_set_visited_flag(const Room *r);
+
+int room_count_visited();

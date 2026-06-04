@@ -25,7 +25,39 @@ typedef struct ObjectStore {
 // E.g., the "chest of stone" is a single unique object in the global environment.
 // If we want to populate many "chest of stone" objects in multiple locations, we need a higher-level data structure
 // like a Class or a prototype for each type of such objects.
-ObjectStore * pvt_objects = {};
+static ObjectStore * pvt_objects = {};
+
+int obj_init(const size_t size, Object data[static size]) {
+    // we add one extra Object element for the null object element, id = 0.
+    const size_t capacity = size + 1;
+    pvt_objects  = calloc( 1, sizeof(ObjectStore) +  ( sizeof(Object) * capacity ) );
+    if (! pvt_objects ) {
+        return - 1;
+    }
+
+    pvt_objects->capacity = capacity;
+
+    int obj_index = 0;
+    pvt_objects->objects[obj_index++] = (Object){ .id =  0, .name="NULL OBJECT" };
+
+    for (int data_index = 0 ; data_index < size; ++data_index) {
+        if (data[data_index].id < 1) {
+            continue;  // only copy ids > 0
+        }
+        pvt_objects->size = obj_index;
+        pvt_objects->objects[obj_index++] = data[data_index];
+    }
+    pvt_objects->size = obj_index;
+
+    return 0;  // no errors
+}
+
+
+void obj_destroy(void) {
+    void * saved = pvt_objects;
+    pvt_objects = nullptr;
+    free(saved);
+}
 
 const Object * obj_find_object(const object_id id) {
     const size_t size = pvt_objects->size;
@@ -62,7 +94,7 @@ void obj_clear_location(const object_id id) {
     o->location = 0;
 }
 
-char const * obj_name_for_object_id(const object_id id) {
+char const * obj_name_for_id(const object_id id) {
     const Object *o = pvt_find_object(id);
     if ( o == nullptr) {
         return pvt_objects->objects[0].name;  //name of the null object
@@ -70,6 +102,9 @@ char const * obj_name_for_object_id(const object_id id) {
     return o->name;
 }
 
+int obj_num_objects( void ) {
+    return (int)pvt_objects->size;
+}
 // return the object id for the given item_name. If a partial item_name is passed, performs a "starts with"
 // search to match. But this will return the first object in the store that starts with the argument string,
 // which may or may not be what you are looking for.
@@ -102,38 +137,17 @@ void obj_touch(const object_id id) {
     o->is_touched_bit = true;
 }
 
-int obj_init(const size_t size, Object data[static size]) {
-    // we add one extra Object element for the null object element, id = 0.
-    const size_t capacity = size + 1;
-    pvt_objects  = calloc( 1, sizeof(struct ObjectStore) +  ( sizeof(Object) * capacity ) );
-    if (! pvt_objects ) {
-        return - 1;
+
+// overwrites the state of the Object in storage for the argument's id member.
+int obj_update(const Object *o) {
+    if (!o) return -1;
+    const size_t num_objects = pvt_objects->size;
+    if ( o->id < 0 || o->id > num_objects - 1 ) {
+        return -2;
     }
-
-    pvt_objects->capacity = capacity;
-
-    int obj_index = 0;
-    pvt_objects->objects[obj_index++] = (Object){ .id =  0, .name="NULL OBJECT" };
-
-    for (int data_index = 0 ; data_index < size; ++data_index) {
-        if (data[data_index].id < 1) {
-            continue;  // only copy ids > 0
-        }
-        pvt_objects->size = obj_index;
-        pvt_objects->objects[obj_index++] = data[data_index];
-    }
-    pvt_objects->size = obj_index;
-
-    return 0;  // no errors
+    pvt_objects->objects[o->id] = *o;
+    return 0;
 }
-
-
-void obj_free(void) {
-    void * saved = pvt_objects;
-    pvt_objects = nullptr;
-    free(saved);
-}
-
 
 // print info about the Objects managed in this unit
 void obj_repr(void) {
@@ -181,6 +195,6 @@ int main(void) {
 
 
 
-    obj_free();
+    obj_destroy();
 }
 #endif
