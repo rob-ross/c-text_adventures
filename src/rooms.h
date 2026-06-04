@@ -43,6 +43,9 @@ typedef struct RandomTextArray {
 typedef int monster_id;
 typedef int room_id;
 
+// users of this library may read from objects of this type. But
+// the user must not create any objects of this type and pass them to any methods
+// declared here. The library must manage the lifecycles of these objects.
 typedef struct Room {
     int id;
     char const * name;
