@@ -1,0 +1,21 @@
+# monsters.txt for citadel_of_pershu
+#
+Swashbuckler
+Werebear
+Caecliae // ???
+Manticore // the face of a human the body of a lion and the tail of a scorpion
+Vampire
+Predebeast // ???
+Gargoyle
+Medusae // plural of Medusa a jellyfish
+Magi // plural of Magus priests in Zoroastrianism and earlier Iranian religions.
+Fire Lizard
+Phase Spider // ??? D&D A phase spider possesses the magical ability to phase in-and-out of the Ethereal Plane.
+Troll
+Hell Hound
+Frost Giant
+Necromancer
+Hydra of 10 Heads // ???
+Patriarch // ???
+Master Thief
+Living Statue
