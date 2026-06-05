@@ -1265,12 +1265,17 @@ static bool main_game_loop(GameState * gs) {
 
     // printf("---------------------------------------------------------------------- %d\n", gs->turns);
     vdisplay_line("%s ----------", current_room->name);
-    // display_status(gs);
 
     if (gs->room != gs->room_last_turn) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
         display_room_desc(gs);
+        if (room_id == ROOM_START && gs->room_prev == 0 ) {
+            // first room, we display initial inventory.
+            // Afterward, the user can view them with an explicit "inv" command
+            display_line("");
+            display_inventory(gs);
+        }
     }
 
     if (check_game_over(gs)){
@@ -1280,12 +1285,6 @@ static bool main_game_loop(GameState * gs) {
     }
 
     display_room_content(gs);
-
-    if (room_id == ROOM_START && gs->room_prev == 0 ) {
-        // first room, we display initial inventory. Afterward, the user can view them with an explicit "inv" command
-        display_line("");
-        display_inventory(gs);
-    }
 
     flush_input();
     char cmd = get_command_char("\n> ", VALID_COMMANDS, nullptr);
