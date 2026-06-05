@@ -74,7 +74,7 @@ enum RoomGraphIndex {
     RGINDEX_TREASURE,
     RGINDEX_MONSTER,
     RGINDEX_REQUIRED_KEY,
-    RGINDEX_TREASURE3,
+    RGINDEX_UNUSED,
     RGINDEX_COUNT
 };
 
@@ -120,3 +120,6 @@ bool room_set_monster(const Room *r, monster_id id);
 void room_set_visited_flag(const Room *r);
 
 int room_count_visited();
+
+const char * room_rgindex_label(enum RoomGraphIndex rg_index);
+const char * room_rgindex_label_short(enum RoomGraphIndex rg_index);

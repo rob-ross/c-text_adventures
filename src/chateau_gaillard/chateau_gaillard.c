@@ -1647,7 +1647,7 @@ void reset(GameState *gs, const uint32_t seed) {
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
         ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
-        ROOM_GRAPH[room_index][RGINDEX_TREASURE3] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
         room_clear_monster( room_index );
         room_remove_all_objects(room_index);
     }

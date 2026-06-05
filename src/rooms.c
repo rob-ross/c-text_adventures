@@ -222,3 +222,36 @@ void room_all_rooms_repr() {
     }
     printf("};\n");
 }
+
+const char * room_rgindex_label(const enum RoomGraphIndex rg_index) {
+    switch (rg_index) {
+        case RGINDEX_NORTH:         return "North";
+        case RGINDEX_SOUTH:         return "South";
+        case RGINDEX_EAST:          return "East";
+        case RGINDEX_WEST:          return "West";
+        case RGINDEX_UP:            return "Up";
+        case RGINDEX_DOWN:          return "Down";
+        case RGINDEX_TREASURE:      return "Treasure";
+        case RGINDEX_MONSTER:       return "Monster";
+        case RGINDEX_REQUIRED_KEY:  return "Required Key";
+        case RGINDEX_UNUSED:        return "Unused";
+        default:                    return "Unknown";
+    }
+}
+
+
+const char * room_rgindex_label_short(const enum RoomGraphIndex rg_index) {
+    switch (rg_index) {
+        case RGINDEX_NORTH:         return "N";
+        case RGINDEX_SOUTH:         return "S";
+        case RGINDEX_EAST:          return "E";
+        case RGINDEX_WEST:          return "W";
+        case RGINDEX_UP:            return "U";
+        case RGINDEX_DOWN:          return "D";
+        case RGINDEX_TREASURE:      return "T";
+        case RGINDEX_MONSTER:       return "M";
+        case RGINDEX_REQUIRED_KEY:  return "K";
+        case RGINDEX_UNUSED:        return "0";
+        default:                    return "?";
+    }
+}

@@ -44,8 +44,10 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3);
 
 void room_graph_entry_repr(room_id id) {
     printf("ROOM_GRAPH[%d][%d]{ ", id, RGINDEX_COUNT);
+    const char * label;
     for (int i = 0; i < RGINDEX_COUNT; ++i) {
-        printf("%d, ",ROOM_GRAPH[id][i] );
+        label = room_rgindex_label_short(i);
+        printf("%.1s:%d, ", label, ROOM_GRAPH[id][i] );
     }
     printf("}\n");
 }
