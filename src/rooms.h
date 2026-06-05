@@ -110,7 +110,7 @@ void room_remove_all_objects(room_id id);
 
 void room_repr(const Room *r);
 
-void room_rooms_repr();
+void room_all_rooms_repr();
 
 bool room_set_epilog(room_id id, RandomTextArray *rta);
 bool room_set_prolog(room_id id, RandomTextArray *rta);

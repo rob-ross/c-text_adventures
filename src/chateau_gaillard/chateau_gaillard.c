@@ -547,8 +547,8 @@ static bool actor_has_item(const GameState *gs, const object_id id) {
 // return true if carrying any items
 
 static bool actor_has_any_items(const GameState *gs) {
-    for (int bag_index = 1; bag_index < MAX_ITEMS; ++bag_index) {
-        if (!gs->items[bag_index]) {
+    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
+        if ( gs->items[bag_index] != 0 ) {
             return true;
         }
     }

@@ -205,11 +205,16 @@ bool room_set_monster(const Room *r, monster_id id) {
 }
 
 void room_repr(const Room *r) {
-    printf("(Room){ .id=%d, .name='%s', .desc='%s'", r->id, r->name, r->desc);
+    printf("(Room){ .id=%d, .name='%s', .desc='%.20s...'", r->id, r->name, r->desc);
+    printf("(objects)[10]{ ");
+    for (int i = 0; i < 10; ++i) {
+        printf("%d, ", r->objects[i]);
+    }
+    printf("}, ");
     printf("  (Monster){ .id=%d, .name='%s' } }\n", r->monster, monsters_name_for_id(r->monster));
 }
 
-void room_rooms_repr() {
+void room_all_rooms_repr() {
     int num_rooms = (int)pvt_rooms->size;
     printf("ROOMS[%d] = {\n", num_rooms);
     for (int i = 0; i < num_rooms; ++i) {

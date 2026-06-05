@@ -41,6 +41,15 @@ static int calc_score(const GameState * gs) ;
 bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3);
 
 
+
+void room_graph_entry_repr(room_id id) {
+    printf("ROOM_GRAPH[%d][%d]{ ", id, RGINDEX_COUNT);
+    for (int i = 0; i < RGINDEX_COUNT; ++i) {
+        printf("%d, ",ROOM_GRAPH[id][i] );
+    }
+    printf("}\n");
+}
+
 //// ------------------------------------------------------------
 ////
 ///     RANDOM
@@ -112,46 +121,41 @@ static void display_char_attributes(const CharStats stats) {
         stats.wisdom, stats.constitution);
 }
 
+// return true if carrying any items
+static bool actor_has_any_items(const GameState * gs) {
+    for (int bag_index = 0; bag_index < ITEM_COUNT; ++bag_index ) {
+        if ( gs->items[bag_index] != 0) {
+            // printf("actor_has_any_items: i=%d, item_id=%d\n",bag_index, gs->items[bag_index]);
+            return true;
+        }
+    }
+    return false;
+}
 
 static void actor_display_inventory(const GameState * gs) {
     if (GLOBALS.silent_mode) return;
+    if (!actor_has_any_items(gs)) {
+        display_line("You are carrying nothing.");
+        return;
+    }
 
-    display_line("Items:");
-    int item_count = 0;
-    for (int bag_index = 1; bag_index < ITEM_COUNT; ++bag_index ) {
+    display_line("You are carrying:");
+    for (int bag_index = 0; bag_index < ITEM_COUNT; ++bag_index ) {
         if (gs->items[bag_index]) {
-            vdisplay("%d. %s ", bag_index, obj_name_for_id(gs->items[bag_index]));
-            item_count++;
-            if ( ! (item_count % 3) ) {
-                display_line("");  // display 3 items per line
-            }
+            vdisplay(" %s\n", obj_name_for_id(gs->items[bag_index]));
         }
     }
-    if (item_count) {
-        if ( item_count % 3) {
-            display_line("");
-        }
-    } else {
-        display_line("You have no items.");
-    }
-
 }
 
 
 static void display_status(const GameState * gs) {
     if (GLOBALS.silent_mode ) return;
-    vdisplay("magic spells: %d, ", gs->magic);
-
-    if (!gs->cash) {
-        display_line("You have no money.");
-    } else {
-        vdisplay_line("You have $%d.", gs->cash);
-    }
+    vdisplay("magic spells: %d, $%d\n", gs->magic, gs->cash);
 }
 
 static void display_inventory(const GameState * gs) {
-    actor_display_inventory(gs);
     display_status(gs);
+    actor_display_inventory(gs);
 }
 
 static void display_random_room_text(GameState * gs, const RandomTextArray *rta) {
@@ -193,7 +197,6 @@ static void display_room_monster(GameState * gs) {
     if ( monster_index == 0 ) {
         return;
     }
-    display_line("");
     if (gs->has_torch ) {
         if (rnd_d(gs) < .5) {
             display("You come face to face with a ");
@@ -297,6 +300,7 @@ void display_game_state(const GameState *gs) {
     printf("(ObservationSpace){ .monster_is_visible=%d, .treasure_is_visible=%d, .must_fight=%d, .current_monster.id=%d, .current_treasure.id=%d }\n",
         os.monster_is_visible, os.treasure_is_visible, os.must_fight, os.current_monster.id, os.current_treasure.id);
     room_repr(room_find_room(gs->room));
+    room_graph_entry_repr(gs->room);
     display_char_attributes(gs->stats);
     actor_display_inventory(gs);
     printf("\n");
@@ -318,20 +322,6 @@ void display_game_state(const GameState *gs) {
 ////    INPUT
 ////
 //// ------------------------------------------------------------
-
-
-static bool stdin_has_data(void) {
-#ifdef _WIN32
-    return _kbhit() != 0;
-#else
-    struct pollfd fds;
-    fds.fd = STDIN_FILENO;
-    fds.events = POLLIN;
-    return poll(&fds, 1, 0) > 0;
-#endif
-}
-
-
 
 
 static CharBuffer *get_player_name() {
@@ -627,15 +617,6 @@ static int count_items_carried(const GameState * gs) {
     return result;
 }
 
-// return true if carrying any items
-static bool actor_has_any_items(const GameState * gs) {
-    for (int bag_index = 1; bag_index < ITEM_COUNT; ++bag_index ) {
-        if (! gs->items[bag_index] ) {
-            return true;
-        }
-    }
-    return false;
-}
 
 static int calc_score(const GameState * gs) {
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
@@ -700,6 +681,8 @@ static bool pick_up_treasure(GameState * gs) {
     }
 
     room_remove_object(room, treasure_index);
+    ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
+
     display_line("Taken.");
     return true;
 }
@@ -720,13 +703,14 @@ static bool can_drop_item(const GameState *gs, int item_index, bool verbose) {
         if (verbose) display_line("You have nothing to get rid of.");
         return false;
     }
-    if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE]) {
+    object_id id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    if (id) {
         if (verbose) {
-            vdisplay_line( "There is already a %s here.",  obj_name_for_id(gs->room));
+            vdisplay_line( "There is already a %s here.",  obj_name_for_id(id));
         }
         return false;
     }
-    if (item_index == 0) return true; // Cancel/No-op is valid coice
+    if (item_index == 0) return true; // Cancel/No-op is valid choice
     if (item_index < 0 || item_index >= ITEM_COUNT || !gs->items[item_index]) {
         if (verbose) display_line("You are not carrying that item->");
         return false;
@@ -1263,20 +1247,23 @@ static bool main_game_loop(GameState * gs) {
         }
     }
 
-    // printf("---------------------------------------------------------------------- %d\n", gs->turns);
-    vdisplay_line("%s ----------", current_room->name);
 
     if (gs->room != gs->room_last_turn) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
+        display_line("");
+        display_line(current_room->name);
         display_room_desc(gs);
+        display_line("");
+        display_room_content(gs);
         if (room_id == ROOM_START && gs->room_prev == 0 ) {
             // first room, we display initial inventory.
             // Afterward, the user can view them with an explicit "inv" command
-            display_line("");
+            // display_line("");
             display_inventory(gs);
         }
     }
+
 
     if (check_game_over(gs)){
         set_char_sleep(saved_sleep_duration);
@@ -1284,7 +1271,6 @@ static bool main_game_loop(GameState * gs) {
         return END_GAME;
     }
 
-    display_room_content(gs);
 
     flush_input();
     char cmd = get_command_char("\n> ", VALID_COMMANDS, nullptr);
@@ -1327,7 +1313,6 @@ static bool main_game_loop(GameState * gs) {
 
     set_char_sleep(saved_sleep_duration);
 
-    display_line("");
     if (room_id == gs->room) {
         // if room at end of turn is same as start of turn, update this so we don't display the room desc again
         gs->room_last_turn = room_id;
