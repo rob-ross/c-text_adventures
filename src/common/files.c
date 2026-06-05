@@ -202,7 +202,8 @@ int process_file(string file_name, file_process_action function, void **result_p
         return errno;
     }
 
-    printf("file opened: %s\n", file_name);
+    // printf("file opened: %s\n", file_name);
+
     int result = function(fptr, result_ptr);
 
     if (fclose(fptr) != 0) {
@@ -211,7 +212,7 @@ int process_file(string file_name, file_process_action function, void **result_p
         return errno;
     }
 
-    printf("file closed: %s\n", file_name);
+    // printf("file closed: %s\n", file_name);
     return result;
 }
 
