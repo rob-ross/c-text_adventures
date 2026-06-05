@@ -85,8 +85,13 @@ int ROOM_GRAPH[][RGINDEX_COUNT] = {
 
 constexpr int DEBUG_RAND_SEED = 67;
 struct GlobalState GLOBALS = {
-    .player_name = nullptr, .silent_mode = false, .char_sleep_duration = _10ms,
-    .debug_normal_sleep = 0, .debug_visited_sleep = 0, .debug = true,
+    .player_name = nullptr,
+    .silent_mode = false,
+    .char_sleep_duration = _10ms,
+    .char_sleep_visited_duration = _1ms,
+    .debug_normal_sleep = 0,
+    .debug_visited_sleep = 0,
+    .debug_mode = true,
 };
 
 const int MAX_ITEMS = 9; // max number of items that can be carried
@@ -1041,10 +1046,10 @@ static bool main_game_loop(GameState * gs) {
 
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
-        if ( GLOBALS.debug ) {
+        if ( GLOBALS.debug_mode ) {
             set_char_sleep( GLOBALS.debug_visited_sleep );
         } else {
-            set_char_sleep(1'000); // 1ms
+            set_char_sleep( GLOBALS.char_sleep_visited_duration );
         }
     }
 
@@ -1136,7 +1141,7 @@ int main_citadel_of_pershu(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
     set_silent_mode(GLOBALS.silent_mode);
 
-    if (GLOBALS.debug) {
+    if (GLOBALS.debug_mode) {
         set_char_sleep(GLOBALS.debug_normal_sleep);
     } else {
         set_char_sleep(GLOBALS.char_sleep_duration);

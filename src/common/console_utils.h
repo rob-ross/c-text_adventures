@@ -16,9 +16,10 @@
 
 // usleep() takes argument in microseconds
 // these are equivalent milliseconds
-constexpr uint32_t _10ms = 10'000; // NOLINT(*-reserved-identifier)
-constexpr uint32_t _15ms = 15'000; // NOLINT(*-reserved-identifier)
-constexpr uint32_t _30ms = 30'000; // NOLINT(*-reserved-identifier)
+constexpr uint32_t  _1ms =  1'000;  // NOLINT(*-reserved-identifier)
+constexpr uint32_t _10ms = 10'000;  // NOLINT(*-reserved-identifier)
+constexpr uint32_t _15ms = 15'000;  // NOLINT(*-reserved-identifier)
+constexpr uint32_t _30ms = 30'000;  // NOLINT(*-reserved-identifier)
 
 extern bool GLOBAL_silent_mode;
 extern uint32_t GLOBAL_char_sleep_duration;

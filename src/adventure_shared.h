@@ -30,10 +30,15 @@ struct GlobalState {
     const char * player_name;
     bool         silent_mode;
     uint32_t     char_sleep_duration;
+    uint32_t     char_sleep_visited_duration;
     uint32_t     debug_normal_sleep;
     uint32_t     debug_visited_sleep;
-    bool         debug;
+    bool         debug_mode;
 };
+
+extern int ROOM_GRAPH[][RGINDEX_COUNT];
+extern struct GlobalState GLOBALS;
+extern const int MAX_ITEMS; // max number of items that can be carried
 
 //// ------------------------------------------------------------
 ////
@@ -90,9 +95,9 @@ typedef struct GameState {
 
 } GameState;
 
-extern int ROOM_GRAPH[][RGINDEX_COUNT];
-extern struct GlobalState GLOBALS;
-extern const int MAX_ITEMS; // max number of items that can be carried
+// extern int ROOM_GRAPH[][RGINDEX_COUNT];
+// extern struct GlobalState GLOBALS;
+// extern const int MAX_ITEMS; // max number of items that can be carried
 
 int  actor_calc_inventory_value(const GameState *gs);
 void actor_clamp_stats(GameState *gs, int min, int max);
