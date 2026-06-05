@@ -44,9 +44,8 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3);
 
 void room_graph_entry_repr(room_id id) {
     printf("ROOM_GRAPH[%d][%d]{ ", id, RGINDEX_COUNT);
-    const char * label;
     for (int i = 0; i < RGINDEX_COUNT; ++i) {
-        label = room_rgindex_label_short(i);
+        const char *label = room_rgindex_label_short(i);
         printf("%.1s:%d, ", label, ROOM_GRAPH[id][i] );
     }
     printf("}\n");
@@ -180,6 +179,7 @@ static void display_room_desc(GameState * gs) {
         display_line("IT IS TOO DARK TO SEE ANYTHING!\n");
     } else {
         const Room *r = room_find_room(gs->room);
+        display_line(r->name);
         if (r->preamble) {
             display_random_room_text(gs, r->preamble);
         }
@@ -199,6 +199,7 @@ static void display_room_monster(GameState * gs) {
     if ( monster_index == 0 ) {
         return;
     }
+    display_line("");
     if (gs->has_torch ) {
         if (rnd_d(gs) < .5) {
             display("You come face to face with a ");
@@ -224,7 +225,7 @@ static void display_room_treasure(const GameState * gs) {
 
     if (room_count_of_objects(room) == 0) return;
 
-    display("You can see ");
+    display("\nYou can see ");
     for (int i = 0; i < 10; ++i) {
         if (room->objects[i]) {
             const Object *o = obj_find_object(room->objects[i]);
@@ -371,7 +372,7 @@ static void  init_rooms() {
     room_set_epilog(18, rta);
     // room 37
     rta = create_rta(2);
-    rta->lines[0] = (RandomText){ .chance_percent = .7, .text="But now it tells you there is\na hidden stairwell in the room->"};
+    rta->lines[0] = (RandomText){ .chance_percent = .7, .text="But now it tells you there is\na hidden stairwell in the room."};
     rta->lines[1] = (RandomText){ .chance_percent = .3, .text="The voice faintly murmurs of the door to the south."};
     room_set_epilog(37, rta);
     // room 39
@@ -427,7 +428,7 @@ void reset(GameState * gs, const uint32_t seed) {
 
     const int num_monsters = monsters_num_monsters();
     // allot monsters
-    for (int monster_index= 1; monster_index <= num_monsters; ++monster_index ) {
+    for (int monster_index= 1; monster_index < num_monsters; ++monster_index ) {
         for (;;) {
             int rand_room = rnd_range(gs, 1, 43 + 1);
             if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_MONSTER] ||
@@ -497,11 +498,11 @@ static RoomData get_room_data(void) {
             {.id = 18,  .name= "Tower Balcony", .desc = "You are on a remote tower balcony.\nThere are stairs here." },
             {.id = 19,  .name= "Archway",       .desc = "You walk beneath a stone archway.\nYou can only walk north or south unless you decide to take the stairs." },
             {.id = 20,  .name= "Marble Hall",       .desc = "This vast hall has a marble floor, and the slightest sound echos violently.\nThere are purple drapes concealing the exits from this hall." },
-            {.id = 21,  .name= "Glove Storeroom",   .desc = "You are in the glove storeroom->\nThe west door radiates heat.\nAnother door leads to the south." },
-            {.id = 22,  .name= "Silver Storeroom",  .desc = "You are in the silver crosses storeroom->\nThere are only two exits." },
-            {.id = 23,  .name= "Amulet Storeroom",  .desc = "You are in the amulet storeroom->\nDoors lead north and south." },
-            {.id = 24,  .name= "Kazoom Storeroom",  .desc = "You are in the kazoo storeroom->\nThere are two exits." },
-            {.id = 25,  .name= "Satchel Storeroom", .desc = "You are in the satchel storeroom->" },
+            {.id = 21,  .name= "Glove Storeroom",   .desc = "You are in the glove storeroom.\nThe west door radiates heat.\nAnother door leads to the south." },
+            {.id = 22,  .name= "Silver Storeroom",  .desc = "You are in the silver crosses storeroom.\nThere are only two exits." },
+            {.id = 23,  .name= "Amulet Storeroom",  .desc = "You are in the amulet storeroom.\nDoors lead north and south." },
+            {.id = 24,  .name= "Kazoom Storeroom",  .desc = "You are in the kazoo storeroom.\nThere are two exits." },
+            {.id = 25,  .name= "Satchel Storeroom", .desc = "You are in the satchel storeroom." },
             {.id = 26,  .name= "Wooden Storeroom",  .desc = "You are in the storeroom for wooden boxes... There are two exits." },
             {.id = 27,  .name= "Vase Storage",      .desc = "This is where printed vases are stored... As you can easily see." },
             {.id = 28,  .name= "Mine",              .desc = "The heavy air of this area seems to make your torch very dim-> You can hardly see that air is rushing up from somewhere.\nYou can just make out that this area must be a mine of some sort." },
@@ -514,7 +515,7 @@ static RoomData get_room_data(void) {
             {.id = 35,  .name= "Stable", .desc = "This is the former Citadel underground stable. It smells terrible." },
             {.id = 36,  .name= "Courtyard", .desc = "You find yourself in an underground courtyard. Strange, twisted trees are around you, and a wind of incredible coldness blows from the east." },
             {.id = 37,  .name= "Oracle", .desc = "This is the Oracle Room, although the mystic voice has not spoken for many years." },
-            {.id = 38,  .name= "Sacrifice Room", .desc = "Horrors. A cold shudder passes through you as you realize this is the priests' sacrifice room->\nDried-up blood is on the floor and a skull grins at you from high on the wall." },
+            {.id = 38,  .name= "Sacrifice Room", .desc = "Horrors. A cold shudder passes through you as you realize this is the priests' sacrifice room.\nDried-up blood is on the floor and a skull grins at you from high on the wall." },
             {.id = 39,  .name= "Dungeon", .desc = "Old straw mattresses and rings chained to the wall tell you this was the Citadel's dungeon. The dungeon seems to stretch forever, with many small partitioned areas...." },
             {.id = 40,  .name= "Alcove",  .desc = "You are in a small alcove, with a solid gray granite throne in the middle of it." },
             {.id = 41,  .name= "Orc Guardroom", .desc = "This is the orc's guardroom, way below the ground. A stairwell ends here and a door leads to the east." },
@@ -1077,7 +1078,12 @@ static void update_perception(GameState * gs) {
     // Note: Object index 1 is the Torch itself, which is visible in the dark.
     if (gs->has_torch || treasure_index == ITEM_TORCH ) {
         if (monster_index > 0 ) {
-            gs->perception.current_monster = *monsters_find_monster(monster_index);
+            Monster *m = monsters_find_monster(monster_index);
+            if (! m) {
+                printf("update_perception: m is null: monster_index=%d\n", monster_index);
+                display_game_state(gs);
+            }
+            gs->perception.current_monster = *m;
             gs->perception.monster_is_visible  = true;
         }
         if (treasure_index > 0 ) {
@@ -1254,10 +1260,9 @@ static bool main_game_loop(GameState * gs) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
         display_line("");
-        display_line(current_room->name);
         display_room_desc(gs);
-        display_line("");
-        display_room_content(gs);
+        // display_line("");
+        display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
         if (room_id == ROOM_START && gs->room_prev == 0 ) {
             // first room, we display initial inventory.
             // Afterward, the user can view them with an explicit "inv" command
@@ -1354,7 +1359,7 @@ int main_citadel_of_pershu(void) {
     display_line("");
 
     // obj_repr();
-    // monsters_names_repr();
+    monsters_names_repr();
     // room_rooms_repr();
 
     bool continue_loop;

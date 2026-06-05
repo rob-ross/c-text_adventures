@@ -31,7 +31,6 @@
 
 constexpr int NUM_DEATH_ROOMS   =  4;
 constexpr int NUM_TREASURES     = 19;
-constexpr int NUM_MONSTERS      = 20;
 
 constexpr int ROOM_START                =  6;
 constexpr int ROOM_END                  = 31;

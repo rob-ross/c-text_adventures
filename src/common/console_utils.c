@@ -157,7 +157,7 @@ int max(int a, int b) {
 // recursively. It works but didn't seem to really simplify the method as I thought it would.
 // the previous version used an outer loop until all characters were processed, but it became very messy.
 void display_paginated_recursive(char const* msg, const int num_columns) {
-    const int str_len = strlen(msg);
+    const int str_len = (int)strlen(msg);
     if ( ! str_len ) return;  //base case
 
     int potential_char_count = min(num_columns, str_len);
@@ -233,7 +233,7 @@ void display_paginated_recursive(char const* msg, const int num_columns) {
         }
     }
     putchar('\n');
-    if (has_newline) putchar('\n');  // explicit newline means start a new paragraph
+    // if (has_newline) putchar('\n');  // explicit newline means start a new paragraph
 
     display_paginated_recursive(next_start_char, num_columns);
 
