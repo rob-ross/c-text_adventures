@@ -26,74 +26,70 @@ clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werro
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
 #include "chateau_gaillard.h"
 
-uint32_t DEBUG_NORMAL_SLEEP = 0;
-uint32_t DEBUG_VISITED_SLEEP = 0;
-bool DEBUG = true;
+#include <limits.h>
 
-constexpr int MONSTER_DWARF = 1;
+int ROOM_GRAPH[][RGINDEX_COUNT] = {
+    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
+//                                T   M   K
+    {  1,  1,  2,  1,  1,  1,  0,  0,  0,  0 },  //  ROOM 1
+    {  0, 29,  3,  1,  0,  0, 17,  0,  0,  0 },  //  ROOM 2
+    {  0,  8,  4,  2,  0,  0,  0,  0,  0,  0 },  //  ROOM 3
+    {  0,  9,  5,  3,  0,  0,  2,  0,  0,  0 },  //  ROOM 4
+    {  5,  5,  5,  5,  5,  5,  0,  0,  0,  0 },  //  ROOM 5, DEATH
+    {  0, 11,  7, 30,  0,  0,  0,  0,  0,  0 },  //  ROOM 6
+    {  0,  0,  8,  6,  0,  0,  0,  0,  0,  0 },  //  ROOM 7
+    {  3,  0,  0,  7,  0,  0,  0,  0, 17,  0 },  //  ROOM 8, KITCHEN, locked, need silver key
+    {  4, 10,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 9
+    {  9,  0,  0,  0,  0, 39,  0,  0,  0,  0 },  //  ROOM 10
+    {  6,  0,  0,  0, 28,  0,  0,  0,  0,  0 },  //  ROOM 11
+    {  0, 16, 13,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 12
+    {  0,  0, 14, 12,  0,  0, 19,  0,  0,  0 },  //  ROOM 13
+    {  0, 18,  0, 13,  0,  0,  0,  0,  0,  0 },  //  ROOM 14
+    {  0, 21, 16, 12,  0,  0,  0,  0,  0,  0 },  //  ROOM 15
+    { 12, 20, 19, 15,  0,  0,  0,  1,  0,  0 },  //  ROOM 16
+    {  0,  0, 18,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 17
+    { 14, 19, 31, 17,  0,  0,  0,  0,  0,  0 },  //  ROOM 18
+    { 18, 23,  0, 16,  0,  0,  0,  0,  0,  0 },  //  ROOM 19
+    { 16, 25,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 20
+    { 15, 24,  0, 32,  0,  0,  0,  0,  0,  0 },  //  ROOM 21
+    {  0, 26, 23, 20,  0,  0,  0,  0,  0,  0 },  //  ROOM 22
+    { 19,  0,  0, 22,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
+    { 21,  0,  0,  0, 10,  0,  0,  0,  0,  0 },  //  ROOM 24
+    { 20, 25, 25, 25, 25, 25,  0,  0,  0,  0 },  //  ROOM 25
+    { 22,  0,  0,  0,  0, 33,  0,  0,  0,  0 },  //  ROOM 26
+    {  0,  0,  0,  0,  0, 17,  0,  0,  0,  0 },  //  ROOM 27, ENTRANCE
+    {  0,  0,  0,  0,  0, 11,  0,  0,  0,  0 },  //  ROOM 28, END ROOM
+    { 29, 29, 29, 29, 29, 29,  0,  0,  0,  0 },  //  ROOM 29, DEATH
+    { 30, 30, 30, 30, 30, 30,  0,  0,  0,  0 },  //  ROOM 30, DEATH
+    { 31, 31, 31, 31, 31, 31,  0,  0,  0,  0 },  //  ROOM 31, DEATH
+    { 32, 32, 32, 32, 32, 32,  0,  0,  0,  0 },  //  ROOM 32, DEATH
+    { 43, 42, 40,  0, 26,  0,  0,  0,  0,  0 },  //  ROOM 33
+    {  0, 38, 35,  0,  0,  0,  0,  0, 18,  0 },  //  ROOM 34, UNEVEN ROOM, locked, need golden key
+    {  0, 43, 36, 34,  0,  0,  0,  0,  0,  0 },  //  ROOM 35
+    {  0, 40, 37, 35,  0,  0,  1,  0,  0,  0 },  //  ROOM 36
+    { 37, 37, 37, 37, 37, 37,  0,  0,  0,  0 },  //  ROOM 37, DEATH
+    { 34,  0, 43, 39,  0,  0,  0,  0,  0,  0 },  //  ROOM 38
+    {  0,  0, 38,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 39
+    { 36, 41, 44, 33,  0,  0, 20,  0,  0,  0 },  //  ROOM 40
+    { 40, 41, 41, 42, 41, 41,  0,  0,  0,  0 },  //  ROOM 41
+    { 33, 42, 41, 42, 42, 42,  0,  0,  0,  0 },  //  ROOM 42
+    { 35, 33,  0, 38,  0,  0,  0,  0,  0,  0 },  //  ROOM 43
+    {  0,  0,  0, 40,  0,  0, 18,  0,  0,  0 },  //  ROOM 44
+};
+
+constexpr int DEBUG_RAND_SEED = 67;
+struct GlobalState GLOBALS = {
+    .player_name = nullptr, .silent_mode = false, .char_sleep_duration = _10ms,
+    .debug_normal_sleep = 0, .debug_visited_sleep = 0, .debug = true,
+};
+
+const int MAX_ITEMS = 5; // max number of items that can be carried
+
 
 static void cleanup(GameState *gs);
 
-//// ------------------------------------------------------------
-////
-///     RANDOM
-////    PRNG - Mersenne Twister
-////
-//// ------------------------------------------------------------
-
-// return random int in range [min_inclusive, max_exclusive)
-static int rnd_range(GameState *gs, int min_inclusive, int max_exclusive) {
-    return (int) mt_rand_range(&gs->mt_state, min_inclusive, max_exclusive);
-}
-
-// return random double in range [0,1)
-static double rnd_d(GameState *gs) {
-    return mt_random_double(&gs->mt_state);
-}
-
-
-static int roll_d6(GameState *gs, const int num_dice) {
-    int result = 0;
-    for (int i = 0; i < num_dice; ++i) {
-        result += rnd_range(gs, 1, 7);
-    }
-
-    return result;
-}
-
-static CharStats random_hero_stats(GameState *gs) {
-    CharStats stats;
-    stats.null_stat = 0;
-    stats.strength = roll_d6(gs, 3);
-    stats.charisma = roll_d6(gs, 3);
-    stats.dexterity = roll_d6(gs, 3);
-    stats.intelligence = roll_d6(gs, 3);
-    stats.wisdom = roll_d6(gs, 3);
-    stats.constitution = roll_d6(gs, 3);
-    return stats;
-}
-
-static CharStats random_monster_stats(GameState *gs) {
-    CharStats stats;
-    stats.null_stat = 0;
-    stats.strength = rnd_range(gs, 3, 18 + 1);
-    stats.charisma = rnd_range(gs, 3, 18 + 1);
-    stats.dexterity = rnd_range(gs, 3, 18 + 1);
-    stats.intelligence = rnd_range(gs, 3, 18 + 1);
-    stats.wisdom = rnd_range(gs, 3, 18 + 1);
-    stats.constitution = rnd_range(gs, 3, 18 + 1);
-    return stats;
-}
-
-
-static int actor_calc_inventory_value(const GameState *gs);
 static int calc_score(GameState *gs) {
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
                          gs->stats.intelligence + gs->stats.wisdom + gs->stats.constitution;
@@ -117,7 +113,7 @@ static void display_score(GameState *gs) {
     const int num_rooms = room_num_rooms();
 
     vdisplay_line("SCORE: %d", calc_score(gs) );
-    vdisplay_line("turns: %d, cash: %d, monsters fought: %d, killed: %d, rooms: %d",
+    vdisplay_line("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
                   gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
     vdisplay_line("You completed %3.0f%% of the quest.", (double) rooms_visited * 100.0 / (num_rooms - NUM_DEATH_ROOMS - 1));
 }
@@ -136,95 +132,6 @@ static void display_conclusion(const GameState *gs) {
     }
 }
 
-static void display_random_room_text(GameState *gs, const RandomTextArray *rta) {
-    if (GLOBAL_silent_mode) return;
-    for (int i = 0; i < rta->length; ++i) {
-        const RandomText rt = rta->lines[i];
-        const double random = mt_random_double(&gs->mt_state); // random double in [0,1)
-        if (random < rt.chance_percent) {
-            display_line(rt.text);
-        } else if (rt.else_text) {
-            display_line(rt.else_text);
-        }
-    }
-}
-
-
-static void display_room_desc(GameState *gs) {
-    if (GLOBAL_silent_mode) return;
-
-    display_line("");
-    if (!gs->has_torch && ROOM_GRAPH[gs->room][RGINDEX_TREASURE] != 1) {
-        display_line("It is too dark to see anything.\n");
-    } else {
-        const Room *r = room_find_room(gs->room);
-        if (r->preamble) {
-            display_random_room_text(gs, r->preamble);
-        }
-
-        display_paginated(r->desc, 80);
-
-        if (r->epilog) {
-            display_random_room_text(gs, r->epilog);
-        }
-    }
-}
-
-static void display_room_monster(GameState *gs) {
-    if (GLOBAL_silent_mode) return;
-
-    const monster_id id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    if (id == 0) {
-        return;
-    }
-    display_line("\nLOOK OUT!");
-    display("There is a ");
-    display(monsters_name_for_id( id));
-    display_line(" here!");
-}
-
-static void display_room_treasure(const GameState *gs) {
-    if (GLOBAL_silent_mode) return;
-
-    const Room *room = room_find_room(gs->room);
-    if (room_count_of_objects(room) > 0) {
-        display("You can see\n");
-    } else {
-        return;
-    }
-
-    for (int i = 0; i < 10; ++i) {
-        if (room->objects[i]) {
-            // vdisplay_line("(id=%d) %s\n", room->objects[i], obj_name_for_object_id(room->objects[i]));
-            display_line(obj_name_for_id(room->objects[i]));
-        }
-    }
-}
-
-static void display_room_content(GameState *gs) {
-    if (GLOBAL_silent_mode) return;
-    display_room_treasure(gs);
-    display_room_monster(gs);
-}
-
-static void display_char_attributes(const CharStats stats) {
-    if (GLOBAL_silent_mode) return;
-    vdisplay_line("Strength:  %2d  Charisma:     %2d\n",
-        stats.strength, stats.charisma);
-
-    vdisplay_line("Dexterity: %2d  Intelligence: %2d\n",
-        stats.dexterity, stats.intelligence );
-
-    vdisplay_line( "Wisdom:    %2d  Constitution: %2d\n",
-        stats.wisdom, stats.constitution);
-}
-
-
-// clear the monster in the current room and its entry in the ROOMS array
-static void clear_monster(const GameState *gs) {
-    ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
-    room_clear_monster(gs->room);
-}
 
 // Returns true if the user can move from the current room via the direction
 bool check_can_move(GameState *gs, int const direction, const bool verbose) {
@@ -505,109 +412,6 @@ static int actor_object_id_for_partial_name(const GameState *gs, char const item
     }
     return OBJ_NOT_FOUND;
 }
-
-
-
-static int actor_count_of_objects(const GameState *gs) {
-    int count = 0;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (gs->items[i]) ++count;
-    }
-    return count;
-}
-
-// return true if the user is carrying this item
-static bool actor_has_item_named(const GameState *gs, char const *item_name) {
-    if (!item_name) return false;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        const object_id id = gs->items[i];
-        if ( id ) {
-            const Object *o = obj_find_object(id);
-            if ( o && strcmp(o->name, item_name) == 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-// return true if the user is carrying this item
-static bool actor_has_item(const GameState *gs, const object_id id) {
-    if (id < 1 || id >= obj_num_objects()) {
-        return false;
-    }
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
-        if (gs->items[bag_index] == id) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// return true if carrying any items
-
-static bool actor_has_any_items(const GameState *gs) {
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
-        if ( gs->items[bag_index] != 0 ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static int actor_calc_inventory_value(const GameState *gs) {
-    int cash = 0;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (gs->items[i] != 0) {
-            const Object *o = obj_find_object(gs->items[i]);
-            cash += o->value;
-        }
-    }
-    return cash;
-}
-
-static void actor_display_inventory(const GameState *gs) {
-    if (GLOBAL_silent_mode) return;
-
-    bool has_items = false;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (gs->items[i] != 0) {
-            has_items = true;
-            break;
-        }
-    }
-
-    if (!has_items) {
-        display_line("You are not carrying anything.");
-        return;
-    }
-
-    display_line("You are carrying:");
-    int item_count = 0;
-    int cash = 0;
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
-        object_id id = gs->items[bag_index];
-        if (id) {
-            const Object *o = obj_find_object(id);
-            vdisplay("%d. %s  ", bag_index + 1, o->name);
-            item_count++;
-            cash += o->value;
-            if (!(item_count % 3)) {
-                display_line(""); // display 3 items per line
-            }
-        }
-    }
-
-    if (item_count % 3) {
-        display_line("");
-    }
-
-    if (cash > 0) {
-        display("Total value - $");
-        printf("%d\n", cash);
-    }
-}
-
 
 
 
@@ -1193,7 +997,8 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     vdisplay_line("The %s's danger level is %d", monster_name, ferocity_factor);
 
     // see what weapons the user has. Object ids 1 (axe) to 7 (falchion)
-    int T[MAX_ITEMS] = {};
+    int num_items = MAX_ITEMS;
+    int T[num_items] = {};
     for (int j = 0; j < MAX_ITEMS; ++j) {
         T[j] = 0;
         switch (gs->items[j]) {
@@ -1359,11 +1164,12 @@ bool check_game_over(GameState *gs) {
 }
 
 // return true if stats are too low to continue (end game) otherwise return false.
-bool adjust_stats(GameState *gs) {
+static bool adjust_stats(GameState *gs) {
     // we just lose strength points randomly here for some reason.
     if (rnd_d(gs) < .16) --gs->stats.strength;
 
     // clamp stats to min 0
+    actor_clamp_stats(gs, 0, INT_MAX);
     for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
         if (gs->stats.as_array[i] == 0) {
             gs->stats.as_array[i] = 0;
@@ -1419,21 +1225,6 @@ void do_room_actions(GameState *gs) {
 }
 
 
-bool str_in_array(char const *str, int len, char const *array[static len]) {
-    size_t str_len = strlen(str);
-    char upper[str_len + 1] = {};
-    for (int i = 0; i < str_len; ++i) {
-        upper[i] = (char) toupper(str[i]);
-    }
-    upper[str_len] = '\0';
-    for (int i = 0; i < len; ++i) {
-        if (strcmp(upper, array[i]) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
     constexpr size_t LINE_BUFFER_SIZE = 1024;
     ParsedCommand pc = {};
@@ -1471,8 +1262,8 @@ static bool main_game_loop(GameState *gs) {
     const Room *current_room = room_find_room(room_id);
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
-        if (DEBUG) {
-            set_char_sleep(DEBUG_VISITED_SLEEP);
+        if ( GLOBALS.debug ) {
+            set_char_sleep( GLOBALS.debug_visited_sleep );
         } else {
             set_char_sleep(1'000); // 1ms
         }
@@ -1611,16 +1402,6 @@ static bool main_game_loop(GameState *gs) {
 
 
 
-int sum_character_stats(const CharStats *s) {
-    int total = 0;
-    for (int i = 1; i < STAT_COUNT; ++i) {
-        total += s->as_array[i];
-    }
-    return total;
-}
-
-
-
 //// ------------------------------------------------------------
 ////
 ////    INITIALIZE
@@ -1747,12 +1528,6 @@ void reset(GameState *gs, const uint32_t seed) {
     // update_perception(gs);
 }
 
-RandomTextArray * create_rta(int length) {
-    const size_t mem_size = sizeof(RandomTextArray) + sizeof(RandomText) * length;
-    RandomTextArray * result = calloc(1, mem_size);
-    result->length = length;
-    return result;
-}
 
 static void init_rooms(void) {
     // random text for rooms 4
@@ -1877,34 +1652,21 @@ static void initialize() {
     init_rooms();
 }
 
-static CharBuffer *get_player_name() {
-    cls();
-    CharBuffer *cb = get_char_buffer("What is your name, explorer? ");
-    display("Hello, Explorer ");
-    display(cb->buffer);
-    display_line(".");
-    display_line("Type '[H]elp' for a list of commands.");
-    return cb;
-}
-
-constexpr int DEBUG_RAND_SEED = 67;
-
 
 
 int main_chateau_gaillard(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
-    set_silent_mode(false);
+    set_silent_mode(GLOBALS.silent_mode);
 
-    if (DEBUG) {
-        set_char_sleep(DEBUG_NORMAL_SLEEP);
+    if (GLOBALS.debug) {
+        set_char_sleep(GLOBALS.debug_normal_sleep);
     } else {
-        set_char_sleep(10'000);
+        set_char_sleep(GLOBALS.char_sleep_duration);
     }
 
-
     const CharBuffer *player_name = get_player_name();
-
     GameState gs = {.player_name = player_name};
+
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
     display_line("Your attributes are:");
@@ -1924,9 +1686,7 @@ int main_chateau_gaillard(void) {
     display_conclusion(&gs);
     display_score(&gs);
     cleanup(&gs);
-
     display_line("");
-
     return EXIT_SUCCESS;
 }
 

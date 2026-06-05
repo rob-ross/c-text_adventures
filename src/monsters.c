@@ -67,6 +67,14 @@ static Monster * pvt_monsters_find_monster(const monster_id id) {
 // the non-pvt version is intended for outside API use and should be const qualified. But for now, it's not because
 // many methods are mutating the monsters. As we implement more service methods, we can eventually add const here
 Monster * monsters_find_monster(const monster_id id) {
+    if (id < 0 || id > pvt_monster_names->size - 1 ) {
+        // Oh, I miss you Java! This would be a good place to throw an exception.
+        // todo (rob) this would be a good place for returning a ResultError struct,
+        // containing an error code (0 for no error) and the result of the function if no error
+        fprintf(stderr, "constraint violated: 0 < monster_id < %zd, monster_id = %d\n", pvt_monster_names->size, id);
+        return nullptr;
+    }
+
     return &pvt_monsters[id];
 }
 
@@ -110,6 +118,8 @@ const char * monsters_name_for_id(const monster_id id) {
 
     return pvt_monster_names->array[id].s;
 }
+
+
 
 
 

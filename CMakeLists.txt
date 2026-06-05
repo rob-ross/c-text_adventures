@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD 23)
 function(add_adventure_executable target_name main_source macro_name)
     add_executable(${target_name}
             ${main_source}
+            src/adventure_shared.c
             src/mersenne_twister.c
             src/common/console_utils.c
             src/parser.c

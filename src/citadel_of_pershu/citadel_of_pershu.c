@@ -26,11 +26,70 @@ clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werr
 
 */
 
-
 #include "citadel_of_pershu.h"
 
+int ROOM_GRAPH[][RGINDEX_COUNT] = {
+    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
+
+    {  1,  4,  1,  8,  0,  0,  0,  0 },  //  ROOM 1
+    {  0,  5,  3,  0,  0,  0,  0,  0 },  //  ROOM 2
+    {  3,  7,  3,  2,  0,  0,  0,  0 },  //  ROOM 3
+    {  1,  0,  5,  0,  0,  0,  2,  0 },  //  ROOM 4
+    {  2,  0,  0,  4,  0,  0,  0,  0 },  //  ROOM 5
+    {  0,  0,  7,  0,  0,  0,  1,  0 },  //  ROOM 6, ENTRANCE
+    {  3, 14, 15,  6,  0,  0,  0,  0 },  //  ROOM 7
+    {  1,  8,  8,  8,  0,  0,  0,  0 },  //  ROOM 8
+    { 10, 11,  0,  0,  0,  0,  0,  0 },  //  ROOM 9
+    {  0,  0, 11,  9,  0,  0,  0,  0 },  //  ROOM 10
+    {  9, 13, 12, 10,  0,  0,  0,  0 },  //  ROOM 11
+    {  0,  0,  0, 11,  0,  0,  0,  0 },  //  ROOM 12
+    { 11, 16,  0, 44,  0,  0,  0,  0 },  //  ROOM 13
+    {  7,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 14
+    {  7, 45,  0, 12,  0,  0,  0,  0 },  //  ROOM 15
+    {  0, 19,  0, 17,  0, 37,  0,  0 },  //  ROOM 16
+    {  0,  0, 16,  0,  0,  0,  0,  0 },  //  ROOM 17
+    {  0, 30,  0,  0,  0, 34,  0,  0 },  //  ROOM 18
+    { 16, 28,  0,  0,  0, 43,  0,  0 },  //  ROOM 19
+    {  0, 31, 22,  0,  0,  0,  0,  0 },  //  ROOM 20
+    {  0, 23,  0, 45,  0,  0,  3,  0 },  //  ROOM 21
+    {  0, 24,  0, 20,  0,  0,  0,  0 },  //  ROOM 22
+    { 21, 25,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
+    { 22,  0, 25,  0,  0,  0,  0,  0 },  //  ROOM 24
+    { 23, 27, 30, 24,  0,  0,  0,  0 },  //  ROOM 25
+    {  0, 29, 27,  0,  0,  0,  0,  0 },  //  ROOM 26
+    { 25,  0,  0, 26,  0,  0,  0,  0 },  //  ROOM 27
+    { 19, 28, 28, 28,  0, 47,  0,  0 },  //  ROOM 28
+    { 26, 29, 29, 29,  0,  0,  0,  0 },  //  ROOM 29
+    { 18,  0,  0, 25,  0,  0,  0,  0 },  //  ROOM 30
+    { 20,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 31, END ROOM
+    {  0,  0, 34,  0,  0, 47,  0,  0 },  //  ROOM 32
+    { 34, 36,  0, 35,  0,  0,  0,  0 },  //  ROOM 33
+    { 34, 33, 34, 32, 18,  0,  0,  0 },  //  ROOM 34
+    { 33, 38, 36,  0,  0,  0,  0,  0 },  //  ROOM 35
+    { 33, 39, 46, 35,  0,  0,  0,  0 },  //  ROOM 36
+    {  0, 40,  0,  0, 16,  0,  0,  0 },  //  ROOM 37
+    { 35,  0,  0,  0,  0, 41,  0,  0 },  //  ROOM 38
+    { 36, 39, 40, 39,  0,  0,  0,  0 },  //  ROOM 39
+    { 37,  0,  0, 39,  0,  0,  0,  0 },  //  ROOM 40
+    {  0,  0, 42,  0, 38,  0,  0,  0 },  //  ROOM 41
+    { 42, 43, 42, 41,  0, 47,  0,  0 },  //  ROOM 42
+    {  0,  0, 42,  0, 19,  0,  0,  0 },  //  ROOM 43
+
+        // Death rooms
+    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY DROWNING
+    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY BURNING
+    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY FREEZING
+    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  BOTTOMLESS PIT
+
+};
+
 constexpr int DEBUG_RAND_SEED = 67;
-struct GlobalState GLOBALS = {.player_name = nullptr, .char_sleep_duration = _15ms };
+struct GlobalState GLOBALS = {
+    .player_name = nullptr, .silent_mode = false, .char_sleep_duration = _10ms,
+    .debug_normal_sleep = 0, .debug_visited_sleep = 0, .debug = true,
+};
+
+const int MAX_ITEMS = 9; // max number of items that can be carried
 
 
 // --------------------------------------------------------------
@@ -41,112 +100,12 @@ static int calc_score(const GameState * gs) ;
 bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3);
 
 
-
-void room_graph_entry_repr(room_id id) {
-    printf("ROOM_GRAPH[%d][%d]{ ", id, RGINDEX_COUNT);
-    for (int i = 0; i < RGINDEX_COUNT; ++i) {
-        const char *label = room_rgindex_label_short(i);
-        printf("%.1s:%d, ", label, ROOM_GRAPH[id][i] );
-    }
-    printf("}\n");
-}
-
-//// ------------------------------------------------------------
-////
-///     RANDOM
-////    PRNG - Mersenne Twister
-////
-//// ------------------------------------------------------------
-
-// return random int in range [min_inclusive, max_exclusive)
-static int rnd_range(GameState * gs, int min_inclusive, int max_exclusive) {
-    return (int)mt_rand_range(&gs->mt_state, min_inclusive, max_exclusive);
-}
-
-// return random double in range [0,1)
-static double rnd_d(GameState * gs) {
-    return mt_random_double(&gs->mt_state);
-}
-
-
-static int roll_d6(GameState * gs, const int num_dice) {
-    int result = 0;
-    for (int i = 0; i < num_dice; ++i ) {
-        result += rnd_range(gs, 1, 7);
-    }
-
-    return result;
-}
-
-static CharStats random_hero_stats(GameState * gs) {
-    CharStats stats;
-    stats.null_stat       = 0;
-    stats.strength        = roll_d6(gs,3);
-    stats.charisma        = roll_d6(gs,3);
-    stats.dexterity       = roll_d6(gs,3);
-    stats.intelligence    = roll_d6(gs,3);
-    stats.wisdom          = roll_d6(gs,3);
-    stats.constitution    = roll_d6(gs,3);
-    return stats;
-}
-
-static CharStats random_monster_stats(GameState * gs) {
-    CharStats stats;
-    stats.null_stat       = 0;
-    stats.strength        = 3  * rnd_range(gs, 0, 6) + 1;
-    stats.charisma        = 3  * rnd_range(gs, 0, 6) + 1;
-    stats.dexterity       = 3  * rnd_range(gs, 0, 6) + 1;
-    stats.intelligence    = 3  * rnd_range(gs, 0, 6) + 1;
-    stats.wisdom          = 3  * rnd_range(gs, 0, 6) + 1;
-    stats.constitution    = 3  * rnd_range(gs, 0, 6) + 1;
-    return stats;
-}
-
-
-
 //// ------------------------------------------------------------
 ////
 ////    DISPLAY FUNCTIONS
 ////
 //// ------------------------------------------------------------
 
-static void display_char_attributes(const CharStats stats) {
-    if (GLOBALS.silent_mode) return;
-    vdisplay_line("Strength:  %2d  Charisma:     %2d",
-        stats.strength, stats.charisma);
-
-    vdisplay_line("Dexterity: %2d  Intelligence: %2d",
-        stats.dexterity, stats.intelligence );
-
-    vdisplay_line( "Wisdom:    %2d  Constitution: %2d",
-        stats.wisdom, stats.constitution);
-}
-
-// return true if carrying any items
-static bool actor_has_any_items(const GameState * gs) {
-    for (int bag_index = 0; bag_index < ITEM_COUNT; ++bag_index ) {
-        if ( gs->items[bag_index] != 0) {
-            // printf("actor_has_any_items: i=%d, item_id=%d\n",bag_index, gs->items[bag_index]);
-            return true;
-        }
-    }
-    return false;
-}
-
-static void actor_display_inventory(const GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-    if (!actor_has_any_items(gs)) {
-        display_line("You are carrying nothing.");
-        return;
-    }
-
-    display_line("You are carrying:");
-    for (int bag_index = 0; bag_index < ITEM_COUNT; ++bag_index ) {
-        if (gs->items[bag_index]) {
-            vdisplay(" %s\n", obj_name_for_id(gs->items[bag_index]));
-        }
-    }
-}
 
 
 static void display_status(const GameState * gs) {
@@ -159,88 +118,6 @@ static void display_inventory(const GameState * gs) {
     actor_display_inventory(gs);
 }
 
-static void display_random_room_text(GameState * gs, const RandomTextArray *rta) {
-    if (GLOBALS.silent_mode ) return;
-    for (int i=0; i< rta->length; ++i) {
-        const RandomText rt = rta->lines[i];
-        const double random = mt_random_double(&gs->mt_state); // random double in [0,1)
-        if (random < rt.chance_percent) {
-            display_line(rt.text);
-        } else if (rt.else_text) {
-            display_line(rt.else_text);
-        }
-    }
-}
-
-static void display_room_desc(GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    if (!gs->has_torch && ROOM_GRAPH[gs->room][RGINDEX_TREASURE] != 1 ) {
-        display_line("IT IS TOO DARK TO SEE ANYTHING!\n");
-    } else {
-        const Room *r = room_find_room(gs->room);
-        display_line(r->name);
-        if (r->preamble) {
-            display_random_room_text(gs, r->preamble);
-        }
-
-        display_paginated(r->desc, 80);
-
-        if (r->epilog) {
-            display_random_room_text(gs, r->epilog);
-        }
-    }
-}
-
-static void display_room_monster(GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    const int monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    if ( monster_index == 0 ) {
-        return;
-    }
-    display_line("");
-    if (gs->has_torch ) {
-        if (rnd_d(gs) < .5) {
-            display("You come face to face with a ");
-        } else {
-            display("The room contains a ");
-        }
-        const Room *room =  room_find_room(gs->room);
-        display(monsters_name_for_id(room->monster));
-        display_line("");
-    } else {
-        display_line("YOU FEEL A DANGEROUS PRESENCE!");
-    }
-}
-
-static void display_room_treasure(const GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    const int treasure_index = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    if ( treasure_index == 0 || (!gs->has_torch && treasure_index != ITEM_TORCH )) {
-        return;
-    }
-    const Room *room = room_find_room(gs->room);
-
-    if (room_count_of_objects(room) == 0) return;
-
-    display("\nYou can see ");
-    for (int i = 0; i < 10; ++i) {
-        if (room->objects[i]) {
-            const Object *o = obj_find_object(room->objects[i]);
-            if ( o->value == 0 ) display_line(o->name);
-            else vdisplay_line( "%s worth $%d", o->name, o->value);
-        }
-    }
-}
-
-static void display_room_content(GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    display_room_treasure(gs);
-    display_room_monster(gs);
-}
 
 
 static void display_conclusion(const GameState * gs) {
@@ -294,48 +171,6 @@ void display_globals(void) {
     printf("\nplayer_name=%s, char_sleep_duration=%d, silent_mode=%d\n", GLOBALS.player_name, GLOBALS.char_sleep_duration, GLOBALS.silent_mode);
 }
 
-void display_game_state(const GameState *gs) {
-    printf("\n(GameState){ player_name=%s, room=%d, turns=%d, cash=%d, killed=%d, fought=%d, magic=%d, "
-           "has_torch=%d, is_dead=%d, completed=%d, must_fight=%d }\n",
-        gs->player_name->buffer, gs->room,  gs->turns, gs->cash, gs->monsters_killed,gs->monsters_fought, gs->magic,
-        gs->has_torch, gs->is_dead, gs->completed, gs->must_fight);
-    struct ObservationSpace os = gs->perception;
-    printf("(ObservationSpace){ .monster_is_visible=%d, .treasure_is_visible=%d, .must_fight=%d, .current_monster.id=%d, .current_treasure.id=%d }\n",
-        os.monster_is_visible, os.treasure_is_visible, os.must_fight, os.current_monster.id, os.current_treasure.id);
-    room_repr(room_find_room(gs->room));
-    room_graph_entry_repr(gs->room);
-    display_char_attributes(gs->stats);
-    actor_display_inventory(gs);
-    printf("\n");
-    printf("Rooms visited:\n");
-
-    const int num_rooms = room_num_rooms();
-    for (int room=0; room < num_rooms; ++room ) {
-        if (room_find_room(room)->is_visited_bit) {
-            printf("%d, ", room);
-
-        }
-    }
-    printf("\n");
-}
-
-
-//// ------------------------------------------------------------
-////
-////    INPUT
-////
-//// ------------------------------------------------------------
-
-
-static CharBuffer *get_player_name() {
-    cls();
-    CharBuffer *cb = get_char_buffer("What is your name, explorer? ");
-    display("Hello, Explorer ");
-    display(cb->buffer);
-    display_line(".");
-    display_line("Type '[H]elp' for a list of commands.");
-    return cb;
-}
 
 
 
@@ -344,15 +179,6 @@ static CharBuffer *get_player_name() {
 ////    INITIALIZE
 ////
 //// ------------------------------------------------------------
-
-
-
-RandomTextArray * create_rta(int length) {
-    const size_t mem_size = sizeof(RandomTextArray) + sizeof(RandomText) * length;
-    RandomTextArray * result = calloc(1, mem_size);
-    result->length = length;
-    return result;
-}
 
 
 // one time inits of ROOM or ROOM_GRAPH data
@@ -381,21 +207,6 @@ static void  init_rooms() {
     room_set_epilog(39, rta);
 }
 
-static Object generate_treasure( GameState * gs, int treasure_index) {
-    char const * name = obj_name_for_id(treasure_index);
-    return (Object){
-        .name = name,
-        .id = treasure_index,
-        .value = rnd_range(gs, 0, 100 ) + 56};
-}
-
-int sum_character_stats(const CharStats *s) {
-    int total = 0;
-    for (int i = 1; i < STAT_COUNT; ++i) {
-        total += s->as_array[i];
-    }
-    return total;
-}
 
 // called at the start of each new game
 void reset(GameState * gs, const uint32_t seed) {
@@ -610,16 +421,6 @@ static void cleanup(GameState * gs) {
 //// ------------------------------------------------------------
 
 
-static int count_items_carried(const GameState * gs) {
-    int result = 0;
-    for (int bag_index = 1; bag_index < ITEM_COUNT; ++bag_index ) {
-        if (! gs->items[bag_index] ) {
-            result++;
-        }
-    }
-    return result;
-}
-
 
 static int calc_score(const GameState * gs) {
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
@@ -690,11 +491,6 @@ static bool pick_up_treasure(GameState * gs) {
     return true;
 }
 
-// clear the monster in the current room and its entry in the ROOM_GRAPH array
-static void clear_monster(const GameState * gs) {
-    room_clear_monster(gs->room);
-    ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
-}
 
 /**
  * Shared Validation: Can an item be dropped here?
@@ -714,7 +510,7 @@ static bool can_drop_item(const GameState *gs, int item_index, bool verbose) {
         return false;
     }
     if (item_index == 0) return true; // Cancel/No-op is valid choice
-    if (item_index < 0 || item_index >= ITEM_COUNT || !gs->items[item_index]) {
+    if (item_index < 0 || item_index >= MAX_ITEMS || !gs->items[item_index]) {
         if (verbose) display_line("You are not carrying that item->");
         return false;
     }
@@ -1237,9 +1033,6 @@ bool check_game_over(GameState *gs) {
     return false;
 }
 
-bool DEBUG = true;
-uint32_t DEBUG_NORMAL_SLEEP = 0;
-uint32_t DEBUG_VISITED_SLEEP = 0;
 
 static bool main_game_loop(GameState * gs) {
     uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
@@ -1248,8 +1041,8 @@ static bool main_game_loop(GameState * gs) {
 
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
-        if (DEBUG) {
-            set_char_sleep(DEBUG_VISITED_SLEEP);
+        if ( GLOBALS.debug ) {
+            set_char_sleep( GLOBALS.debug_visited_sleep );
         } else {
             set_char_sleep(1'000); // 1ms
         }
@@ -1341,12 +1134,12 @@ static bool main_game_loop(GameState * gs) {
 
 int main_citadel_of_pershu(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
-    set_silent_mode(false);
+    set_silent_mode(GLOBALS.silent_mode);
 
-    if (DEBUG) {
-        set_char_sleep(DEBUG_NORMAL_SLEEP);
+    if (GLOBALS.debug) {
+        set_char_sleep(GLOBALS.debug_normal_sleep);
     } else {
-        set_char_sleep(10'000);
+        set_char_sleep(GLOBALS.char_sleep_duration);
     }
 
     const CharBuffer *player_name = get_player_name();
@@ -1371,7 +1164,7 @@ int main_citadel_of_pershu(void) {
     display_conclusion(&gs);
     display_score(&gs);
     cleanup(&gs);
-
+    display_line("");
     return EXIT_SUCCESS;
 }
 

@@ -22,12 +22,13 @@
 
 #include <sys/_types/_useconds_t.h>
 
+#include "../adventure_shared.h"
+#include "../directions.h"
 #include "../common/console_utils.h"
 #include "../mersenne_twister.h"
 #include "../rooms.h"
 #include "../monsters.h"
 #include "../objects.h"
-#include "../directions.h"
 
 constexpr int NUM_DEATH_ROOMS   =  4;
 constexpr int NUM_TREASURES     = 19;
@@ -50,121 +51,62 @@ char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
 
 
 
-static int ROOM_GRAPH[][RGINDEX_COUNT] = {
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
-
-    {  1,  4,  1,  8,  0,  0,  0,  0 },  //  ROOM 1
-    {  0,  5,  3,  0,  0,  0,  0,  0 },  //  ROOM 2
-    {  3,  7,  3,  2,  0,  0,  0,  0 },  //  ROOM 3
-    {  1,  0,  5,  0,  0,  0,  2,  0 },  //  ROOM 4
-    {  2,  0,  0,  4,  0,  0,  0,  0 },  //  ROOM 5
-    {  0,  0,  7,  0,  0,  0,  1,  0 },  //  ROOM 6, ENTRANCE
-    {  3, 14, 15,  6,  0,  0,  0,  0 },  //  ROOM 7
-    {  1,  8,  8,  8,  0,  0,  0,  0 },  //  ROOM 8
-    { 10, 11,  0,  0,  0,  0,  0,  0 },  //  ROOM 9
-    {  0,  0, 11,  9,  0,  0,  0,  0 },  //  ROOM 10
-    {  9, 13, 12, 10,  0,  0,  0,  0 },  //  ROOM 11
-    {  0,  0,  0, 11,  0,  0,  0,  0 },  //  ROOM 12
-    { 11, 16,  0, 44,  0,  0,  0,  0 },  //  ROOM 13
-    {  7,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 14
-    {  7, 45,  0, 12,  0,  0,  0,  0 },  //  ROOM 15
-    {  0, 19,  0, 17,  0, 37,  0,  0 },  //  ROOM 16
-    {  0,  0, 16,  0,  0,  0,  0,  0 },  //  ROOM 17
-    {  0, 30,  0,  0,  0, 34,  0,  0 },  //  ROOM 18
-    { 16, 28,  0,  0,  0, 43,  0,  0 },  //  ROOM 19
-    {  0, 31, 22,  0,  0,  0,  0,  0 },  //  ROOM 20
-    {  0, 23,  0, 45,  0,  0,  3,  0 },  //  ROOM 21
-    {  0, 24,  0, 20,  0,  0,  0,  0 },  //  ROOM 22
-    { 21, 25,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
-    { 22,  0, 25,  0,  0,  0,  0,  0 },  //  ROOM 24
-    { 23, 27, 30, 24,  0,  0,  0,  0 },  //  ROOM 25
-    {  0, 29, 27,  0,  0,  0,  0,  0 },  //  ROOM 26
-    { 25,  0,  0, 26,  0,  0,  0,  0 },  //  ROOM 27
-    { 19, 28, 28, 28,  0, 47,  0,  0 },  //  ROOM 28
-    { 26, 29, 29, 29,  0,  0,  0,  0 },  //  ROOM 29
-    { 18,  0,  0, 25,  0,  0,  0,  0 },  //  ROOM 30
-    { 20,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 31, END ROOM
-    {  0,  0, 34,  0,  0, 47,  0,  0 },  //  ROOM 32
-    { 34, 36,  0, 35,  0,  0,  0,  0 },  //  ROOM 33
-    { 34, 33, 34, 32, 18,  0,  0,  0 },  //  ROOM 34
-    { 33, 38, 36,  0,  0,  0,  0,  0 },  //  ROOM 35
-    { 33, 39, 46, 35,  0,  0,  0,  0 },  //  ROOM 36
-    {  0, 40,  0,  0, 16,  0,  0,  0 },  //  ROOM 37
-    { 35,  0,  0,  0,  0, 41,  0,  0 },  //  ROOM 38
-    { 36, 39, 40, 39,  0,  0,  0,  0 },  //  ROOM 39
-    { 37,  0,  0, 39,  0,  0,  0,  0 },  //  ROOM 40
-    {  0,  0, 42,  0, 38,  0,  0,  0 },  //  ROOM 41
-    { 42, 43, 42, 41,  0, 47,  0,  0 },  //  ROOM 42
-    {  0,  0, 42,  0, 19,  0,  0,  0 },  //  ROOM 43
-
-        // Death rooms
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY DROWNING
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY BURNING
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY FREEZING
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  BOTTOMLESS PIT
-
-};
-
 //// ------------------------------------------------------------
 ////
 ////    GAME STATE
 ////
 //// ------------------------------------------------------------
+//
+// typedef struct GameState {
+//     const CharBuffer * player_name;
+//     uint32_t seed;
+//     // state for Mersenne Twister PRNG
+//     MTState mt_state;
+//
+//     int room;  // current room
+//     room_id room_prev; // room user was in before this one
+//     room_id room_last_turn; // updates every turn, if user in same room as last turn, will be same as `room`
+//
+//     int turns; // 1 point per turn
+//     int cash;
+//
+//     int monsters_killed;  // number aliens/androids destroyed
+//     int monsters_fought;
+//
+//     int magic;  // number of spells
+//
+//     union {
+//         CharStats stats; // Named access: m.stats.strength
+//         union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength & m.as_array
+//     };
+//
+//     bool has_torch;
+//     bool completed; // true if reached final room
+//     bool game_over;
+//     bool is_dead;
+//     bool ended_by_quitting;
+//
+//     bool must_fight; // true if user previously tried to retreat from monster and failed
+//
+//     object_id  items[ITEM_COUNT];  // first 9 items of Treasure have a slot here with the same index
+//
+//     struct ObservationSpace {
+//         // what the player can currently "see" in the environment that is not part of the game state model
+//         bool     monster_is_visible;
+//         bool     treasure_is_visible;
+//         bool     must_fight; // Explicitly tell ML that movement/retreat is blocked
+//         Monster  current_monster;
+//         Object   current_treasure;
+//         uint32_t legal_actions_mask; // Bitmask where each bit corresponds to VALID_COMMANDS
+//     } perception;
+//
+//     double QU;  // end-of-game flag? Quit flag, used in final scoring
+//     int SC;  // score bonus, depending on how game ends.
+//     int BOX; // chest flag?
+//
+// } GameState;
 
-typedef struct GameState {
-    const CharBuffer * player_name;
-    uint32_t seed;
-    // state for Mersenne Twister PRNG
-    MTState mt_state;
 
-    int room;  // current room
-    room_id room_prev; // room user was in before this one
-    room_id room_last_turn; // updates every turn, if user in same room as last turn, will be same as `room`
-
-    int turns; // 1 point per turn
-    int cash;
-
-    int monsters_killed;  // number aliens/androids destroyed
-    int monsters_fought;
-
-    int magic;  // number of spells
-
-    union {
-        CharStats stats; // Named access: m.stats.strength
-        union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength & m.as_array
-    };
-
-    bool has_torch;
-    bool is_dead;
-    bool completed; // true if reached final room
-    bool must_fight; // true if user previously tried to retreat from monster and failed
-
-    int  items[ITEM_COUNT];  // first 9 items of Treasure have a slot here with the same index
-
-    struct ObservationSpace {
-        // what the player can currently "see" in the environment that is not part of the game state model
-        bool     monster_is_visible;
-        bool     treasure_is_visible;
-        bool     must_fight; // Explicitly tell ML that movement/retreat is blocked
-        Monster  current_monster;
-        Object   current_treasure;
-        uint32_t legal_actions_mask; // Bitmask where each bit corresponds to VALID_COMMANDS
-    } perception;
-} GameState;
-
-
-//// ------------------------------------------------------------
-////
-////    GLOBALS
-////
-//// ------------------------------------------------------------
-
-
-struct GlobalState {
-    const char * player_name;
-    bool silent_mode;
-    uint32_t char_sleep_duration;
-};
 /*
 
 // Exit guard data structures for managing dynamic edges, e.g., user must have a particular item in order to

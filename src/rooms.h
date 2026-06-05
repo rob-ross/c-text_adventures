@@ -92,10 +92,9 @@ int room_num_rooms(void);
 int  room_add_object(const Room *room, int object_id);
 
 bool room_clear_monster(room_id id);
-
 bool room_contains_object(const Room *r, object_id id);
-
 int  room_count_of_objects(const Room *r);
+RandomTextArray * create_rta(int length);
 
 const Room * room_find_room(room_id id);
 

@@ -82,6 +82,11 @@ Room * pvt_room_find_room(const room_id id) {
 }
 
 // Returns true if the object in the argument is located in the room, otherwise returns false.
+bool room_clear_monster(room_id id) {
+    pvt_rooms->rooms[id].monster = 0;
+    return true;
+}
+
 bool room_contains_object(const Room *r, const object_id id) {
     for (int i = 0; i < 10; ++i) {
         if ( r->objects[i] == id) {
@@ -91,16 +96,6 @@ bool room_contains_object(const Room *r, const object_id id) {
     return false;
 }
 
-bool room_clear_monster(room_id id) {
-    pvt_rooms->rooms[id].monster = 0;
-    return true;
-}
-
-void room_set_visited_flag(const Room *r) {
-    Room *mutable_room = pvt_room_find_room(r->id);
-    mutable_room->is_visited_bit = true;
-}
-
 int room_count_visited() {
     int count = 0;
     const int num_rooms = (int)pvt_rooms->size;
@@ -108,6 +103,21 @@ int room_count_visited() {
         if ( pvt_rooms->rooms[i].is_visited_bit ) count++;
     }
     return count;
+}
+
+RandomTextArray * create_rta(int length) {
+    const size_t mem_size = sizeof(RandomTextArray) + sizeof(RandomText) * length;
+    RandomTextArray * result = calloc(1, mem_size);
+    if ( !result ) {
+        return nullptr;
+    }
+    result->length = length;
+    return result;
+}
+
+void room_set_visited_flag(const Room *r) {
+    Room *mutable_room = pvt_room_find_room(r->id);
+    mutable_room->is_visited_bit = true;
 }
 
 // Returns ROOM_ERR_OBJECT_NOT_FOUND if object_id is not present in the room.
