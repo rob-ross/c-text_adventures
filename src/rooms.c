@@ -24,6 +24,11 @@ typedef struct RoomStore {
 // like a Class or a prototype for each type of such objects.
 static RoomStore * pvt_rooms = {};
 
+extern const int MAX_ROOM_OBJECTS;
+
+Room * pvt_room_find_room(const room_id id) {
+    return &pvt_rooms->rooms[id];
+}
 
 int room_init(size_t size, Room data[static size]) {
     // we add one extra Object element for the null object element, id = 0.
@@ -65,20 +70,44 @@ void room_destroy() {
     free(saved);
 }
 
-
-
-
-// Returns the number of rooms
-int room_num_rooms(void) {
-    return (int)pvt_rooms->size;
+int room_add_object(const Room *room, const object_id id) {
+    if ( room_contains_object(room, id) ) {
+        printf("room_add_object; object_id: %d is already here.\n", id);
+        return ROOM_ERR_ALREADY_GOT_ONE_YOU_SEE_ITS_VERY_NICE;
+    }
+    if (id < 1 || id > obj_num_objects() - 1 ) return ROOM_ERR_OBJECT_ID_OUT_OF_BOUNDS;
+    const int objects_len = room->objects_len;
+    if ( objects_len == MAX_ROOM_OBJECTS ) return ROOM_ERR_ROOM_FULL;
+    Room *r = ((Room*)room);
+    r->objects[objects_len] = id;
+    r->objects_len++;
+    obj_relocate_object(id, room->id);
+    return ROOM_SUCCESS;
 }
 
-const Room * room_find_room(const room_id id) {
-    return &pvt_rooms->rooms[id];
+
+int room_remove_object(const Room *room, const int object_id) {
+    const int objects_len = room->objects_len;
+    Room *r = (Room*)room;
+    for (int i = 0; i < objects_len; ++i) {
+        if ( r->objects[i] == object_id ) {
+                r->objects[i] = r->objects[objects_len - 1];  // swap
+                r->objects[objects_len - 1] = 0; // pop
+                r->objects_len--;
+                obj_clear_location(object_id);
+                return ROOM_SUCCESS;
+        }
+    }
+    return ROOM_ERR_OBJECT_NOT_FOUND;
 }
 
-Room * pvt_room_find_room(const room_id id) {
-    return &pvt_rooms->rooms[id];
+void room_remove_all_objects(room_id id) {
+    Room *r = pvt_room_find_room(id);
+    const int objects_len = r->objects_len;
+    for (int i = 0; i < objects_len; ++i) {
+        obj_clear_location(r->objects[i]);
+    }
+    memset(r->objects, 0, sizeof(object_id[ROOM_OBJECTS_CAPACITY]));
 }
 
 // Returns true if the object in the argument is located in the room, otherwise returns false.
@@ -88,12 +117,25 @@ bool room_clear_monster(room_id id) {
 }
 
 bool room_contains_object(const Room *r, const object_id id) {
-    for (int i = 0; i < 10; ++i) {
+    const int len = r->objects_len;
+    for (int i = 0; i < len; ++i) {
         if ( r->objects[i] == id) {
             return true;
         }
     }
     return false;
+}
+
+// Returns the number of objects currently in this room
+int room_count_of_objects(const Room *r) {
+    const int len = r->objects_len;
+    int count = 0;
+    for (int i = 0; i < len; ++i) {
+        if ( r->objects[i] != 0) {
+            count++;
+        }
+    }
+    return count;
 }
 
 int room_count_visited() {
@@ -115,28 +157,31 @@ RandomTextArray * create_rta(int length) {
     return result;
 }
 
-void room_set_visited_flag(const Room *r) {
-    Room *mutable_room = pvt_room_find_room(r->id);
-    mutable_room->is_visited_bit = true;
+
+
+const Room * room_find_room(const room_id id) {
+    return &pvt_rooms->rooms[id];
+}
+
+// Returns the object id of the first object in the room, or ROOM_OBJECT_NOT_FOUND if there are no items
+int room_first_object_id(const Room *r) {
+    const int len = r->objects_len;
+    for (int i = 0; i < len; ++i) {
+        if (r->objects[i] != 0 ) {
+            return r->objects[i];
+        }
+    }
+    return ROOM_ERR_OBJECT_NOT_FOUND;
 }
 
 // Returns ROOM_ERR_OBJECT_NOT_FOUND if object_id is not present in the room.
 // Otherwise, returns the array index into the Room's objects[]
 // at which this object is an element.
 int room_index_for_object(const Room *r, const int object_id ) {
-    for (int i = 0; i < 10; ++i) {
+    const int len = r->objects_len;
+    for (int i = 0; i < len; ++i) {
         if ( r->objects[i] == object_id) {
             return i;
-        }
-    }
-    return ROOM_ERR_OBJECT_NOT_FOUND;
-}
-
-// Returns the object id of the first object in the room, or ROOM_OBJECT_NOT_FOUND if there are no items
-int room_first_object_id(const Room *r) {
-    for (int i = 0; i < 10; ++i) {
-        if (r->objects[i] != 0 ) {
-            return r->objects[i];
         }
     }
     return ROOM_ERR_OBJECT_NOT_FOUND;
@@ -145,7 +190,8 @@ int room_first_object_id(const Room *r) {
 // Returns true if no more objects can be placed in this Room,
 // otherwise returns false.
 bool room_is_full(const Room *r ) {
-    for (int i = 0; i < 10; ++i) {
+    const int len = r->objects_len;
+    for (int i = 0; i < len; ++i) {
         if ( r->objects[i] == 0) {
             return false;
         }
@@ -153,71 +199,29 @@ bool room_is_full(const Room *r ) {
     return true;
 }
 
-// Returns the number of objects currently in this room
-int room_count_of_objects(const Room *r) {
-    int count = 0;
-    for (int i = 0; i < 10; ++i) {
+// Returns true if there are no objects in this room
+bool room_is_empty(const Room *r) {
+    const int len = r->objects_len;
+    for (int i = 0; i < len; ++i) {
         if ( r->objects[i] != 0) {
-            count++;
+            return false;
         }
     }
-    return count;
-}
-
-int room_remove_object(const Room *room, const int object_id) {
-    for (int i = 0; i < 10; ++i) {
-        if ( room->objects[i] == object_id ) {
-            Room *r = (void*)room;
-            r->objects[i] = 0;
-            obj_relocate_object(object_id, 0);
-            return ROOM_SUCCESS;
-        }
-    }
-    return ROOM_ERR_OBJECT_NOT_FOUND;
-}
-
-void room_remove_all_objects(room_id id) {
-    Room *r = pvt_room_find_room(id);
-    memset(r->objects, 0, sizeof(object_id[10]));
-}
-
-int room_add_object(const Room *room, const int object_id) {
-    if (room_index_for_object(room, object_id) != ROOM_ERR_OBJECT_NOT_FOUND ) {
-        return ROOM_ERR_ALREADY_GOT_ONE_YOU_SEE_ITS_VERY_NICE;
-    }
-
-    for (int i = 0; i < 10; ++i) {
-        if ( room->objects[i] == 0) {
-            obj_relocate_object(object_id, room->id);
-            Room *r = (void*)room;
-            r->objects[i] = object_id;
-            return ROOM_SUCCESS;
-        }
-    }
-    return ROOM_ERR_ROOM_FULL;
-}
-
-// Takes ownership of the RandomTextArray and frees it in room_destroy().
-bool room_set_epilog(room_id id, RandomTextArray *rta) {
-    pvt_rooms->rooms[id].epilog = rta;
     return true;
 }
 
-// Takes ownership of the RandomTextArray and frees it in room_destroy().
-bool room_set_preamble(room_id id, RandomTextArray *rta) {
-    pvt_rooms->rooms[id].preamble = rta;
-    return true;
+// Returns the number of rooms
+int room_num_rooms(void) {
+    return (int)pvt_rooms->size;
 }
 
-bool room_set_monster(const Room *r, monster_id id) {
-    ((Room *)r)->monster = id;
-    return true;
-}
 
 void room_repr(const Room *r) {
     printf("(Room){ .id=%d, .name='%s', .desc='%.20s...'", r->id, r->name, r->desc);
-    printf("(objects)[10]{ ");
-    for (int i = 0; i < 10; ++i) {
+    const int len = r->objects_len;
+
+    printf("(objects)[%d]{ ", len);
+    for (int i = 0; i < len; ++i) {
         printf("%d, ", r->objects[i]);
     }
     printf("}, ");
@@ -249,7 +253,6 @@ const char * room_rgindex_label(const enum RoomGraphIndex rg_index) {
     }
 }
 
-
 const char * room_rgindex_label_short(const enum RoomGraphIndex rg_index) {
     switch (rg_index) {
         case RGINDEX_NORTH:         return "N";
@@ -264,4 +267,26 @@ const char * room_rgindex_label_short(const enum RoomGraphIndex rg_index) {
         case RGINDEX_UNUSED:        return "0";
         default:                    return "?";
     }
+}
+
+// Takes ownership of the RandomTextArray and frees it in room_destroy().
+bool room_set_epilog(room_id id, RandomTextArray *rta) {
+    pvt_rooms->rooms[id].epilog = rta;
+    return true;
+}
+
+// Takes ownership of the RandomTextArray and frees it in room_destroy().
+bool room_set_preamble(room_id id, RandomTextArray *rta) {
+    pvt_rooms->rooms[id].preamble = rta;
+    return true;
+}
+
+bool room_set_monster(const Room *r, monster_id id) {
+    ((Room *)r)->monster = id;
+    return true;
+}
+
+void room_set_visited_flag(const Room *r) {
+    Room *mutable_room = pvt_room_find_room(r->id);
+    mutable_room->is_visited_bit = true;
 }

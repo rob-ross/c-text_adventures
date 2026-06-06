@@ -94,7 +94,6 @@ struct GlobalState GLOBALS = {
     .debug_mode = true,
 };
 
-const int MAX_ITEMS = 9; // max number of items that can be carried
 
 
 // --------------------------------------------------------------
@@ -120,7 +119,7 @@ static void display_status(const GameState * gs) {
 
 static void display_inventory(const GameState * gs) {
     display_status(gs);
-    actor_display_inventory(gs);
+    actor_display_inventory(gs, false);
 }
 
 
@@ -464,34 +463,52 @@ static bool cmd_move(GameState * gs, char const first_letter) {
     return false;
 }
 
-static bool pick_up_treasure(GameState * gs) {
-    const int treasure_index = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    if ( !gs->has_torch && treasure_index != ITEM_TORCH ) {
-        display_line("It is too dark to see anything.");
+static bool can_take_item(const GameState *gs, const object_id id, const bool verbose) {
+    if ( !gs->has_torch && id != ITEM_TORCH ) {
+        if (verbose) display_line("It is too dark to see anything.");
         return false;
     }
-
-    if (!treasure_index) {
+    if ( id < 1 ) {
         display_line("There is nothing to pick up.");
         return false;
     }
+    // in this game, objects with ids > ITEM_WAND are converted to cash and not 'takeable' by the player.
+    if (id <= ITEM_WAND && actor_count_of_objects(gs) >= MAX_PLAYER_OBJECTS ) {
+        if (verbose) {
+            vdisplay_line("You are already carrying your maximum of %d objects.",
+                    MAX_PLAYER_OBJECTS);
+        }
+        return false;
+    }
+    return true;
+}
 
-    if ( treasure_index == ITEM_TORCH ) {
+static bool action_take(GameState * gs, const object_id id) {
+    if (! can_take_item(gs, id, false )) return false;
+    const Room *room = room_find_room(gs->room);
+    if (id > ITEM_WAND) {
+        // in this game, objects with ids > ITEM_WAND are converted to cash and not
+        // 'takeable' by the player.
+        const Object *o = obj_find_object(id);
+        gs->cash += o->value;
+    } else {
+        if (!actor_add_object(gs, id)) {
+            printf("action_take: actor_add_object failed for obj id=%d", id);
+            return false;
+        }
+    }
+    if ( id == ITEM_TORCH ) {
         gs->has_torch = true;
     }
+    room_transfer_obj_location(room, id, PLAYER_LOCATION );
+    return true;
+}
 
-    const Room *room = room_find_room(gs->room);
-
-    if (treasure_index > ITEM_WAND) {
-        const Object *treasure = obj_find_object(treasure_index);
-        gs->cash += treasure->value;
-    } else {
-        gs->items[treasure_index] = treasure_index;
-    }
-
-    room_remove_object(room, treasure_index);
-    ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
-
+static bool cmd_take(GameState * gs) {
+    const Room *r = room_find_room(gs->room);
+    object_id id = room_first_object_id(r);
+    if ( !can_take_item(gs, id, true )) return false;
+    if ( !action_take(gs, id)) return false;
     display_line("Taken.");
     return true;
 }
@@ -502,71 +519,55 @@ static bool pick_up_treasure(GameState * gs) {
  * Returns true if valid, false otherwise.
  * Prints error messages only if verbose is true.
  */
-static bool can_drop_item(const GameState *gs, int item_index, bool verbose) {
-    if (!actor_has_any_items(gs)) {
-        if (verbose) display_line("You have nothing to get rid of.");
+static bool can_drop_item(const GameState *gs, const object_id id, const bool verbose) {
+    if (!id || !actor_has_item(gs, id)) {
+        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
         return false;
     }
-    object_id id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    if (id) {
+    const Room *r = room_find_room(gs->room);
+    if ( room_is_full(r)) {
+        if (verbose) {
+            display_line("The room is full.");
+        }
+        return false;
+    }
+
+    if (room_contains_object(r, id)) {
         if (verbose) {
             vdisplay_line( "There is already a %s here.",  obj_name_for_id(id));
         }
         return false;
     }
-    if (item_index == 0) return true; // Cancel/No-op is valid choice
-    if (item_index < 0 || item_index >= MAX_ITEMS || !gs->items[item_index]) {
-        if (verbose) display_line("You are not carrying that item->");
-        return false;
-    }
+
     return true;
 }
 
 // Entry point for human user path. This displays some information, prompts user for some choices, and passes those to
 // drop_action(), the ML entry point for the drop action.
-static bool get_rid_of(GameState * gs) {
-    // Pre-check: If the room is already full, don't even start the loop
-    if (!can_drop_item(gs, 0, true)) return false;
+static bool cmd_drop(GameState * gs) {
+    int item_index = 0;
 
-    int item = 0;
-    for (;;) {
-        actor_display_inventory(gs);
-        item = get_int("Enter number of object to drop (0 for none): ", 0, 9);
-        if ( !item ) {
-            return true;  // exit without dropping anything
-        }
+    actor_display_inventory(gs, true);
+    item_index = get_int("Enter the number of the object to drop (0 for none): ", 0, gs->items_len + 1);
+    if ( item_index == 0 )   return true;  // exit without dropping anything
 
-        if (gs->items[item]) {
-            break;
-        }
-        display_line("You are not carrying that item->");
-    }
-    return perform_action(gs, 'G', item, 0, 0);
+    object_id id = gs->items[item_index - 1];
+
+    if (!can_drop_item(gs, id, true)) return false;
+    return perform_action(gs, 'G', id, 0, 0);
 }
 
 
 
 /** Logic Entry Point: ML and Human both end up here */
-bool action_drop(GameState *gs, int item_index) {
-    // Perform the check (protects against ML typos)
-    if (!can_drop_item(gs, item_index, !GLOBALS.silent_mode)) {
-        return false;
-    }
+static bool action_drop(GameState *gs, object_id id) {
+    if (!can_drop_item(gs, id, false)) return false;
+    if (!actor_remove_object(gs, id)) return false;
+
+    if (id == ITEM_TORCH)  gs->has_torch = false;
 
     const Room *r = room_find_room(gs->room);
-    if (item_index == 0) return true; // successful no-op
-    object_id id = gs->items[item_index];
-    room_add_object( r, id );
-
-    gs->items[item_index] = 0;
-    ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = item_index;
-
-    if (item_index == ITEM_TORCH) {
-        gs->has_torch = false;
-    }
-
-    return true;
-
+    return room_add_object( r, id ) == ROOM_SUCCESS;
 }
 
 //todo (rob) make `strategy` an enum
@@ -966,7 +967,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
     bool result = false;
     switch (cmd) {
         case 'P':
-            result = pick_up_treasure(gs);
+            result = cmd_take(gs);
             break;
         case 'F':
             result = action_fight(gs, arg1, (enum StatIndex)arg2, (enum StatIndex)arg3);
@@ -1110,7 +1111,7 @@ static bool main_game_loop(GameState * gs) {
         //specialized code to prompt user and gather options to pass to perform_action()
         cmd_fight(gs);
     } else if (cmd == 'G'){
-        get_rid_of(gs);
+        cmd_drop(gs);
     } else {
         // Now the human call and the ML call use the exact same entry point
         perform_action(gs, cmd, 0,0, 0);

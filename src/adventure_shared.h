@@ -36,9 +36,18 @@ struct GlobalState {
     bool         debug_mode;
 };
 
-extern int ROOM_GRAPH[][RGINDEX_COUNT];
+extern int ROOM_GRAPH[][RGINDEX_COUNT];  // transition graph, room (node) to other rooms via directed edges
 extern struct GlobalState GLOBALS;
-extern const int MAX_ITEMS; // max number of items that can be carried
+extern const int MAX_ROOM_OBJECTS;   // max number of objects that a room can contain.
+extern const int MAX_PLAYER_OBJECTS; // max number of objects that can be carried; number varies by game rules
+
+
+// todo (rob) need to define location ids, player vs room. -1 means "player" but is a kludge
+// in zork, everything had a unique string id, ie, "player", "room-1", "axe", so there was one
+// global namespace for ids.
+constexpr int PLAYER_LOCATION = -1;
+constexpr int MAX_ITEMS_CAPACITY = 10; // size of the items[] array in GameState
+
 
 //// ------------------------------------------------------------
 ////
@@ -77,7 +86,12 @@ typedef struct GameState {
 
     bool must_fight; // true if user previously tried to retreat from monster and failed
 
-    object_id  items[ITEM_COUNT];  // first 9 items of Treasure have a slot here with the same index
+    // items[] is a swap-and-pop list. item_len holds the current list size. Items are added at the end
+    // up to MAX_ITEMS_CAPACITY elements, and item_len is incremented.
+    // when an item is removed from the list, that element index is replaced with the last element of the list
+    // and the item_len is decremented.
+    int        items_len;
+    object_id  items[MAX_ITEMS_CAPACITY];
 
     struct ObservationSpace {
         // what the player can currently "see" in the environment that is not part of the game state model
@@ -102,10 +116,12 @@ typedef struct GameState {
 int  actor_calc_inventory_value(const GameState *gs);
 void actor_clamp_stats(GameState *gs, int min, int max);
 int  actor_count_of_objects(const GameState *gs);
-void actor_display_inventory(const GameState * gs);
+void actor_display_inventory(const GameState * gs, bool show_item_index);
 bool actor_has_any_items(const GameState * gs);
 bool actor_has_item(const GameState *gs, object_id id);
 bool actor_has_item_named(const GameState *gs, char const *item_name);
+bool actor_add_object(GameState *gs, object_id id);
+bool actor_remove_object(GameState *gs, object_id id);
 
 void clear_monster(const GameState *gs);
 
@@ -117,14 +133,17 @@ void display_room_desc(GameState * gs);
 void display_room_monster(GameState * gs);
 void display_room_treasure(const GameState * gs);
 
-int rnd_range(GameState * gs, int min_inclusive, int max_exclusive);
+int    rnd_range(GameState * gs, int min_inclusive, int max_exclusive);
 double rnd_d(GameState * gs);
-int roll_d6(GameState * gs, int num_dice);
+int    roll_d6(GameState * gs, int num_dice);
 CharStats random_hero_stats( GameState * gs );
 CharStats random_monster_stats( GameState * gs );
-Object generate_treasure( GameState * gs, object_id id, int min_value, int max_value);
+Object    generate_treasure( GameState * gs, object_id id, int min_value, int max_value);
 
 void room_graph_entry_repr(room_id id);
+//Removes the object from the current room and changes its location.
+// If transferred to a player, this doesn't add it to the player's inventory. call actor_add_object()
+bool room_transfer_obj_location( const Room *r, object_id id, int location );
 
 int sum_character_stats(const CharStats *s);
 

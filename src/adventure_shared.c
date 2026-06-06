@@ -19,21 +19,14 @@
 
 int actor_calc_inventory_value(const GameState *gs) {
     int cash = 0;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
+    const int items_len = gs->items_len;
+    for (int i = 0; i < items_len; ++i) {
         if (gs->items[i] != 0) {
             const Object *o = obj_find_object(gs->items[i]);
             cash += o->value;
         }
     }
     return cash;
-}
-
-int actor_count_of_objects(const GameState *gs) {
-    int count = 0;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (gs->items[i]) ++count;
-    }
-    return count;
 }
 
 // clamp all stats to be withing min, max
@@ -46,7 +39,11 @@ void actor_clamp_stats(GameState *gs, int min, int max) {
     }
 }
 
-void actor_display_inventory(const GameState * gs) {
+int actor_count_of_objects(const GameState *gs) {
+    return gs->items_len;
+}
+
+void actor_display_inventory(const GameState * gs, bool show_item_index) {
     if (GLOBALS.silent_mode) return;
     if (!actor_has_any_items(gs)) {
         display_line("You are carrying nothing.");
@@ -54,22 +51,21 @@ void actor_display_inventory(const GameState * gs) {
     }
 
     display_line("You are carrying:");
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index ) {
+    const int items_len = gs->items_len;
+    for (int bag_index = 0; bag_index < items_len; ++bag_index ) {
         if (gs->items[bag_index]) {
-            vdisplay(" %s\n", obj_name_for_id(gs->items[bag_index]));
+            if (show_item_index) {
+                vdisplay(" %.3d. %s\n", bag_index + 1, obj_name_for_id(gs->items[bag_index]));
+            } else {
+                vdisplay(" %s\n", obj_name_for_id(gs->items[bag_index]));
+            }
         }
     }
 }
 
 // return true if carrying any items
 bool actor_has_any_items(const GameState * gs) {
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index ) {
-        if ( gs->items[bag_index] != 0) {
-            // printf("actor_has_any_items: i=%d, item_id=%d\n",bag_index, gs->items[bag_index]);
-            return true;
-        }
-    }
-    return false;
+    return gs->items_len > 0;
 }
 
 // return true if the user is carrying this item
@@ -77,7 +73,8 @@ bool actor_has_item(const GameState *gs, const object_id id) {
     if (id < 1 || id >= obj_num_objects()) {
         return false;
     }
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
+    const int items_len = gs->items_len;
+    for (int bag_index = 0; bag_index < items_len; ++bag_index) {
         if (gs->items[bag_index] == id) {
             return true;
         }
@@ -88,13 +85,53 @@ bool actor_has_item(const GameState *gs, const object_id id) {
 // return true if the user is carrying this item
 bool actor_has_item_named(const GameState *gs, char const *item_name) {
     if (!item_name) return false;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
+    const int items_len = gs->items_len;
+    for (int i = 0; i < items_len; ++i) {
         const object_id id = gs->items[i];
         if ( id ) {
             const Object *o = obj_find_object(id);
             if ( o && strcmp(o->name, item_name) == 0) {
                 return true;
             }
+        }
+    }
+    return false;
+}
+
+// add the object id to the actor's items[] array.
+// Returns true if the object was successfully added.
+// Returns false if items[] is full, if the object_id is out of bounds, or if the object is already in items[]
+bool actor_add_object(GameState *gs, const object_id id) {
+    // todo (rob) we need better error reporting via returning a ErrOrResult struct
+    if (id < 1 || id > obj_num_objects() - 1 ) return false;  // id out of bounds.
+    int item_len = gs->items_len;
+    if ( item_len == MAX_PLAYER_OBJECTS ) return false;
+    for (int i = 0; i < item_len; ++i) {
+        if (gs->items[i] == id) return false;  // already carrying this item
+    }
+    gs->items[item_len] = id;  // add to end of array
+    gs->items_len++;
+    obj_relocate_object(id, PLAYER_LOCATION);
+    return true;
+}
+
+// Removes the object id from the user's list of items.
+// Returns true if the user was carrying this item, or false if the item was not present.
+// after this method completes, the object id will no longer be in the agent's item list.
+// items[] is a swap-and-pop list, so the deleted element position is replaced by the last element
+// in the list.
+bool actor_remove_object(GameState *gs, const object_id id) {
+    if (id < 1 || id >= obj_num_objects()) {
+        return false;
+    }
+    int items_len = gs->items_len;
+    for (int bag_index = 0; bag_index < items_len; ++bag_index) {
+        if (gs->items[bag_index] == id) {
+            gs->items[bag_index] = gs->items[items_len - 1];  // 'swap'
+            gs->items[items_len - 1] = 0; // 'pop'
+            gs->items_len--;
+            obj_clear_location(id);
+            return true;
         }
     }
     return false;
@@ -130,7 +167,7 @@ void display_game_state(const GameState *gs) {
     room_repr(room_find_room(gs->room));
     room_graph_entry_repr(gs->room);
     display_char_attributes(gs->stats);
-    actor_display_inventory(gs);
+    actor_display_inventory(gs, false);
     printf("\n");
     printf("Rooms visited:\n");
 
@@ -209,23 +246,49 @@ void display_room_monster(GameState * gs) {
 
 void display_room_treasure(const GameState * gs) {
     if (GLOBALS.silent_mode) return;
+    const Room *room = room_find_room(gs->room);
+    if (room_is_empty(room)) return;
 
-    const int treasure_index = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    if ( treasure_index == 0 || (!gs->has_torch && treasure_index != ITEM_TORCH )) {
+    if ( !gs->has_torch && !room_contains_object(room, ITEM_TORCH) ) {
         return;
     }
-    const Room *room = room_find_room(gs->room);
 
-    if (room_count_of_objects(room) == 0) return;
+    const int len = room->objects_len;
+    // display("\nYou can see ");
+    // for (int i = 0; i < len; ++i) {
+    //     if (room->objects[i]) {
+    //         const Object *o = obj_find_object(room->objects[i]);
+    //         if ( o->value == 0 ) display_line(o->name);
+    //         else vdisplay_line( "%s worth $%d", o->name, o->value);
+    //     }
+    // }
 
-    display("\nYou can see ");
-    for (int i = 0; i < 10; ++i) {
+
+    char buffer[1024] = "\nYou can see";
+    char *s = &buffer[0] + strlen(buffer);
+    for (int i = 0; i < len - 1 ; ++i) {
         if (room->objects[i]) {
             const Object *o = obj_find_object(room->objects[i]);
-            if ( o->value == 0 ) display_line(o->name);
-            else vdisplay_line( "%s worth $%d", o->name, o->value);
+            char const *fmt = " a %s,";
+            int fmt_len = (int)strlen(fmt) - 2;
+            int written = snprintf(s, strlen(o->name) + strlen(fmt) - 2, fmt, o->name);
+            s += written;
         }
     }
+    const Object *o = obj_find_object(room->objects[len -1]);
+    int fmt_len;
+    char const *fmt;
+    if ( len > 1 ) {
+        fmt = " and a %s";
+        fmt_len = (int)strlen(fmt) - 2;
+    } else {
+        fmt = " a %s";
+        fmt_len = (int)strlen(fmt) - 2;
+    }
+    int written = snprintf(s, strlen(o->name) + fmt_len, fmt, o->name);
+    s += written;
+
+    display_paginated(buffer, 80);
 }
 
 
@@ -289,9 +352,6 @@ Object generate_treasure( GameState * gs, object_id id, int min_value, int max_v
 }
 
 
-
-
-
 void room_graph_entry_repr(room_id id) {
     printf("ROOM_GRAPH[%d][%d]{ ", id, RGINDEX_COUNT);
     for (int i = 0; i < RGINDEX_COUNT; ++i) {
@@ -301,6 +361,16 @@ void room_graph_entry_repr(room_id id) {
     printf("}\n");
 }
 
+bool room_transfer_obj_location(const Room *r, object_id id, int location) {
+    if (!r) return false;
+    if ( r->id == location ) return true;  // if relocating obj to same room, nothing to do
+
+    room_remove_object(r, id);
+    obj_relocate_object(id, location);
+    ROOM_GRAPH[r->id][RGINDEX_TREASURE] = 0;  //todo need to deprecate use of RGINDEX_TREASURE and look at Room.objects
+
+    return true;
+}
 
 int sum_character_stats(const CharStats *s) {
     int total = 0;

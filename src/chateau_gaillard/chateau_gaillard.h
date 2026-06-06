@@ -101,63 +101,8 @@ constexpr int ROOM_TURRET        = 44;
 
 constexpr int MONSTER_DWARF = 1;
 
-
-
-//// ------------------------------------------------------------
-////
-////    GAME STATE
-////
-//// ------------------------------------------------------------
-
-
-// typedef struct GameState {
-//     const CharBuffer * player_name;
-//     uint32_t seed;
-//     // state for Mersenne Twister PRNG
-//     MTState mt_state;
-//
-//     room_id room;      // current room
-//     room_id room_prev; // room user was in before this one
-//     room_id room_last_turn; // updates every turn, if user in same room as last turn, will be same as `room`
-//
-//     int turns;
-//     int cash;
-//
-//     int monsters_killed;  // number of monsters destroyed
-//     int monsters_fought;
-//
-//     int magic;  // number of spells
-//
-//     union {
-//         CharStats stats; // Named access: m.stats.strength
-//         union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength & m.as_array
-//     };
-//
-//     bool has_torch;
-//     bool completed; // true if reached final room
-//     bool game_over;
-//     bool is_dead;
-//     bool ended_by_quitting;
-//
-//     bool must_fight; // true if user previously tried to retreat from monster and failed
-//
-//     object_id  items[MAX_ITEMS];  //
-//
-//     struct ObservationSpace {
-//         // what the player can currently "see" in the environment that is not part of the game state model
-//         bool     monster_is_visible;
-//         bool     treasure_is_visible;
-//         bool     must_fight; // Explicitly tell ML that movement/retreat is blocked
-//         Monster  current_monster;
-//         Object   current_treasure;
-//         uint32_t legal_actions_mask; // Bitmask where each bit corresponds to VALID_COMMANDS
-//     } perception;
-//
-//     double QU;  // end-of-game flag? Quit flag, used in final scoring
-//     int SC;  // score bonus, depending on how game ends.
-//     int BOX; // chest flag?
-//
-// } GameState;
+const int MAX_ROOM_OBJECTS =  10; //maximum number of items that can be placed in a room
+const int MAX_PLAYER_OBJECTS = 5; // max number of items that can be carried
 
 
 bool perform_action(GameState *gs, enum Command  cmd,  int arg1,  int arg2,  int arg3);

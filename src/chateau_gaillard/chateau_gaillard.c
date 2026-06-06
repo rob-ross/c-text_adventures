@@ -90,7 +90,7 @@ struct GlobalState GLOBALS = {
     .debug_mode = true,
 };
 
-const int MAX_ITEMS = 5; // max number of items that can be carried
+
 
 
 static void cleanup(GameState *gs);
@@ -225,7 +225,8 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     }
     // make sure we are actually carrying the weapon
     bool missing_weapon = true;
-    for (int j = 0; j < MAX_ITEMS; ++j) {
+    const int items_len = gs->items_len;
+    for (int j = 0; j < items_len; ++j) {
         if (gs->items[j] == weapon) {
             missing_weapon = false;
             break;
@@ -369,29 +370,11 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
 ////
 //// ------------------------------------------------------------
 
-// Removes the object id from the user's list of items.
-// Returns true if the user was carrying this item, or false if the item was not present.
-// after this method completes, the object id will no longer be in the agent's item list.
-static bool actor_remove_object(GameState *gs, const object_id id) {
-    if (id < 1 || id >= obj_num_objects()) {
-        return false;
-    }
-
-    for (int bag_index = 0; bag_index < MAX_ITEMS; ++bag_index) {
-        if (gs->items[bag_index] == id) {
-            gs->items[bag_index] = 0;
-            obj_clear_location(id);
-            return true;
-        }
-    }
-    return false;
-}
-
-
 // Returns the object id of the first object in the actor's items[],
 // or ROOM_OBJ_NOT_FOUND if there are no items
 static int actor_first_object_id(const GameState *gs) {
-    for (int i = 0; i < MAX_ITEMS; ++i) {
+    const int items_len = gs->items_len;
+    for (int i = 0; i < items_len; ++i) {
         if (gs->items[i] != 0) {
             return gs->items[i];
         }
@@ -404,8 +387,8 @@ static int actor_first_object_id(const GameState *gs) {
 // which may or may not be what you are looking for.
 static int actor_object_id_for_partial_name(const GameState *gs, char const item_name[static 1]) {
     if (!item_name) return OBJ_NULL_OBJECT_NAME;
-
-    for (int i = 0; i < MAX_ITEMS; ++i) {
+    const int items_len = gs->items_len;
+    for (int i = 0; i < items_len; ++i) {
         if (gs->items[i] != 0) {
             const Object *o = obj_find_object(gs->items[i]);
             if (strncmp(item_name, o->name, strlen(item_name)) == 0) {
@@ -489,28 +472,23 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
     const Room *r = room_find_room(gs->room);
     if ( room_is_full(r)) {
         if (verbose) {
-            display_line("This room already holds its maximum number of objects.");
+            display_line("The room is full.");
         }
         return false;
     }
+
+    if (room_contains_object(r, id)) {
+        if (verbose) {
+            vdisplay_line( "There is already a %s here.",  obj_name_for_id(id));
+        }
+        return false;
+    }
+
     return true;
 }
 
-/** Logic Entry Point: ML and Human both end up here */
-bool action_drop(GameState *gs, int object_id) {
-    if (!can_drop_item(gs, object_id, false)) return false;
-
-    if (!actor_remove_object(gs, object_id)) {
-        return false;
-    }
-    const Room *r = room_find_room(gs->room);
-    return room_add_object( r, object_id ) == ROOM_SUCCESS;
-}
-
 // Entry point for the human user path.
-// This finds the item in the VO, and passes those to
-// drop_action(), the ML entry point for the read action.
-static bool cmd_drop(GameState *gs, const struct ParsedCommand *pc) {
+static bool cmd_drop(GameState *gs, const ParsedCommand *pc) {
     object_id id = 0;
     if (!pc->has_verb_object) {
         if (actor_count_of_objects(gs) == 1) {
@@ -530,6 +508,15 @@ static bool cmd_drop(GameState *gs, const struct ParsedCommand *pc) {
     if (!can_drop_item(gs, id, true)) return false;
 
     return perform_action(gs, CMD_DROP, id, 0, 0);
+}
+
+/** Logic Entry Point: ML and Human both end up here */
+static bool action_drop(GameState *gs, object_id id) {
+    if (!can_drop_item(gs, id, false)) return false;
+    if (!actor_remove_object(gs, id)) return false;
+
+    const Room *r = room_find_room(gs->room);
+    return room_add_object( r, id ) == ROOM_SUCCESS;
 }
 
 
@@ -613,8 +600,8 @@ static bool can_take_item(const GameState *gs, const object_id id, const bool ve
         return false;
     }
 
-    if (actor_count_of_objects(gs) >= MAX_ITEMS) {
-        if (verbose) vdisplay_line("You are already carrying your maximum of %d objects.", MAX_ITEMS);
+    if (actor_count_of_objects(gs) >= MAX_PLAYER_OBJECTS) {
+        if (verbose) vdisplay_line("You are already carrying your maximum of %d objects.", MAX_PLAYER_OBJECTS);
         return false;
     }
 
@@ -627,23 +614,13 @@ static bool can_take_item(const GameState *gs, const object_id id, const bool ve
 }
 
 /** Logic Entry Point: ML and Human both end up here */
-bool action_take(GameState *gs, const object_id id) {
+static bool action_take(GameState *gs, const object_id id) {
     if (!can_take_item(gs, id, false)) return false;
+    if (!actor_add_object(gs, id)) return false;
 
-    for (int i = 0; i < MAX_ITEMS; ++i) {
-        if (!gs->items[i]) {
-            room_id room_id = gs->room;
-            gs->items[i] = id;
-            const Room *r = room_find_room(gs->room);
-            room_remove_object( r, id);
-            obj_relocate_object(id, -1);
-            // todo (rob) need to define location ids, player vs room. -1 means "player" but is a kludge
-            // in zork, everything had a unique string id, ie, "player", "room-1", "axe", so there was one
-            // global namespace for ids.
-            return true;
-        }
-    }
-    return false;
+    const Room *r = room_find_room(gs->room);
+    room_transfer_obj_location(r, id, PLAYER_LOCATION);
+    return true;
 }
 
 static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
@@ -1004,10 +981,11 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     // todo : possibly a clang bug that erroneously warns
     // " variable length array folded to constant array as an extension [-Werror,-Wgnu-folding-constant]"
     // if I just use  T[MAX_ITEMS] below, as of 6/5/2026
-    int num_items = MAX_ITEMS;
-    int T[num_items] = {};
+    int max_items = MAX_PLAYER_OBJECTS;
+    int T[max_items] = {};
     // see what weapons the user has. Object ids 1 (axe) to 7 (falchion)
-    for (int j = 0; j < MAX_ITEMS; ++j) {
+    const int items_len = gs->items_len;
+    for (int j = 0; j < items_len; ++j) {
         T[j] = 0;
         switch (gs->items[j]) {
             case OBJECT_AXE:
@@ -1043,7 +1021,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     }
     int weapon_count = 0;
     int last_weapon = 0;
-    for (int i = 0; i < MAX_ITEMS; ++i) {
+    for (int i = 0; i < items_len; ++i) {
         if (T[i]) {
             ++weapon_count;
             last_weapon = T[i];
@@ -1059,7 +1037,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
         vdisplay_line("You must fight with your %s.", weapon_name);
     } else {
         display_line("choose your weapon: ");
-        for (int j = 0; j < MAX_ITEMS; ++j) {
+        for (int j = 0; j < items_len; ++j) {
             if (T[j]) {
                 const object_id id = T[j];
                 const Object *o = obj_find_object(id);
@@ -1069,7 +1047,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
         }
         int choice = 0;
         for (;;) {
-            choice = get_int("Enter the number to choose: ", 1, MAX_ITEMS);
+            choice = get_int("Enter the number to choose: ", 1, items_len);
             if (!T[choice - 1]) {
                 display_line("Invalid item.");
             } else {
@@ -1325,8 +1303,8 @@ static bool main_game_loop(GameState *gs) {
     do_room_actions(gs);
 
     if (room_id == ROOM_START && gs->room_prev == 0 ) {
-        // first room, we display initial inventory. Afterward, the user can view them with explicit "inv" command
-        actor_display_inventory(gs);
+        // first room, we display initial inventory. Afterward, the user can view them with an explicit "inv" command
+        actor_display_inventory(gs, false);
     }
 
     // process user input
@@ -1354,7 +1332,7 @@ static bool main_game_loop(GameState *gs) {
         display_room_desc(gs);
     }
     if (cmd == CMD_INV) {
-        actor_display_inventory(gs);
+        actor_display_inventory(gs, false);
     }
     if (cmd == CMD_STATS) {
         display_char_attributes(gs->stats);
