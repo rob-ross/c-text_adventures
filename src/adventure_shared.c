@@ -254,40 +254,47 @@ void display_room_treasure(const GameState * gs) {
     }
 
     const int len = room->objects_len;
-    // display("\nYou can see ");
-    // for (int i = 0; i < len; ++i) {
-    //     if (room->objects[i]) {
-    //         const Object *o = obj_find_object(room->objects[i]);
-    //         if ( o->value == 0 ) display_line(o->name);
-    //         else vdisplay_line( "%s worth $%d", o->name, o->value);
-    //     }
-    // }
-
 
     char buffer[1024] = "\nYou can see";
     char *s = &buffer[0] + strlen(buffer);
+    char const *fmt;
+    int fmt_len;
+    int written;
     for (int i = 0; i < len - 1 ; ++i) {
         if (room->objects[i]) {
             const Object *o = obj_find_object(room->objects[i]);
-            char const *fmt = " a %s,";
-            int fmt_len = (int)strlen(fmt) - 2;
-            int written = snprintf(s, strlen(o->name) + strlen(fmt) - 2, fmt, o->name);
+            if ( o->value == 0 ) {
+                fmt = " a %s,";
+                fmt_len = (int)strlen(fmt);
+                written = snprintf(s, strlen(o->name) + fmt_len , fmt, o->name);
+            } else {
+                fmt = " a %s worth $%d,";
+                fmt_len = (int)strlen(fmt);
+                written = snprintf(s, strlen(o->name) + fmt_len , fmt, o->name, o->value);
+            }
             s += written;
         }
     }
-    const Object *o = obj_find_object(room->objects[len -1]);
-    int fmt_len;
-    char const *fmt;
-    if ( len > 1 ) {
-        fmt = " and a %s";
-        fmt_len = (int)strlen(fmt) - 2;
+    // handle last object with the conjunction "and." Yup, that allotta code for a measly "and!"
+    const Object *o = obj_find_object(room->objects[len - 1 ]);
+    if ( o->value == 0 ) {
+        if ( len > 1 ) {
+            fmt = " and a %s";
+        } else {
+            fmt = " a %s";
+        }
+        fmt_len = (int)strlen(fmt);
+        written = snprintf(s, strlen(o->name) + fmt_len , fmt, o->name);
     } else {
-        fmt = " a %s";
-        fmt_len = (int)strlen(fmt) - 2;
+        if ( len > 1 ) {
+            fmt = " and a %s worth $%d";
+        } else {
+            fmt = " a %s worth $%d";
+        }
+        fmt_len = (int)strlen(fmt);
+        written = snprintf(s, strlen(o->name) + fmt_len , fmt, o->name, o->value);
     }
-    int written = snprintf(s, strlen(o->name) + fmt_len, fmt, o->name);
     s += written;
-
     display_paginated(buffer, 80);
 }
 

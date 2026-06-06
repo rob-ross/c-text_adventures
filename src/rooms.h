@@ -107,6 +107,7 @@ int  room_count_visited();
 RandomTextArray * create_rta(int length);
 
 const Room * room_find_room(room_id id);
+const Object * room_find_object_named(const Room *r, char const partial_name[static 1]);
 
 // Returns the object id of the first object in the room, or ROOM_ERR_OBJECT_NOT_FOUND if there are no items
 int  room_first_object_id(const Room *r);

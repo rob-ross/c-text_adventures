@@ -45,7 +45,7 @@ constexpr bool END_GAME      = false;
 
 char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
 
-
+constexpr int BARE_HANDS           =  0;
 
 constexpr int OBJECT_AXE           =  1;
 constexpr int OBJECT_SWORD         =  2;

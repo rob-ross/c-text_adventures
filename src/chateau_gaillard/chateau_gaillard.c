@@ -226,10 +226,15 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     // make sure we are actually carrying the weapon
     bool missing_weapon = true;
     const int items_len = gs->items_len;
-    for (int j = 0; j < items_len; ++j) {
-        if (gs->items[j] == weapon) {
-            missing_weapon = false;
-            break;
+
+    if (weapon == BARE_HANDS ) {
+        missing_weapon = false;
+    } else {
+        for (int j = 0; j < items_len; ++j) {
+            if (gs->items[j] == weapon) {
+                missing_weapon = false;
+                break;
+            }
         }
     }
     if (missing_weapon) {
@@ -243,11 +248,14 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     }
     // We add to the hero_tally (8 - weapon)
     // that will give us 7 extra points for using the axe, down to 1 extra point for using a falchion.
-
-    int weapon_strength = weapon <= OBJECT_FALCHION ? 8 - weapon : 8;
-    // possible weapons range from 1. axe to 7. falchion. Axe is the best weapon and should add bonus points to hero tally.
-    int weapon_bonus = weapon_strength; //here we use the ordinality of the object_ids, but eventually weapons will
+    int weapon_strength = 0;
+    if (weapon > BARE_HANDS && weapon <= OBJECT_FALCHION) {
+        weapon_strength = 8 - weapon;
+    }
+    //here we use the ordinality of the object_ids, but eventually weapons will
     // have their own attributes we will query
+    int weapon_bonus = weapon_strength;
+
 
     printf("weapon:%d, weapon_strength:%d, weapon_bonus:%d\n",weapon, weapon_strength, weapon_bonus);
 
@@ -625,11 +633,11 @@ static bool action_take(GameState *gs, const object_id id) {
 
 static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
     object_id id = 0;
-    const Room *current_room = room_find_room(gs->room);
+    const Room *room = room_find_room(gs->room);
     if (!pc->has_verb_object) {
-        if (room_count_of_objects(current_room) == 1) {
+        if (room_count_of_objects(room) == 1) {
             // if only one object, we'll take whatever is in the room
-            id = room_first_object_id(current_room);
+            id = room_first_object_id(room);
             if (id == ROOM_ERR_OBJECT_NOT_FOUND) {
                 display_line("take what?");
                 return false;
@@ -641,7 +649,10 @@ static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
         }
     } else {
         // try to take this object by name
-        id = obj_id_for_partial_name(pc->verb_object);
+        const Object *o = room_find_object_named(room, pc->verb_object);
+        if (o) {
+            id = o->id;
+        }
     }
 
     // Pre-check: make sure the object_index is valid and exists in the room

@@ -92,7 +92,7 @@ void obj_clear_location(object_id id);
 
 int  obj_relocate_object( int id,  int new_location);
 
-int  obj_id_for_partial_name(char const item_name[static 1]);
+int  obj_id_for_partial_name(char const partial_name[static 1]);
 
 char const * obj_name_for_id(object_id id);
 int obj_num_objects( void );

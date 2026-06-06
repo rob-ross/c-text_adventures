@@ -14,6 +14,8 @@
 
 #include "objects.h"
 
+#include "common/string.h"
+
 
 typedef struct ObjectStore {
     size_t capacity;
@@ -108,16 +110,20 @@ int obj_num_objects( void ) {
 // return the object id for the given item_name. If a partial item_name is passed, performs a "starts with"
 // search to match. But this will return the first object in the store that starts with the argument string,
 // which may or may not be what you are looking for.
-int obj_id_for_partial_name(char const item_name[static 1]) {
-    if (!item_name) return OBJ_NULL_OBJECT_NAME;
+int obj_id_for_partial_name(char const partial_name[static 1]) {
+    if (!partial_name) return OBJ_NULL_OBJECT_NAME;
 
     const size_t size = pvt_objects->size;
     for (int i = 1; i < size; ++i) {
-        if (strncmp(item_name, pvt_objects->objects[i].name, strlen(item_name)) == 0 ) {
-            // printf("obj_id_for_partial_name: item_name: %s, objects[%d].name:%s, strlen:%zd\n",
-            //     item_name, i, pvt_objects->objects[i].name, strlen(item_name));
+        if (string_starts_with_ignore_case(partial_name, pvt_objects->objects[i].name)) {
             return pvt_objects->objects[i].id;
         }
+
+        // if (strncmp(partial_name, pvt_objects->objects[i].name, strlen(partial_name)) == 0 ) {
+        //     // printf("obj_id_for_partial_name: item_name: %s, objects[%d].name:%s, strlen:%zd\n",
+        //     //     item_name, i, pvt_objects->objects[i].name, strlen(item_name));
+        //     return pvt_objects->objects[i].id;
+        // }
     }
     return OBJ_NOT_FOUND;
 }

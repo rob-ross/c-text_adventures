@@ -12,6 +12,8 @@
 
 #include "rooms.h"
 
+#include "common/string.h"
+
 typedef struct RoomStore {
     size_t capacity;
     size_t size;
@@ -128,14 +130,7 @@ bool room_contains_object(const Room *r, const object_id id) {
 
 // Returns the number of objects currently in this room
 int room_count_of_objects(const Room *r) {
-    const int len = r->objects_len;
-    int count = 0;
-    for (int i = 0; i < len; ++i) {
-        if ( r->objects[i] != 0) {
-            count++;
-        }
-    }
-    return count;
+    return r->objects_len;
 }
 
 int room_count_visited() {
@@ -161,6 +156,19 @@ RandomTextArray * create_rta(int length) {
 
 const Room * room_find_room(const room_id id) {
     return &pvt_rooms->rooms[id];
+}
+
+// Searches the Room for an object whose name starts with `starts_with`, ignoring case.
+// Returns the Object if found, or nullptr if not found.
+const Object * room_find_object_named(const Room *r, char const partial_name[static 1]) {
+    const int objects_len = r->objects_len;
+    for (int i = 0; i < objects_len; ++i) {
+        const Object *o  = obj_find_object(r->objects[i]);
+        if (string_starts_with_ignore_case(partial_name, o->name) ){
+            return o;
+        }
+    }
+    return nullptr;
 }
 
 // Returns the object id of the first object in the room, or ROOM_OBJECT_NOT_FOUND if there are no items
@@ -190,24 +198,12 @@ int room_index_for_object(const Room *r, const int object_id ) {
 // Returns true if no more objects can be placed in this Room,
 // otherwise returns false.
 bool room_is_full(const Room *r ) {
-    const int len = r->objects_len;
-    for (int i = 0; i < len; ++i) {
-        if ( r->objects[i] == 0) {
-            return false;
-        }
-    }
-    return true;
+    return r->objects_len == MAX_ROOM_OBJECTS;
 }
 
 // Returns true if there are no objects in this room
 bool room_is_empty(const Room *r) {
-    const int len = r->objects_len;
-    for (int i = 0; i < len; ++i) {
-        if ( r->objects[i] != 0) {
-            return false;
-        }
-    }
-    return true;
+    return r->objects_len == 0;
 }
 
 // Returns the number of rooms
