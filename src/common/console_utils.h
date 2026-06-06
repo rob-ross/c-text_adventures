@@ -28,6 +28,7 @@ void cls();
 void flush_input(void);
 void set_silent_mode(bool silent);
 uint32_t set_char_sleep(uint32_t microseconds);
+void char_sleep(int32_t microseconds);
 void display(char const* msg );
 void display_line(char const* msg );
 // Add the format attribute here
