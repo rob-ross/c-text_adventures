@@ -21,9 +21,9 @@
  * DEBUG:
 clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
-    -std=c23 -o chateau_gaillard.out \
-    chateau_gaillard.c ../adventure_shared.c ../mersenne_twister.c \
-     ../common/console_utils.c ../common/string.c ../parser.c ../objects.c ../rooms.c ../monsters.c
+    -std=c23 -o chateau_gaillard.out chateau_gaillard.c ../adventure_shared.c \
+      ../mersenne_twister.c ../common/console_utils.c ../common/string.c ../parser.c ../objects.c \
+      ../rooms.c ../monsters.c ../roblib/string_utils.c
 
 */
 

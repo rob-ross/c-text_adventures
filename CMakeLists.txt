@@ -13,7 +13,9 @@ function(add_adventure_executable target_name main_source macro_name)
             src/rooms.c
             src/objects.c
             src/monsters.c
-            src/common/string.c)
+            src/common/string.c
+            src/roblib/string_utils.c
+    )
 
     target_include_directories(${target_name} PUBLIC include)
     target_compile_definitions(${target_name} PRIVATE ${macro_name})
@@ -43,5 +45,6 @@ add_adventure_executable(chateau_gaillard
 add_adventure_executable(citadel_of_pershu
         src/citadel_of_pershu/citadel_of_pershu.c
         CITADEL_OF_PERSHU_MAIN)
+
 
 add_executable(regex_tests src/regex_tests.c)
