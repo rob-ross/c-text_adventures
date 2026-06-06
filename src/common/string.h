@@ -27,7 +27,7 @@ typedef struct len_str_array_s {
     LenStr array[]; // flexible array
 } LenStrArray;
 
-// Returns true if `str` strats with `prefix`, ignoring case.
+// Returns true if `str` starts with `prefix`, ignoring case.
 bool string_starts_with_ignore_case(const char *prefix, const char *str);
 // remove leading and trailing whitespace characters in-place, as defined by isspace()
 void string_trim(char *s);
