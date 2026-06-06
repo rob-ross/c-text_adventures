@@ -159,9 +159,9 @@ static void display_help_info(void) {
     display_line("\nVALID COMMANDS ARE:\n");
 
     display_line("[H]elp       [I]nventory  [Q]uit");
-    display_line("[A]ttributes [T]ally");
+    display_line("[A]ttributes S[c]ore");
     display_line("[R]etreat    [F]ight");
-    display_line("[P]ick up    [G]et rid of");
+    display_line("[T]ake       Dro[p]");
     display_line("[N]orth      [S]outh");
     display_line("[E]ast       [W]est");
     display_line("[U]p         [D]own");
@@ -227,7 +227,8 @@ void reset(GameState * gs, const uint32_t seed) {
         // note: if we dynamically modify the edge graph we'll need to reset those edges here
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
-        room_clear_monster(room_index);
+        const Room *r = room_find_room(room_index);
+        room_clear_monster( r );
         room_remove_all_objects(room_index);
     }
     monsters_clear_all();
@@ -592,7 +593,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         display_line("Your magic destroys it!");
         gs->magic--;
         gs->monsters_killed++;
-        clear_monster(gs);
+        room_clear_monster(r);
         return true;
     }
     
@@ -721,7 +722,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
 
     }
 
-    clear_monster(gs);
+    room_clear_monster(r);
     //normalize any negative stats to 0
     for (int i = 0; i < STAT_COUNT; ++i ) {
         if (gs->stats.as_array[i] < 0 ) {
@@ -966,7 +967,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
 
     bool result = false;
     switch (cmd) {
-        case 'P':
+        case 'T':
             result = cmd_take(gs);
             break;
         case 'F':
@@ -975,7 +976,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
         case 'R':
             result =  process_retreat(gs);
             break;
-        case 'G':
+        case 'P':
             result =  action_drop(gs, arg1);
             break;
         case 'H':
@@ -990,7 +991,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
             display_char_attributes(gs->stats);
             result = true;
             break;
-        case 'T':
+        case 'C':
             // These are valid turns, but have no state-solving logic for ML.
             display_score(gs);
             result = true;
@@ -1110,7 +1111,7 @@ static bool main_game_loop(GameState * gs) {
     if ( cmd == 'F' ) {
         //specialized code to prompt user and gather options to pass to perform_action()
         cmd_fight(gs);
-    } else if (cmd == 'G'){
+    } else if (cmd == 'P'){
         cmd_drop(gs);
     } else {
         // Now the human call and the ML call use the exact same entry point
