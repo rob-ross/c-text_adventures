@@ -21,7 +21,8 @@
  * DEBUG:
 clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
-    -std=c23 -o chateau_gaillard.out chateau_gaillard.c ../mersenne_twister.c \
+    -std=c23 -o chateau_gaillard.out \
+    chateau_gaillard.c ../adventure_shared.c ../mersenne_twister.c \
      ../common/console_utils.c ../common/string.c ../parser.c ../objects.c ../rooms.c ../monsters.c
 
 */
@@ -56,7 +57,7 @@ int ROOM_GRAPH[][RGINDEX_COUNT] = {
     { 15, 24,  0, 32,  0,  0,  0,  0,  0,  0 },  //  ROOM 21
     {  0, 26, 23, 20,  0,  0,  0,  0,  0,  0 },  //  ROOM 22
     { 19,  0,  0, 22,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
-    { 21,  0,  0,  0, 10,  0,  0,  0,  0,  0 },  //  ROOM 24
+    { 21,  0,  0,  0, 10, 39,  0,  0,  0,  0 },  //  ROOM 24
     { 20, 25, 25, 25, 25, 25,  0,  0,  0,  0 },  //  ROOM 25
     { 22,  0,  0,  0,  0, 33,  0,  0,  0,  0 },  //  ROOM 26
     {  0,  0,  0,  0,  0, 17,  0,  0,  0,  0 },  //  ROOM 27, ENTRANCE
@@ -87,7 +88,7 @@ struct GlobalState GLOBALS = {
     .char_sleep_visited_duration = _1ms,
     .debug_normal_sleep = 0,
     .debug_visited_sleep = 0,
-    .debug_mode = true,
+    .debug_mode = false,
 };
 
 
@@ -135,6 +136,26 @@ static void display_conclusion(const GameState *gs) {
     } else if (gs->is_dead) {
         display_line("You have died.........");
     }
+}
+
+// Print the name of the current room and current number of turns, along with
+// dashes to separate each turn
+static void display_room_header(const GameState *gs) {
+    // Don't delete this. This is an example of how to dynamically build a string using
+    // snprintf.
+    const Room *r = room_find_room(gs->room);
+    char room_buffer[81] = "--------------------------------------------------------------------------------";
+    const size_t room_name_len = strlen(r->name);
+    for (int i = 0; i < room_name_len; ++i) {
+        room_buffer[i] = r->name[i];
+    }
+    room_buffer[room_name_len ] = ' ';
+    size_t required_len = snprintf(nullptr, 0, " %d", gs->turns);
+    // Start at 80 - required_len and provide space for the null terminator (required_len + 1)
+    snprintf(&room_buffer[80 - required_len], required_len + 1, " %d", gs->turns);
+
+    // printf("---------------------------------------------------------------------------- %d\n", gs->turns);
+    display_line(room_buffer);
 }
 
 
@@ -292,6 +313,14 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
         vdisplay_line("You - %d", hero_tally);
     }
 
+    // we'll pause a bit after every turn during the fight
+    uint32_t pause_seconds;
+    if (GLOBALS.debug_mode ) {
+        pause_seconds = 0;
+    } else {
+        pause_seconds = _1ms * 1000;
+    }
+
     for (;;) {
         int attack_roll = roll_d6(gs, 1);
         switch (attack_roll) {
@@ -330,6 +359,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
                 monster_tally--;
                 break;
         }
+        char_sleep((int32_t)pause_seconds);
         if (!(hero_tally > 0 && monster_tally > 0 && rnd_d(gs) < .75)) {
             break;
         }
@@ -362,7 +392,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
         }
     }
 
-    clear_monster(gs);
+    room_clear_monster(room);
     //normalize any negative stats to 0
     for (int i = 0; i < STAT_COUNT; ++i) {
         if (gs->stats.as_array[i] < 0) {
@@ -371,6 +401,14 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     }
     return true;
 }
+
+bool cmd_look(GameState *gs, const ParsedCommand *pc) {
+    // this is a presentation layer only command. It just displays text to the user they have already seen.
+    display_room_desc(gs);
+    display_room_content(gs);
+    return true;
+}
+
 
 //// ------------------------------------------------------------
 ////
@@ -499,7 +537,12 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
 static bool cmd_drop(GameState *gs, const ParsedCommand *pc) {
     object_id id = 0;
     if (!pc->has_verb_object) {
-        if (actor_count_of_objects(gs) == 1) {
+        const int object_count = actor_count_of_objects(gs);
+        if ( object_count == 0 ) {
+            display_line("You are not carrying anything.");
+            return false;
+        }
+        if ( object_count == 1) {
             // if only one object, we'll drop whatever the user carries
             id = actor_first_object_id(gs);
             if (id == ROOM_ERR_OBJECT_NOT_FOUND) {
@@ -512,7 +555,6 @@ static bool cmd_drop(GameState *gs, const ParsedCommand *pc) {
         id = actor_object_id_for_partial_name(gs, pc->verb_object);
     }
 
-    // Pre-check: If the room is already full, don't even start the loop
     if (!can_drop_item(gs, id, true)) return false;
 
     return perform_action(gs, CMD_DROP, id, 0, 0);
@@ -688,6 +730,7 @@ static bool can_pay(const GameState *gs, const monster_id unused, const bool ver
 /** Logic Entry Point: ML and Human both end up here */
 bool action_pay(GameState *gs, const monster_id unused ) {
     if (!can_pay(gs, 0, false)) return false;
+    const Room *r = room_find_room( gs->room);
 
     // the model action on success will be to
     // 1. Remove the dwarf from the room.
@@ -698,7 +741,7 @@ bool action_pay(GameState *gs, const monster_id unused ) {
     // 2. If the bag is empty, or if the first random check is the other 50%, the dwarf kills you and the game ends
     if (actor_has_item(gs, OBJECT_AMULET)) {
         display_line("Lucky for you that you had it!");
-        clear_monster(gs);
+        room_clear_monster(r);
         actor_remove_object(gs, OBJECT_AMULET);
     } else {
         display_line("You do not have it!");
@@ -716,7 +759,7 @@ bool action_pay(GameState *gs, const monster_id unused ) {
         }
         const Object *o = obj_find_object(id);
         vdisplay_line(" the %s", o->name);
-        clear_monster(gs);
+        room_clear_monster(r);
         actor_remove_object(gs, id);
     }
 
@@ -795,6 +838,10 @@ static bool action_drink( GameState *gs, object_id id) {
     // currently there is only one potion in the game
     if (id != OBJECT_HEALING_POTION) return false;
 
+    // make strength 20 and increase all other stats by 2
+    for (int i = 0; i < STAT_COUNT; ++i) {
+        gs->stats.as_array[i] += 2;
+    }
     gs->stats.strength = 20;
     actor_remove_object(gs, id);
 
@@ -1257,6 +1304,7 @@ static bool main_game_loop(GameState *gs) {
     uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
+    room_set_visit_started_flag(current_room);
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
         if ( GLOBALS.debug_mode ) {
@@ -1266,26 +1314,12 @@ static bool main_game_loop(GameState *gs) {
         }
     }
 
-    char room_buffer[81] = "--------------------------------------------------------------------------------";
-    const size_t room_name_len = strlen(current_room->name);
-    for (int i = 0; i < room_name_len; ++i) {
-        room_buffer[i] = current_room->name[i];
-    }
-    room_buffer[room_name_len ] = ' ';
-    size_t required_len = snprintf(nullptr, 0, " %d", gs->turns);
-    // Start at 80 - required_len and provide space for the null terminator (required_len + 1)
-    snprintf(&room_buffer[80 - required_len], required_len + 1, " %d", gs->turns);
-
-    // printf("---------------------------------------------------------------------------- %d\n", gs->turns);
-    display_line(room_buffer);
-
-    // display_status(gs);
-    // display_line("");
-
     if (gs->room != gs->room_last_turn) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
+        display_line("");
         display_room_desc(gs);
+        display_room_content(gs);
     }
 
     if (check_game_over(gs)) {
@@ -1293,8 +1327,6 @@ static bool main_game_loop(GameState *gs) {
         room_set_visited_flag(current_room);
         return END_GAME;
     }
-
-    display_room_content(gs);
 
     const monster_id id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
     if (id > MONSTER_DWARF && rnd_d(gs) < .3) {
@@ -1310,17 +1342,24 @@ static bool main_game_loop(GameState *gs) {
         }
     }
 
+
     // todo (rob) we need a framework hook for action routines for rooms and objects
     do_room_actions(gs);
 
-    if (room_id == ROOM_START && gs->room_prev == 0 ) {
-        // first room, we display initial inventory. Afterward, the user can view them with an explicit "inv" command
-        actor_display_inventory(gs, false);
+    // speed up the display of text for the rest of the turn.
+    if ( GLOBALS.debug_mode ) {
+        set_char_sleep( GLOBALS.debug_visited_sleep );
+    } else {
+        set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
+
+
 
     // process user input
     flush_input();
-    const ParsedCommand pc = parse_user_command("\n>", "I don't know how to do that.");
+    char prompt_buffer[1024] = {};
+    snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
+    const ParsedCommand pc = parse_user_command( prompt_buffer, "I don't know how to do that.");
 
     // display("You chose ");
     // printf("%d %s\n",pc.command, pc.object);
@@ -1340,7 +1379,7 @@ static bool main_game_loop(GameState *gs) {
         display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
     }
     if (cmd == CMD_LOOK) {
-        display_room_desc(gs);
+        cmd_look(gs, &pc);
     }
     if (cmd == CMD_INV) {
         actor_display_inventory(gs, false);
@@ -1385,7 +1424,7 @@ static bool main_game_loop(GameState *gs) {
 
     set_char_sleep(saved_sleep_duration);
 
-    display_line("");
+    // display_line("");
     if (room_id == gs->room) {
         // if room at end of turn is same as start of turn, update this so we
         gs->room_last_turn = room_id;
@@ -1426,7 +1465,8 @@ void reset(GameState *gs, const uint32_t seed) {
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
         ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
         ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
-        room_clear_monster( room_index );
+        const Room *r = room_find_room(room_index);
+        room_clear_monster( r );
         room_remove_all_objects(room_index);
     }
     monsters_clear_all();
@@ -1666,8 +1706,10 @@ int main_chateau_gaillard(void) {
 
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
-    display_line("Your attributes are:");
+    display_line("Your character attribute stats are:");
     display_char_attributes(gs.stats);
+    display_line("");
+    display_line("--------------------------------------------------------------------------------");
     display_line("");
 
     // obj_repr();
