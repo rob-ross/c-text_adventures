@@ -61,7 +61,8 @@ typedef struct Room {
     // flags. eventually can be bit flags for efficiency
     bool is_lit_bit; // The room has light, thus can be seen without a light source like a torch
     // todo (rob) is_visited_bit: when we implement multiple actors, this bit has to be moved to the actor object
-    bool is_visited_bit; // true if an actor has visited this room.
+    bool is_visit_started_bit; // true when actor has entered the room, but not yet completed a full turn
+    bool is_visited_bit; // true after the actor has been in the room an entire turn.
     bool is_outside_bit; // true if the room is "outside", i.e., exposed to nature, a clearing, a road, forrest
     int         objects_len;
     object_id   objects[ROOM_OBJECTS_CAPACITY]; // a swap-and-pop list of size objects_len
@@ -82,6 +83,9 @@ enum RoomGraphIndex {
     RGINDEX_COUNT
 };
 
+// ROOM_GRAPH: transition graph, room (node) to other rooms via directed edges
+extern int ROOM_GRAPH[][RGINDEX_COUNT];  // defined in the main TUs, e.g., chateau_gaillard.c, citadel_of_pershu.c, etc.
+
 constexpr int ROOM_ERR_OBJECT_ID_OUT_OF_BOUNDS = -4;
 constexpr int ROOM_ERR_OBJECT_NOT_FOUND = -3;
 constexpr int ROOM_ERR_ROOM_FULL = -2;
@@ -97,7 +101,7 @@ int  room_add_object(const Room *room, int id);
 int  room_remove_object(const Room *room, int object_id);
 void room_remove_all_objects(room_id id);
 
-bool room_clear_monster(room_id id);
+bool room_clear_monster(const Room *r);
 bool room_contains_object(const Room *r, object_id id);
 int  room_count_of_objects(const Room *r);
 int  room_count_visited();
@@ -130,3 +134,4 @@ bool room_set_preamble(room_id id, RandomTextArray *rta);
 
 bool room_set_monster(const Room *r, monster_id id);
 void room_set_visited_flag(const Room *r);
+void room_set_visit_started_flag(const Room *r);

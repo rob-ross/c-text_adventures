@@ -26,11 +26,14 @@ typedef struct RoomStore {
 // like a Class or a prototype for each type of such objects.
 static RoomStore * pvt_rooms = {};
 
+extern int ROOM_GRAPH[][RGINDEX_COUNT];  // transition graph, room (node) to other rooms via directed edges
 extern const int MAX_ROOM_OBJECTS;
 
 Room * pvt_room_find_room(const room_id id) {
     return &pvt_rooms->rooms[id];
 }
+
+
 
 int room_init(size_t size, Room data[static size]) {
     // we add one extra Object element for the null object element, id = 0.
@@ -112,9 +115,10 @@ void room_remove_all_objects(room_id id) {
     memset(r->objects, 0, sizeof(object_id[ROOM_OBJECTS_CAPACITY]));
 }
 
-// Returns true if the object in the argument is located in the room, otherwise returns false.
-bool room_clear_monster(room_id id) {
-    pvt_rooms->rooms[id].monster = 0;
+// Clear the monster in the current room and its entry in the ROOMS array
+bool room_clear_monster(const Room *r) {
+    ROOM_GRAPH[r->id][RGINDEX_MONSTER] = 0;
+    pvt_rooms->rooms[r->id].monster = 0;
     return true;
 }
 
@@ -285,4 +289,9 @@ bool room_set_monster(const Room *r, monster_id id) {
 void room_set_visited_flag(const Room *r) {
     Room *mutable_room = pvt_room_find_room(r->id);
     mutable_room->is_visited_bit = true;
+}
+
+void room_set_visit_started_flag(const Room *r) {
+    Room *mutable_room = pvt_room_find_room(r->id);
+    mutable_room->is_visit_started_bit = true;
 }

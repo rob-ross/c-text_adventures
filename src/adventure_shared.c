@@ -55,6 +55,7 @@ void actor_display_inventory(const GameState * gs, bool show_item_index) {
     for (int bag_index = 0; bag_index < items_len; ++bag_index ) {
         if (gs->items[bag_index]) {
             if (show_item_index) {
+                
                 vdisplay(" %.3d. %s\n", bag_index + 1, obj_name_for_id(gs->items[bag_index]));
             } else {
                 vdisplay(" %s\n", obj_name_for_id(gs->items[bag_index]));
@@ -135,12 +136,6 @@ bool actor_remove_object(GameState *gs, const object_id id) {
         }
     }
     return false;
-}
-
-// clear the monster in the current room and its entry in the ROOMS array
-void clear_monster(const GameState *gs) {
-    ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
-    room_clear_monster(gs->room);
 }
 
 
