@@ -123,8 +123,6 @@ bool actor_has_item_named(const GameState *gs, char const *item_name);
 bool actor_add_object(GameState *gs, object_id id);
 bool actor_remove_object(GameState *gs, object_id id);
 
-void clear_monster(const GameState *gs);
-
 void display_char_attributes( CharStats stats );
 void display_game_state(const GameState *gs);
 void display_random_room_text(GameState * gs, const RandomTextArray *rta);
