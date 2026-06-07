@@ -36,7 +36,7 @@ struct GlobalState {
     bool         debug_mode;
 };
 
-extern int ROOM_GRAPH[][RGINDEX_COUNT];  // transition graph, room (node) to other rooms via directed edges
+// extern int ROOM_GRAPH[][RGINDEX_COUNT];  // transition graph, room (node) to other rooms via directed edges
 extern struct GlobalState GLOBALS;
 extern const int MAX_ROOM_OBJECTS;   // max number of objects that a room can contain.
 extern const int MAX_PLAYER_OBJECTS; // max number of objects that can be carried; number varies by game rules
