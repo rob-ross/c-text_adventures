@@ -1579,7 +1579,8 @@ static void cleanup(GameState *gs) {
 //// ------------------------------------------------------------
 
 void display_all_room_desc() {
-    const uint32_t saved_sleep = GLOBAL_char_sleep_duration;
+    const uint32_t saved_sleep = GLOBALS.char_sleep_duration;
+
     set_char_sleep(0);
     const int num_rooms = room_num_rooms();
 
@@ -1596,7 +1597,7 @@ void display_all_room_desc() {
 }
 
 static bool main_game_loop(GameState *gs) {
-    uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
+    uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
     room_set_visit_started_flag(current_room);
