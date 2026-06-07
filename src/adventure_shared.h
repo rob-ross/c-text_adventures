@@ -36,7 +36,7 @@ struct GlobalState {
     bool         debug_mode;
 };
 
-// extern int ROOM_GRAPH[][RGINDEX_COUNT];  // transition graph, room (node) to other rooms via directed edges
+// extern int ROOM_GRAPH[][RGINDEX_COUNT]; // transition graph, room (node) to other rooms via directed edges
 extern struct GlobalState GLOBALS;
 extern const int MAX_ROOM_OBJECTS;   // max number of objects that a room can contain.
 extern const int MAX_PLAYER_OBJECTS; // max number of objects that can be carried; number varies by game rules
@@ -124,7 +124,10 @@ bool actor_add_object(GameState *gs, object_id id);
 bool actor_remove_object(GameState *gs, object_id id);
 
 void display_char_attributes( CharStats stats );
+
 void display_game_state(const GameState *gs);
+void display_globals(void);
+
 void display_random_room_text(GameState * gs, const RandomTextArray *rta);
 void display_room_content(GameState * gs);
 void display_room_desc(GameState * gs);

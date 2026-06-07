@@ -188,6 +188,29 @@ void display_game_state(const GameState *gs) {
     printf("\n");
 }
 
+void display_globals(void) {
+    const uint32_t saved_sleep = set_char_sleep(0);
+    char  buffer[1024] = {};
+    int n = snprintf(buffer, sizeof buffer,
+        "(GlobalState){ player_name=%s, silent_mode=%d, char_sleep_duration=%d, "
+            "char_sleep_visited_duration%d, debug_normal_sleep=%d, "
+            "debug_visited_sleep=%d, debug_mode=%d }\n",
+            GLOBALS.player_name, GLOBALS.silent_mode, saved_sleep,
+            GLOBALS.char_sleep_visited_duration, GLOBALS.debug_normal_sleep,
+            GLOBALS.debug_visited_sleep, GLOBALS.debug_mode );
+    if (n < 1 ) printf("display_globals: possible truncation of output.\n");
+    display_paginated(buffer, 100);
+
+    // printf("(GlobalState){ player_name=%s, silent_mode=%d, char_sleep_duration=%d, "
+    //         "char_sleep_visited_duration%d, debug_normal_sleep=%d, "
+    //         "debug_visited_sleep=%d, debug_mode=%d }\n",
+    //         GLOBALS.player_name, GLOBALS.silent_mode,GLOBALS.char_sleep_duration,
+    //         GLOBALS.char_sleep_visited_duration, GLOBALS.debug_normal_sleep,
+    //         GLOBALS.debug_visited_sleep, GLOBALS.debug_mode);
+
+    set_char_sleep( saved_sleep );
+}
+
 void display_random_room_text(GameState * gs, const RandomTextArray *rta) {
     if (GLOBALS.silent_mode ) return;
     for (int i=0; i< rta->length; ++i) {
