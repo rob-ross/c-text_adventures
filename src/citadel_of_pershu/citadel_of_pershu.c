@@ -28,51 +28,51 @@ clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werr
 #include "citadel_of_pershu.h"
 
 int ROOM_GRAPH[][RGINDEX_COUNT] = {
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
-
-    {  1,  4,  1,  8,  0,  0,  0,  0 },  //  ROOM 1
-    {  0,  5,  3,  0,  0,  0,  0,  0 },  //  ROOM 2
-    {  3,  7,  3,  2,  0,  0,  0,  0 },  //  ROOM 3
-    {  1,  0,  5,  0,  0,  0,  2,  0 },  //  ROOM 4
-    {  2,  0,  0,  4,  0,  0,  0,  0 },  //  ROOM 5
-    {  0,  0,  7,  0,  0,  0,  1,  0 },  //  ROOM 6, ENTRANCE
-    {  3, 14, 15,  6,  0,  0,  0,  0 },  //  ROOM 7
-    {  1,  8,  8,  8,  0,  0,  0,  0 },  //  ROOM 8
-    { 10, 11,  0,  0,  0,  0,  0,  0 },  //  ROOM 9
-    {  0,  0, 11,  9,  0,  0,  0,  0 },  //  ROOM 10
-    {  9, 13, 12, 10,  0,  0,  0,  0 },  //  ROOM 11
-    {  0,  0,  0, 11,  0,  0,  0,  0 },  //  ROOM 12
-    { 11, 16,  0, 44,  0,  0,  0,  0 },  //  ROOM 13
-    {  7,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 14
-    {  7, 45,  0, 12,  0,  0,  0,  0 },  //  ROOM 15
-    {  0, 19,  0, 17,  0, 37,  0,  0 },  //  ROOM 16
-    {  0,  0, 16,  0,  0,  0,  0,  0 },  //  ROOM 17
-    {  0, 30,  0,  0,  0, 34,  0,  0 },  //  ROOM 18
-    { 16, 28,  0,  0,  0, 43,  0,  0 },  //  ROOM 19
-    {  0, 31, 22,  0,  0,  0,  0,  0 },  //  ROOM 20
-    {  0, 23,  0, 45,  0,  0,  3,  0 },  //  ROOM 21
-    {  0, 24,  0, 20,  0,  0,  0,  0 },  //  ROOM 22
-    { 21, 25,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
-    { 22,  0, 25,  0,  0,  0,  0,  0 },  //  ROOM 24
-    { 23, 27, 30, 24,  0,  0,  0,  0 },  //  ROOM 25
-    {  0, 29, 27,  0,  0,  0,  0,  0 },  //  ROOM 26
-    { 25,  0,  0, 26,  0,  0,  0,  0 },  //  ROOM 27
-    { 19, 28, 28, 28,  0, 47,  0,  0 },  //  ROOM 28
-    { 26, 29, 29, 29,  0,  0,  0,  0 },  //  ROOM 29
-    { 18,  0,  0, 25,  0,  0,  0,  0 },  //  ROOM 30
-    { 20,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 31, END ROOM
-    {  0,  0, 34,  0,  0, 47,  0,  0 },  //  ROOM 32
-    { 34, 36,  0, 35,  0,  0,  0,  0 },  //  ROOM 33
-    { 34, 33, 34, 32, 18,  0,  0,  0 },  //  ROOM 34
-    { 33, 38, 36,  0,  0,  0,  0,  0 },  //  ROOM 35
-    { 33, 39, 46, 35,  0,  0,  0,  0 },  //  ROOM 36
-    {  0, 40,  0,  0, 16,  0,  0,  0 },  //  ROOM 37
-    { 35,  0,  0,  0,  0, 41,  0,  0 },  //  ROOM 38
-    { 36, 39, 40, 39,  0,  0,  0,  0 },  //  ROOM 39
-    { 37,  0,  0, 39,  0,  0,  0,  0 },  //  ROOM 40
-    {  0,  0, 42,  0, 38,  0,  0,  0 },  //  ROOM 41
-    { 42, 43, 42, 41,  0, 47,  0,  0 },  //  ROOM 42
-    {  0,  0, 42,  0, 19,  0,  0,  0 },  //  ROOM 43
+    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  NULL ROOM 0
+//                                T   M   K
+    {  1,  4,  1,  8,  0,  0,  0,  0,  0,  0 },  //  ROOM 1
+    {  0,  5,  3,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 2
+    {  3,  7,  3,  2,  0,  0,  0,  0,  0,  0 },  //  ROOM 3
+    {  1,  0,  5,  0,  0,  0,  2,  0,  0,  0 },  //  ROOM 4
+    {  2,  0,  0,  4,  0,  0,  0,  0,  0,  0 },  //  ROOM 5
+    {  0,  0,  7,  0,  0,  0,  1,  0,  0,  0 },  //  ROOM 6, ENTRANCE
+    {  3, 14, 15,  6,  0,  0,  0,  0,  0,  0 },  //  ROOM 7
+    {  1,  8,  8,  8,  0,  0,  0,  0,  0,  0 },  //  ROOM 8
+    { 10, 11,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 9
+    {  0,  0, 11,  9,  0,  0,  0,  0,  0,  0 },  //  ROOM 10
+    {  9, 13, 12, 10,  0,  0,  0,  0,  0,  0 },  //  ROOM 11
+    {  0,  0,  0, 11,  0,  0,  0,  0,  0,  0 },  //  ROOM 12
+    { 11, 16,  0, 44,  0,  0,  0,  0,  0,  0 },  //  ROOM 13
+    {  7,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 14
+    {  7, 45,  0, 12,  0,  0,  0,  0,  0,  0 },  //  ROOM 15
+    {  0, 19,  0, 17,  0, 37,  0,  0,  0,  0 },  //  ROOM 16
+    {  0,  0, 16,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 17
+    {  0, 30,  0,  0,  0, 34,  0,  0,  0,  0 },  //  ROOM 18
+    { 16, 28,  0,  0,  0, 43,  0,  0,  0,  0 },  //  ROOM 19
+    {  0, 31, 22,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 20
+    {  0, 23,  0, 45,  0,  0,  3,  0,  0,  0 },  //  ROOM 21
+    {  0, 24,  0, 20,  0,  0,  0,  0,  0,  0 },  //  ROOM 22
+    { 21, 25,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 23
+    { 22,  0, 25,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 24
+    { 23, 27, 30, 24,  0,  0,  0,  0,  0,  0 },  //  ROOM 25
+    {  0, 29, 27,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 26
+    { 25,  0,  0, 26,  0,  0,  0,  0,  0,  0 },  //  ROOM 27
+    { 19, 28, 28, 28,  0, 47,  0,  0,  0,  0 },  //  ROOM 28
+    { 26, 29, 29, 29,  0,  0,  0,  0,  0,  0 },  //  ROOM 29
+    { 18,  0,  0, 25,  0,  0,  0,  0,  0,  0 },  //  ROOM 30
+    { 20,  0,  0,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 31, END ROOM
+    {  0,  0, 34,  0,  0, 47,  0,  0,  0,  0 },  //  ROOM 32
+    { 34, 36,  0, 35,  0,  0,  0,  0,  0,  0 },  //  ROOM 33
+    { 34, 33, 34, 32, 18,  0,  0,  0,  0,  0 },  //  ROOM 34
+    { 33, 38, 36,  0,  0,  0,  0,  0,  0,  0 },  //  ROOM 35
+    { 33, 39, 46, 35,  0,  0,  0,  0,  0,  0 },  //  ROOM 36
+    {  0, 40,  0,  0, 16,  0,  0,  0,  0,  0 },  //  ROOM 37
+    { 35,  0,  0,  0,  0, 41,  0,  0,  0,  0 },  //  ROOM 38
+    { 36, 39, 40, 39,  0,  0,  0,  0,  0,  0 },  //  ROOM 39
+    { 37,  0,  0, 39,  0,  0,  0,  0,  0,  0 },  //  ROOM 40
+    {  0,  0, 42,  0, 38,  0,  0,  0,  0,  0 },  //  ROOM 41
+    { 42, 43, 42, 41,  0, 47,  0,  0,  0,  0 },  //  ROOM 42
+    {  0,  0, 42,  0, 19,  0,  0,  0,  0,  0 },  //  ROOM 43
 
         // Death rooms
     {  0,  0,  0,  0,  0,  0,  0,  0 },  //  DEATH BY DROWNING
@@ -222,20 +222,30 @@ void reset(GameState * gs, const uint32_t seed) {
         // note: if we dynamically modify the edge graph we'll need to reset those edges here
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
         ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
         const Room *r = room_find_room(room_index);
         room_clear_monster( r );
         room_remove_all_objects(room_index);
     }
     monsters_clear_all();
-
     // special treasure items
-    ROOM_GRAPH[ROOM_START][RGINDEX_TREASURE] = ITEM_TORCH;
-    ROOM_GRAPH[LIBRARY_ROOM][RGINDEX_TREASURE] = ITEM_SILVER_KEY;
-    ROOM_GRAPH[GLOVE_STOREROOM][RGINDEX_TREASURE] = ITEM_GOLD_KEY;
-
-    room_add_object(room_find_room(ROOM_START), ITEM_TORCH);
-    room_add_object(room_find_room(LIBRARY_ROOM), ITEM_SILVER_KEY);
+    room_add_object(room_find_room(ROOM_START),      ITEM_TORCH);
+    room_add_object(room_find_room(LIBRARY_ROOM),    ITEM_SILVER_KEY);
     room_add_object(room_find_room(GLOVE_STOREROOM), ITEM_GOLD_KEY);
+
+    // allot random treasure
+    const int num_objects = obj_num_objects();
+    for (int treasure_index = 4; treasure_index < num_objects; ++treasure_index ) {
+        for (;;) {
+            int rand_room = rnd_range(gs, 1, 43 + 1);
+            const Room *r = room_find_room(rand_room);
+            if ( ! ( r->objects_len > 0 || rand_room == ROOM_START || rand_room == ROOM_END  ) ) {
+                room_add_object(room_find_room( rand_room ), treasure_index);
+                break;
+            }
+        }
+    }
 
     const int num_monsters = monsters_num_monsters();
     // allot monsters
@@ -262,18 +272,7 @@ void reset(GameState * gs, const uint32_t seed) {
             }
         }
     }
-    // allot treasure
-    const int num_objects = obj_num_objects();
-    for (int treasure_index = 4; treasure_index < num_objects; ++treasure_index ) {
-        for (;;) {
-            int rand_room = rnd_range(gs, 1, 43 + 1);
-            if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_TREASURE] || rand_room == ROOM_START || rand_room == ROOM_END  ) ) {
-                ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure_index;
-                room_add_object(room_find_room( rand_room ), treasure_index);
-                break;
-            }
-        }
-    }
+
 
     update_perception(gs);
 }
@@ -550,7 +549,7 @@ static bool cmd_drop(GameState * gs) {
     object_id id = gs->items[item_index - 1];
 
     if (!can_drop_item(gs, id, true)) return false;
-    return perform_action(gs, 'G', id, 0, 0);
+    return perform_action(gs, 'P', id, 0, 0);
 }
 
 
@@ -932,23 +931,23 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
 
     if (gs->room == MARBLE_HALL ) {
         // if player is here, they already used the key to unlock the west door
-        gs->items[ITEM_GOLD_KEY] = 0;
+        actor_remove_object(gs, ITEM_GOLD_KEY);
     }
     if (gs->room == WINE_CELLAR_EAST ) {
-        gs->items[ITEM_SILVER_KEY] = 0;
+        actor_remove_object(gs, ITEM_SILVER_KEY);
     }
-
     if ( !monster_check(gs, cmd) ) {
         return false;
     }
 
     if (strchr(VALID_DIRECTIONS, cmd)) {
         // Special logic for locked doors
-        if (gs->room == BEDCHAMBER_ROOM && cmd == 'W' && !gs->items[ITEM_SILVER_KEY]) {
+
+        if (gs->room == BEDCHAMBER_ROOM && cmd == 'W' && !actor_has_item( gs,ITEM_SILVER_KEY ) ) {
             display_line("You need the Silver Key to unlock the door.");
             return false;
         }
-        if (gs->room == SILVER_CROSSES_STOREROOM && cmd == 'W' && !gs->items[ITEM_GOLD_KEY]) {
+        if (gs->room == SILVER_CROSSES_STOREROOM && cmd == 'W' && !actor_has_item( gs,ITEM_GOLD_KEY )) {
             display_line("You need the Gold Key to unlock the door.");
             return false;
         }
@@ -1037,7 +1036,6 @@ static bool main_game_loop(GameState * gs) {
         }
     }
 
-
     if (gs->room != gs->room_last_turn) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
@@ -1045,7 +1043,6 @@ static bool main_game_loop(GameState * gs) {
         display_room_desc(gs);
         display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
     }
-
 
     if (check_game_over(gs)){
         set_char_sleep(saved_sleep_duration);
@@ -1062,7 +1059,9 @@ static bool main_game_loop(GameState * gs) {
 
     // process user input
     flush_input();
-    char cmd = get_command_char("\n> ", VALID_COMMANDS, nullptr);
+    char prompt_buffer[1024] = {};
+    snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
+    char cmd = get_command_char(prompt_buffer, VALID_COMMANDS, nullptr);
 
     if (cmd == 'Q') {
         set_char_sleep(saved_sleep_duration);

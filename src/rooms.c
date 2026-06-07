@@ -178,10 +178,8 @@ const Object * room_find_object_named(const Room *r, char const partial_name[sta
 // Returns the object id of the first object in the room, or ROOM_OBJECT_NOT_FOUND if there are no items
 int room_first_object_id(const Room *r) {
     const int len = r->objects_len;
-    for (int i = 0; i < len; ++i) {
-        if (r->objects[i] != 0 ) {
-            return r->objects[i];
-        }
+    if ( len > 0 ) {
+        return r->objects[0];
     }
     return ROOM_ERR_OBJECT_NOT_FOUND;
 }

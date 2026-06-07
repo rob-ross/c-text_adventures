@@ -1323,9 +1323,8 @@ void reset(GameState *gs, const uint32_t seed) {
 
     gs->stats = random_hero_stats(gs);
 
-    const int num_rooms = room_num_rooms();
-
     //clear all monsters, treasure
+    const int num_rooms = room_num_rooms();
     for (int room_index = 0; room_index < num_rooms; ++room_index) {
         // note: if we dynamically modify the edge graph, we'll need to reset those edges here
         ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
@@ -1338,13 +1337,13 @@ void reset(GameState *gs, const uint32_t seed) {
     }
     monsters_clear_all();
 
-    ROOM_GRAPH[ROOM_MAGICIAN][RGINDEX_TREASURE]    = OBJECT_SILVER_KEY;
-    ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE]      = OBJECT_SWORD;
-    ROOM_GRAPH[ROOM_DUNGEON][RGINDEX_TREASURE]     = OBJECT_AXE;
-    ROOM_GRAPH[ROOM_CHARISMA_REDUCE][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
-    ROOM_GRAPH[ROOM_TROPHY][RGINDEX_TREASURE]      = OBJECT_IRON_CHEST;
-    ROOM_GRAPH[ROOM_SECRET_ROOM][RGINDEX_TREASURE] = OBJECT_AMULET;
-    ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE]      = OBJECT_GOLD_KEY;
+    // ROOM_GRAPH[ROOM_MAGICIAN][RGINDEX_TREASURE]    = OBJECT_SILVER_KEY;
+    // ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE]      = OBJECT_SWORD;
+    // ROOM_GRAPH[ROOM_DUNGEON][RGINDEX_TREASURE]     = OBJECT_AXE;
+    // ROOM_GRAPH[ROOM_CHARISMA_REDUCE][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
+    // ROOM_GRAPH[ROOM_TROPHY][RGINDEX_TREASURE]      = OBJECT_IRON_CHEST;
+    // ROOM_GRAPH[ROOM_SECRET_ROOM][RGINDEX_TREASURE] = OBJECT_AMULET;
+    // ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE]      = OBJECT_GOLD_KEY;
 
     ROOM_GRAPH[ROOM_KITCHEN][RGINDEX_REQUIRED_KEY]     = OBJECT_SILVER_KEY; // locked door i, requires silver key
     ROOM_GRAPH[ROOM_UNEVEN][RGINDEX_REQUIRED_KEY]      = OBJECT_GOLD_KEY; // locked door ii, requires golden key
@@ -1371,9 +1370,10 @@ void reset(GameState *gs, const uint32_t seed) {
         }
 
         for (;;) {
-            int rand_room = rnd_range(gs, 1, num_rooms);
             // todo (rob) this is an inefficient check. Put valid rooms in a list, shuffle the list, choose first N rooms
-            if (!(ROOM_GRAPH[rand_room][RGINDEX_TREASURE] ||
+            int rand_room = rnd_range(gs, 1, num_rooms);
+            const Room *r = room_find_room(rand_room);
+            if (!( r->objects_len > 0 ||
                   rand_room == ROOM_START ||
                   rand_room == ROOM_END ||
                   rand_room == ROOM_STONE ||
@@ -1381,7 +1381,6 @@ void reset(GameState *gs, const uint32_t seed) {
                   rand_room == ROOM_TRAPPED ||
                   (rand_room >= ROOM_TRAPPED && rand_room <= ROOM_SPIDER) ||
                   rand_room == ROOM_GARGOYLE)) {
-                ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure_index;
                 // new way to manage objects
                 room_add_object(room_find_room( rand_room ), treasure_index);
                 break;
@@ -1389,7 +1388,7 @@ void reset(GameState *gs, const uint32_t seed) {
         }
     }
 
-
+    // special monster locations
     ROOM_GRAPH[ROOM_YELLOW][RGINDEX_MONSTER] = MONSTER_DWARF;
     room_set_monster(room_find_room(ROOM_YELLOW), MONSTER_DWARF);
     CharStats stats = random_monster_stats(gs);
