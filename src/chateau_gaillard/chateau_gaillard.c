@@ -278,7 +278,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     int weapon_bonus = weapon_strength;
 
 
-    printf("weapon:%d, weapon_strength:%d, weapon_bonus:%d\n",weapon, weapon_strength, weapon_bonus);
+    // printf("weapon:%d, weapon_strength:%d, weapon_bonus:%d\n",weapon, weapon_strength, weapon_bonus);
 
     gs->monsters_fought++;
     // gs->must_fight = false;
@@ -1121,11 +1121,11 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
 
     }
 
-    vdisplay_line("The %s has the following attributes:", monster_name);
+    vdisplay_line("The %s has the following stats:", monster_name);
     display_char_attributes(m->stats);
-    display_line("Your attributes are:");
+    display_line("Your stats are:");
     display_char_attributes(gs->stats);
-    display_line("Which attributes to fight with (choose 2):");
+    display_line("Which attributes to fight with? (choose 2):");
     display_line("1: STR, 2: CHA, 3: DEX, 4: INT, 5: WIS, 6: CON");
 
     const int first_skill = get_int("Enter first  skill (1-6) ", 1, 6);
@@ -1298,142 +1298,6 @@ ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
 
 
     return pc;
-}
-
-static bool main_game_loop(GameState *gs) {
-    uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
-    const room_id room_id = gs->room;
-    const Room *current_room = room_find_room(room_id);
-    room_set_visit_started_flag(current_room);
-    if (current_room->is_visited_bit) {
-        // if we've already seen this room, speed up output display
-        if ( GLOBALS.debug_mode ) {
-            set_char_sleep( GLOBALS.debug_visited_sleep );
-        } else {
-            set_char_sleep(GLOBALS.char_sleep_visited_duration);
-        }
-    }
-
-    if (gs->room != gs->room_last_turn) {
-        // only display room desc once when first entering room. Reduces screen clutter and scrolling.
-        // user can always type "look" to re-display room desc.
-        display_line("");
-        display_room_desc(gs);
-        display_room_content(gs);
-    }
-
-    if (check_game_over(gs)) {
-        set_char_sleep(saved_sleep_duration);
-        room_set_visited_flag(current_room);
-        return END_GAME;
-    }
-
-    const monster_id id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    if (id > MONSTER_DWARF && rnd_d(gs) < .3) {
-        // forced fight, monster attacks first
-        display("The ");
-        display(monsters_name_for_id(id));
-        display_line(" attacks!");
-    } else {
-        // we just lose points randomly here for some reason.
-        if (adjust_stats(gs)) {
-            set_char_sleep(saved_sleep_duration);
-            return END_GAME;
-        }
-    }
-
-
-    // todo (rob) we need a framework hook for action routines for rooms and objects
-    do_room_actions(gs);
-
-    // speed up the display of text for the rest of the turn.
-    if ( GLOBALS.debug_mode ) {
-        set_char_sleep( GLOBALS.debug_visited_sleep );
-    } else {
-        set_char_sleep(GLOBALS.char_sleep_visited_duration);
-    }
-
-
-
-    // process user input
-    flush_input();
-    char prompt_buffer[1024] = {};
-    snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
-    const ParsedCommand pc = parse_user_command( prompt_buffer, "I don't know how to do that.");
-
-    // display("You chose ");
-    // printf("%d %s\n",pc.command, pc.object);
-    const enum Command cmd = pc.verb_command;
-
-
-    // -----------------------------------------------------------------
-    //      Player Presentation Only
-    // -----------------------------------------------------------------
-
-    if (cmd == CMD_QUIT) {
-        set_char_sleep(saved_sleep_duration);
-        room_set_visited_flag(current_room);
-        return cmd_quit(gs);
-    }
-    if (cmd == CMD_HELP) {
-        display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
-    }
-    if (cmd == CMD_LOOK) {
-        cmd_look(gs, &pc);
-    }
-    if (cmd == CMD_INV) {
-        actor_display_inventory(gs, false);
-    }
-    if (cmd == CMD_STATS) {
-        display_char_attributes(gs->stats);
-    }
-    if (cmd == CMD_SCORE) {
-        display_score(gs);
-    }
-    if (cmd == CMD_GOD ) {
-        cmd_god_mode(gs, &pc);
-    }
-
-    // -----------------------------------------------------------------
-    //      Engine/Model Commands
-    // -----------------------------------------------------------------
-
-    if (cmd == CMD_FIGHT) {
-        //specialized code to prompt user and gather options to pass to perform_action()
-        cmd_fight(gs, &pc);
-    } else if (cmd == CMD_DROP) {
-        cmd_drop(gs, &pc);
-    } else if (cmd == CMD_TAKE) {
-        cmd_take(gs, &pc);
-    } else if (cmd == CMD_MOVE) {
-        cmd_move(gs, &pc);
-    } else if (cmd == CMD_OPEN) {
-        cmd_open(gs, &pc);
-    } else if (cmd == CMD_READ) {
-        cmd_read(gs, &pc);
-    } else if (cmd == CMD_PAY) {
-        cmd_pay(gs, &pc);
-    } else if (cmd == CMD_DRINK) {
-        cmd_drink(gs, &pc);
-    } else if (cmd == CMD_UNLOCK) {
-        cmd_unlock(gs, &pc);
-    } else {
-        // Now the human call and the ML call use the exact same entry point
-        perform_action(gs, cmd, 0, 0, 0);
-    }
-
-    set_char_sleep(saved_sleep_duration);
-
-    // display_line("");
-    if (room_id == gs->room) {
-        // if room at end of turn is same as start of turn, update this so we
-        gs->room_last_turn = room_id;
-    } else {
-        gs->room_last_turn = gs->room_prev;
-    }
-
-    room_set_visited_flag(current_room);
-    return CONTINUE_GAME;
 }
 
 
@@ -1690,46 +1554,6 @@ static void initialize() {
 }
 
 
-
-int main_chateau_gaillard(void) {
-    setvbuf(stdin, nullptr, _IONBF, 0);
-    set_silent_mode(GLOBALS.silent_mode);
-
-    if (GLOBALS.debug_mode) {
-        set_char_sleep(GLOBALS.debug_normal_sleep);
-    } else {
-        set_char_sleep(GLOBALS.char_sleep_duration);
-    }
-
-    const CharBuffer *player_name = get_player_name();
-    GameState gs = {.player_name = player_name};
-
-    initialize();
-    reset(&gs, DEBUG_RAND_SEED);
-    display_line("Your character attribute stats are:");
-    display_char_attributes(gs.stats);
-    display_line("");
-    display_line("--------------------------------------------------------------------------------");
-    display_line("");
-
-    // obj_repr();
-    // monsters_names_repr();
-    // room_rooms_repr();
-
-    bool continue_loop;
-    do {
-        continue_loop = main_game_loop(&gs);
-    } while (continue_loop);
-
-
-    display_conclusion(&gs);
-    display_score(&gs);
-    cleanup(&gs);
-    display_line("");
-    return EXIT_SUCCESS;
-}
-
-
 //// ------------------------------------------------------------
 ////
 ////    CLEANUP
@@ -1769,6 +1593,187 @@ void display_all_room_desc() {
 
     // restore previous sleep duration
     set_char_sleep(saved_sleep);
+}
+
+static bool main_game_loop(GameState *gs) {
+    uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
+    const room_id room_id = gs->room;
+    const Room *current_room = room_find_room(room_id);
+    room_set_visit_started_flag(current_room);
+    if (current_room->is_visited_bit) {
+        // if we've already seen this room, speed up output display
+        if ( GLOBALS.debug_mode ) {
+            set_char_sleep( GLOBALS.debug_visited_sleep );
+        } else {
+            set_char_sleep(GLOBALS.char_sleep_visited_duration);
+        }
+    }
+
+    if (gs->room != gs->room_last_turn) {
+        // only display room desc once when first entering room. Reduces screen clutter and scrolling.
+        // user can always type "look" to re-display room desc.
+        display_line("");
+        display_room_desc(gs);
+        display_room_content(gs);
+    }
+
+    if (check_game_over(gs)) {
+        set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+        return END_GAME;
+    }
+
+    const monster_id id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
+    if (id > MONSTER_DWARF && rnd_d(gs) < .3) {
+        // forced fight, monster attacks first
+        display("The ");
+        display(monsters_name_for_id(id));
+        display_line(" attacks!");
+    } else {
+        // we just lose points randomly here for some reason.
+        if (adjust_stats(gs)) {
+            set_char_sleep(saved_sleep_duration);
+            return END_GAME;
+        }
+    }
+
+
+    // todo (rob) we need a framework hook for action routines for rooms and objects
+    do_room_actions(gs);
+
+    // speed up the display of text for the rest of the turn.
+    if ( GLOBALS.debug_mode ) {
+        set_char_sleep( GLOBALS.debug_visited_sleep );
+    } else {
+        set_char_sleep(GLOBALS.char_sleep_visited_duration);
+    }
+
+
+
+    // process user input
+    flush_input();
+    char prompt_buffer[1024] = {};
+    snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
+    const ParsedCommand pc = parse_user_command( prompt_buffer, "I don't know how to do that.");
+
+    // display("You chose ");
+    // printf("%d %s\n",pc.command, pc.object);
+    const enum Command cmd = pc.verb_command;
+
+
+    // -----------------------------------------------------------------
+    //      Player Presentation Only
+    // -----------------------------------------------------------------
+
+    if (cmd == CMD_QUIT) {
+        set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+        return cmd_quit(gs);
+    }
+    if (cmd == CMD_HELP) {
+        display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
+    }
+    if (cmd == CMD_LOOK) {
+        cmd_look(gs, &pc);
+    }
+    if (cmd == CMD_INV) {
+        actor_display_inventory(gs, true, true);
+    }
+    if (cmd == CMD_STATS) {
+        display_char_attributes(gs->stats);
+    }
+    if (cmd == CMD_SCORE) {
+        display_score(gs);
+    }
+    if (cmd == CMD_GOD ) {
+        cmd_god_mode(gs, &pc);
+    }
+
+    // -----------------------------------------------------------------
+    //      Engine/Model Commands
+    // -----------------------------------------------------------------
+
+    if (cmd == CMD_FIGHT) {
+        //specialized code to prompt user and gather options to pass to perform_action()
+        cmd_fight(gs, &pc);
+    } else if (cmd == CMD_DROP) {
+        cmd_drop(gs, &pc);
+    } else if (cmd == CMD_TAKE) {
+        cmd_take(gs, &pc);
+    } else if (cmd == CMD_MOVE) {
+        cmd_move(gs, &pc);
+    } else if (cmd == CMD_OPEN) {
+        cmd_open(gs, &pc);
+    } else if (cmd == CMD_READ) {
+        cmd_read(gs, &pc);
+    } else if (cmd == CMD_PAY) {
+        cmd_pay(gs, &pc);
+    } else if (cmd == CMD_DRINK) {
+        cmd_drink(gs, &pc);
+    } else if (cmd == CMD_UNLOCK) {
+        cmd_unlock(gs, &pc);
+    } else {
+        // Now the human call and the ML call use the exact same entry point
+        perform_action(gs, cmd, 0, 0, 0);
+    }
+
+    set_char_sleep(saved_sleep_duration);
+
+    // display_line("");
+    if (room_id == gs->room) {
+        // if room at end of turn is same as start of turn, update this so we
+        gs->room_last_turn = room_id;
+    } else {
+        gs->room_last_turn = gs->room_prev;
+    }
+
+    room_set_visited_flag(current_room);
+    return CONTINUE_GAME;
+}
+
+//// ------------------------------------------------------------
+////
+////    MAIN
+////
+//// ------------------------------------------------------------
+
+
+int main_chateau_gaillard(void) {
+    setvbuf(stdin, nullptr, _IONBF, 0);
+    set_silent_mode(GLOBALS.silent_mode);
+
+    if (GLOBALS.debug_mode) {
+        set_char_sleep(GLOBALS.debug_normal_sleep);
+    } else {
+        set_char_sleep(GLOBALS.char_sleep_duration);
+    }
+
+    const CharBuffer *player_name = get_player_name();
+    GameState gs = {.player_name = player_name};
+
+    initialize();
+    reset(&gs, DEBUG_RAND_SEED);
+    display_line("Your character attribute stats are:");
+    display_char_attributes(gs.stats);
+    display_line("");
+    display_line("--------------------------------------------------------------------------------");
+    display_line("");
+
+    // obj_repr();
+    // monsters_names_repr();
+    // room_rooms_repr();
+
+    bool continue_loop;
+    do {
+        continue_loop = main_game_loop(&gs);
+    } while (continue_loop);
+
+
+    display_conclusion(&gs);
+    display_score(&gs);
+    cleanup(&gs);
+    display_line("");
+    return EXIT_SUCCESS;
 }
 
 // main() is defined when running this TU stand-alone and including -DCHATEAU_GAILLARD_MAIN compiler flag.
