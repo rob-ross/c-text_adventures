@@ -56,6 +56,9 @@ static const char * const REGEX_DIRECTION = RSL "(NORTH|SOUTH|EAST|WEST|UP|DOWN|
 static const char * const REGEX_FIGHT     = RSL "(FIGHT|STAB|KILL|KICK|PUNCH|SLAY|ATTACK)" SP VOBJ REL;
 
 static const char * const REGEX_GODMODE     = "^(I AM CORNHOLIO)$";
+static const char * const REGEX_DEBUG     = "^(0|1|2|3|4|5|7|8|9)$";
+
+
 
 
 #undef VOBJ
@@ -63,10 +66,17 @@ static const char * const REGEX_GODMODE     = "^(I AM CORNHOLIO)$";
 #undef RSL
 #undef SP
 
+/*
+ * To add a new command:
+ * 1. Create a regex for it above.
+ * 2. Create an enum constant in enum Command (parser.h).
+ * 3. Create an entry in the table below.
+ * 4. Add a case in main_event_loop/process_action
+ */
+
 // -----------------------------------------------------------------
 //      COMPILED PATTERNS
 // -----------------------------------------------------------------
-// patterns: order of these matters. Single word direction commands need to be tested before REGEX_MOVE
 
 static RegexPattern patterns[] = {
     {REGEX_HELP,        {}, "HELP",      CMD_HELP  },
@@ -97,6 +107,8 @@ static RegexPattern patterns[] = {
     {REGEX_FIGHT,       {}, "FIGHT",      CMD_FIGHT },
 
     {REGEX_GODMODE,     {}, "GODMODE",    CMD_GOD },
+    {REGEX_DEBUG,       {}, "DEBUG",      CMD_DEBUG },
+
 
 
 
@@ -145,7 +157,7 @@ static int match_one_pattern(const RegexPattern rp, char const * str, struct Par
     return reti;
 }
 
-static int try_match(size_t len, const RegexPattern rp[restrict len], char const * str, struct ParsedCommand *pc_out) {
+static int try_match(size_t len, const RegexPattern rp[restrict len], char const * str, ParsedCommand *pc_out) {
     if (! is_initialized) {
         parser_init();
     }
@@ -192,15 +204,15 @@ void parser_free_resources() {
     is_initialized = false;
 }
 
-struct ParsedCommand parse_cmd_string( char const * str) {
-    struct ParsedCommand pc = {};
+ParsedCommand parse_cmd_string( char const * str) {
+    ParsedCommand pc = {};
     int result = try_match(NUM_PATTERNS, patterns, str, &pc);
     if ( result != MATCH_FOUND ) {
         pc.verb_command = CMD_NO_MATCH;
     } else {
         // for move commands, capture the verb_object_command for the direction
         if (pc.verb_command == CMD_MOVE) {
-            struct ParsedCommand dpc = {};
+            ParsedCommand dpc = {};
             int match_result =     try_match(6, direction_patterns, pc.verb_object, &dpc);
             if (match_result == MATCH_FOUND) {
                 strcpy(pc.verb_object, dpc.verb);

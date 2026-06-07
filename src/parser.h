@@ -47,6 +47,7 @@ enum Command {
     CMD_QUIT  = 35062,  // oewn-02686624-v (Interlingual Index: i35062)
 
     CMD_GOD,
+    CMD_DEBUG,
 };
 
 constexpr size_t PC_BUFFER_LEN = 1024;
