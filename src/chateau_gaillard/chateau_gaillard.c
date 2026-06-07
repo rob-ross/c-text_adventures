@@ -114,7 +114,7 @@ static int calc_score(GameState *gs) {
 //// ------------------------------------------------------------
 
 static void display_score(GameState *gs) {
-    if (GLOBAL_silent_mode) return;
+    if (GLOBALS.silent_mode) return;
     const int rooms_visited = room_count_visited();
     const int num_rooms = room_num_rooms();
 
@@ -125,7 +125,7 @@ static void display_score(GameState *gs) {
 }
 
 static void display_conclusion(const GameState *gs) {
-    if (GLOBAL_silent_mode) return;
+    if (GLOBALS.silent_mode) return;
 
     set_char_sleep(_30ms); // so final text display is slowed down
 
@@ -301,7 +301,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     monster_tally = (int)(monster_tally * ferocity_multiplier);
 
 
-    if (!GLOBAL_silent_mode) {
+    if (!GLOBALS.silent_mode) {
         if (hero_tally == monster_tally) {
             display_line("You are evenly matched.");
         } else if (hero_tally > monster_tally) {
@@ -403,7 +403,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
 }
 
 bool cmd_look(GameState *gs, const ParsedCommand *pc) {
-    // this is a presentation layer only command. It just displays text to the user they have already seen.
+    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
     display_room_desc(gs);
     display_room_content(gs);
     return true;
@@ -694,6 +694,9 @@ static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
         const Object *o = room_find_object_named(room, pc->verb_object);
         if (o) {
             id = o->id;
+        } else {
+            vdisplay_line("I don't see any %s here.", pc->verb_object);
+            return false;
         }
     }
 
@@ -1123,7 +1126,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
 
     vdisplay_line("The %s has the following stats:", monster_name);
     display_char_attributes(m->stats);
-    display_line("Your stats are:");
+    display_line("\nYour stats are:");
     display_char_attributes(gs->stats);
     display_line("Which attributes to fight with? (choose 2):");
     display_line("1: STR, 2: CHA, 3: DEX, 4: INT, 5: WIS, 6: CON");
@@ -1194,7 +1197,7 @@ bool check_game_over(GameState *gs) {
 
     for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
         if (gs->stats.as_array[i] <= 0) {
-            if (!GLOBAL_silent_mode) {
+            if (!GLOBALS.silent_mode) {
                 display_char_attributes(gs->stats);
                 display_line("You are exhausted, so this adventure must end.");
                 gs->QU = 2;
@@ -1601,6 +1604,7 @@ static bool main_game_loop(GameState *gs) {
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
     room_set_visit_started_flag(current_room);
+
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
         if ( GLOBALS.debug_mode ) {
@@ -1656,21 +1660,22 @@ static bool main_game_loop(GameState *gs) {
     char prompt_buffer[1024] = {};
     snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
     const ParsedCommand pc = parse_user_command( prompt_buffer, "I don't know how to do that.");
-
-    // display("You chose ");
-    // printf("%d %s\n",pc.command, pc.object);
     const enum Command cmd = pc.verb_command;
-
-
-    // -----------------------------------------------------------------
-    //      Player Presentation Only
-    // -----------------------------------------------------------------
 
     if (cmd == CMD_QUIT) {
         set_char_sleep(saved_sleep_duration);
         room_set_visited_flag(current_room);
         return cmd_quit(gs);
     }
+
+    // -----------------------------------------------------------------
+    //      Player Presentation Only
+    // -----------------------------------------------------------------
+
+    if (cmd ==  CMD_DEBUG && pc.verb[0] == '1' ) {
+        display_globals();
+    }
+
     if (cmd == CMD_HELP) {
         display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
     }
