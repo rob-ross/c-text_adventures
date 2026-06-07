@@ -20,10 +20,9 @@
  * DEBUG:
 clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
-    -std=c23 -o citadel_of_pershu.out citadel_of_pershu.c \
-    ../mersenne_twister.c ../common/console_utils.c ../common/string.c ../parser.c ../objects.c ../rooms.c ../monsters.c
-
-
+    -std=c23 -o citadel_of_pershu.out citadel_of_pershu.c ../adventure_shared.c \
+      ../mersenne_twister.c ../common/console_utils.c ../common/string.c ../parser.c ../objects.c \
+      ../rooms.c ../monsters.c ../roblib/string_utils.c
 */
 
 #include "citadel_of_pershu.h"
@@ -91,7 +90,7 @@ struct GlobalState GLOBALS = {
     .char_sleep_visited_duration = _1ms,
     .debug_normal_sleep = 0,
     .debug_visited_sleep = 0,
-    .debug_mode = true,
+    .debug_mode = false,
 };
 
 
@@ -119,7 +118,7 @@ static void display_status(const GameState * gs) {
 
 static void display_inventory(const GameState * gs) {
     display_status(gs);
-    actor_display_inventory(gs, false);
+    actor_display_inventory(gs, false, false);
 }
 
 
@@ -159,7 +158,7 @@ static void display_help_info(void) {
     display_line("\nVALID COMMANDS ARE:\n");
 
     display_line("[H]elp       [I]nventory  [Q]uit");
-    display_line("[A]ttributes S[c]ore");
+    display_line("[A]ttributes S[c]ore      [L]ook");
     display_line("[R]etreat    [F]ight");
     display_line("[T]ake       Dro[p]");
     display_line("[N]orth      [S]outh");
@@ -167,13 +166,9 @@ static void display_help_info(void) {
     display_line("[U]p         [D]own");
 
     display_line("\nDEBUG:");
-    display_line("g[L]obals  [M]agic  [1]GameState [2]Reset");
+    display_line("[1]Globals  [2]GameState [3]Reset  [M]agic");
 }
 
-//debug methods
-void display_globals(void) {
-    printf("\nplayer_name=%s, char_sleep_duration=%d, silent_mode=%d\n", GLOBALS.player_name, GLOBALS.char_sleep_duration, GLOBALS.silent_mode);
-}
 
 
 
@@ -548,7 +543,7 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
 static bool cmd_drop(GameState * gs) {
     int item_index = 0;
 
-    actor_display_inventory(gs, true);
+    actor_display_inventory(gs, true, false);
     item_index = get_int("Enter the number of the object to drop (0 for none): ", 0, gs->items_len + 1);
     if ( item_index == 0 )   return true;  // exit without dropping anything
 
@@ -979,27 +974,6 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
         case 'P':
             result =  action_drop(gs, arg1);
             break;
-        case 'H':
-            display_help_info();
-            result = true;
-            break;
-        case 'I':
-            display_inventory(gs);
-            result = true;
-            break;
-        case 'A':
-            display_char_attributes(gs->stats);
-            result = true;
-            break;
-        case 'C':
-            // These are valid turns, but have no state-solving logic for ML.
-            display_score(gs);
-            result = true;
-            break;
-        case 'Q':
-            gs->completed = true; // Signal the engine to stop
-            result = true;
-            break;
         default:
             // Unknown action
             result = false;
@@ -1010,6 +984,13 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
     update_perception(gs);
 
     return result;
+}
+
+bool cmd_look(GameState *gs) {
+    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
+    display_room_desc(gs);
+    display_room_content(gs);
+    return true;
 }
 
 /**
@@ -1042,9 +1023,10 @@ bool check_game_over(GameState *gs) {
 
 
 static bool main_game_loop(GameState * gs) {
-    uint32_t saved_sleep_duration = GLOBAL_char_sleep_duration;
+    uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
+    room_set_visit_started_flag(current_room);
 
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
@@ -1061,14 +1043,7 @@ static bool main_game_loop(GameState * gs) {
         // user can always type "look" to re-display room desc.
         display_line("");
         display_room_desc(gs);
-        // display_line("");
         display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
-        if (room_id == ROOM_START && gs->room_prev == 0 ) {
-            // first room, we display initial inventory.
-            // Afterward, the user can view them with an explicit "inv" command
-            // display_line("");
-            display_inventory(gs);
-        }
     }
 
 
@@ -1078,42 +1053,65 @@ static bool main_game_loop(GameState * gs) {
         return END_GAME;
     }
 
+    // speed up the display of text for the rest of the turn.
+    if ( GLOBALS.debug_mode ) {
+        set_char_sleep( GLOBALS.debug_visited_sleep );
+    } else {
+        set_char_sleep(GLOBALS.char_sleep_visited_duration);
+    }
 
+    // process user input
     flush_input();
     char cmd = get_command_char("\n> ", VALID_COMMANDS, nullptr);
-
-    //todo (rob) debug code
-    if (cmd == 'L') {
-        display_globals();
-    }
-    if (cmd == 'M') {
-        gs->magic = 50;
-    }
-    if (cmd == '1') {
-        display_game_state(gs);
-    }
-    if (cmd == '2') {
-        reset(gs, DEBUG_RAND_SEED);
-    }
 
     if (cmd == 'Q') {
         set_char_sleep(saved_sleep_duration);
         room_set_visited_flag(current_room);
-
         return cmd_quit(gs);
     }
 
-    if ( !monster_check(gs, cmd) ) {
-        room_set_visited_flag(current_room);
-        return true;
+    // -----------------------------------------------------------------
+    //          DEBUG COMMANDS
+    // -----------------------------------------------------------------
+
+    if (cmd == '1') {
+        display_globals();
+    }
+    if (cmd == '2') {
+        display_game_state(gs);
+    }
+    if (cmd == '3') {
+        reset(gs, DEBUG_RAND_SEED);
+    }
+    if (cmd == 'M') {
+        gs->magic = 50;
     }
 
-    if ( cmd == 'F' ) {
+    // -----------------------------------------------------------------
+    //      Player Presentation Only
+    // -----------------------------------------------------------------
+
+
+    if (cmd == 'H' ) {
+        display_help_info();
+    } else if (cmd == 'L') {
+        cmd_look(gs);
+    } else if (cmd == 'I' ) {
+        display_inventory(gs);
+    } else if (cmd == 'A' ) {
+        display_char_attributes(gs->stats);
+    } else if (cmd == 'C' ) {
+        display_score(gs);
+    } else if ( !monster_check(gs, cmd) ) {
+        room_set_visited_flag(current_room);
+        return true;
+    } else if ( cmd == 'F' ) {
         //specialized code to prompt user and gather options to pass to perform_action()
         cmd_fight(gs);
-    } else if (cmd == 'P'){
+    } else if (cmd == 'P') {
         cmd_drop(gs);
-    } else {
+    }
+    else {
         // Now the human call and the ML call use the exact same entry point
         perform_action(gs, cmd, 0,0, 0);
     }
@@ -1154,12 +1152,14 @@ int main_citadel_of_pershu(void) {
 
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
-    display_line("Your attributes are:");
+    display_line("Your character attribute stats are:");
     display_char_attributes(gs.stats);
+    display_line("");
+    display_line("--------------------------------------------------------------------------------");
     display_line("");
 
     // obj_repr();
-    monsters_names_repr();
+    // monsters_names_repr();
     // room_rooms_repr();
 
     bool continue_loop;

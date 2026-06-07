@@ -47,7 +47,7 @@ constexpr int DROWNING_ROOM             = 44;
 constexpr bool CONTINUE_GAME = true;
 constexpr bool END_GAME      = false;
 
-char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
+char const * const VALID_COMMANDS = "HIQACLRFTPNSEWUDM123";
 
 const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in a room
 const int MAX_PLAYER_OBJECTS = 9; // max number of items that can be carried
