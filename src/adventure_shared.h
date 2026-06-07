@@ -116,7 +116,7 @@ typedef struct GameState {
 int  actor_calc_inventory_value(const GameState *gs);
 void actor_clamp_stats(GameState *gs, int min, int max);
 int  actor_count_of_objects(const GameState *gs);
-void actor_display_inventory(const GameState * gs, bool show_item_index);
+void actor_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value );
 bool actor_has_any_items(const GameState * gs);
 bool actor_has_item(const GameState *gs, object_id id);
 bool actor_has_item_named(const GameState *gs, char const *item_name);
