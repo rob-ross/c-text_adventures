@@ -17,9 +17,18 @@
 #include <ctype.h>
 #include <stdarg.h> // Added for variadic functions
 
+struct GlobalState {
+    const char * player_name;
+    bool         silent_mode;
+    uint32_t     char_sleep_duration;
+    uint32_t     char_sleep_visited_duration;
+    uint32_t     debug_normal_sleep;
+    uint32_t     debug_visited_sleep;
+    bool         debug_mode;
+};
+extern struct GlobalState GLOBALS;
 
-uint32_t GLOBAL_char_sleep_duration = _15ms;
-bool   GLOBAL_silent_mode = true;
+
 
 
 //// ------------------------------------------------------------
@@ -36,14 +45,14 @@ void cls() {
 
 /** API for ML/AI to suppress text output */
 void set_silent_mode(const bool silent) {
-    GLOBAL_silent_mode = silent;
+    GLOBALS.silent_mode = silent;
 }
 
 // sets the current sleep duration (in microseconds) for future calls to char_sleep().
 // returns the previous sleep duration value
 uint32_t set_char_sleep(const uint32_t microseconds) {
-    const uint32_t temp = GLOBAL_char_sleep_duration;
-    GLOBAL_char_sleep_duration = microseconds;
+    const uint32_t temp = GLOBALS.char_sleep_duration;
+    GLOBALS.char_sleep_duration = microseconds;
     return temp;
 }
 
@@ -56,7 +65,7 @@ void char_sleep(const int32_t microseconds) {
     if (microseconds >= 0) {
         sleep_time = microseconds;
     } else {
-        sleep_time = GLOBAL_char_sleep_duration;
+        sleep_time = GLOBALS.char_sleep_duration;
     }
     if (sleep_time > 0) {
         // usleep() takes argument in microseconds
@@ -66,7 +75,7 @@ void char_sleep(const int32_t microseconds) {
 
 //display string without adding newline
 void display(char const* msg ) {
-    if (GLOBAL_silent_mode) return;
+    if ( GLOBALS.silent_mode ) return;
     if (!msg) { msg = "(null)"; }
 
     fflush(stdout);
@@ -79,7 +88,7 @@ void display(char const* msg ) {
 
 //displays the string and adds newline to end.
 void display_line(char const* msg ) {
-    if (GLOBAL_silent_mode) return;
+    if (GLOBALS.silent_mode) return;
     display(msg);
     putchar('\n');
     fflush(stdout);
@@ -89,7 +98,7 @@ void display_line(char const* msg ) {
 // Internal helper function for vdisplay and vdisplay_line
 // This function performs the formatting and character-by-character display without adding a newline.
 static void _vdisplay_internal(const char * restrict format, va_list args_orig) { // NOLINT(*-reserved-identifier)
-    if (GLOBAL_silent_mode) return;
+    if (GLOBALS.silent_mode) return;
 
     // Determine the size needed for the formatted string
     va_list args_copy_for_size;
@@ -122,7 +131,7 @@ static void _vdisplay_internal(const char * restrict format, va_list args_orig) 
 
 // supports format string and variadic args (without adding a newline)
 void vdisplay(const char * restrict format, ...) {
-    if (GLOBAL_silent_mode) return;
+    if (GLOBALS.silent_mode) return;
 
     va_list args;
     va_start(args, format);
@@ -132,7 +141,7 @@ void vdisplay(const char * restrict format, ...) {
 
 // calls vdisplay() and appends a newline.
 void vdisplay_line(const char * restrict format, ...) {
-    if (GLOBAL_silent_mode) return;
+    if (GLOBALS.silent_mode) return;
 
     va_list args;
     va_start(args, format);
