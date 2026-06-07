@@ -17,6 +17,10 @@
 #include <ctype.h>
 #include <stdarg.h> // Added for variadic functions
 
+// todo (rob) this is messy. We want a GLOBALS object to share among all TU for truly global values.
+// but to avoid cyclic dependencies this has to be re-declared here since we can't have console_utils
+// importing the main TU. We'll probably have to change this again back to a GLOBALS object scoped to just
+// this TU with getter/setter methods for users of this TU.
 struct GlobalState {
     const char * player_name;
     bool         silent_mode;
