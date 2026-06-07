@@ -43,7 +43,7 @@ int actor_count_of_objects(const GameState *gs) {
     return gs->items_len;
 }
 
-void actor_display_inventory(const GameState * gs, bool show_item_index) {
+void actor_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value ) {
     if (GLOBALS.silent_mode) return;
     if (!actor_has_any_items(gs)) {
         display_line("You are carrying nothing.");
@@ -54,11 +54,23 @@ void actor_display_inventory(const GameState * gs, bool show_item_index) {
     const int items_len = gs->items_len;
     for (int bag_index = 0; bag_index < items_len; ++bag_index ) {
         if (gs->items[bag_index]) {
-            if (show_item_index) {
-                
-                vdisplay(" %.3d. %s\n", bag_index + 1, obj_name_for_id(gs->items[bag_index]));
+            char const * fmt;
+            const Object *o = obj_find_object(gs->items[bag_index]);
+            if (show_item_index && show_item_value && o->value != 0) {
+                fmt = " % 3d. %s worth $%d";
+                vdisplay_line(fmt, bag_index + 1, o->name, o->value );
+            } else if ( !show_item_index && !show_item_value) {
+                fmt = " %s";
+                vdisplay_line(fmt, o->name );
+            } else if (show_item_index) {
+                fmt = " % 3d. %s";
+                vdisplay_line(fmt, bag_index + 1, o->name );
+            } else if (o->value != 0) {
+                fmt = " %s worth $%d";
+                vdisplay_line(fmt, o->name, o->value );
             } else {
-                vdisplay(" %s\n", obj_name_for_id(gs->items[bag_index]));
+                fmt = " %s";
+                vdisplay_line(fmt, o->name );
             }
         }
     }
@@ -162,7 +174,7 @@ void display_game_state(const GameState *gs) {
     room_repr(room_find_room(gs->room));
     room_graph_entry_repr(gs->room);
     display_char_attributes(gs->stats);
-    actor_display_inventory(gs, false);
+    actor_display_inventory(gs, true, true);
     printf("\n");
     printf("Rooms visited:\n");
 
