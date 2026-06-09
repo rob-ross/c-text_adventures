@@ -34,6 +34,8 @@ Interface: Provide a json_parse(const char *input) function that returns a point
 #include <ctype.h>
 #include "json_parser.h"
 
+#include <stdio.h>
+
 typedef struct {
     const char *json;
     int line;
@@ -77,7 +79,7 @@ static json_value *parse_value(json_context *ctx, json_error *error) {
 }
 
 json_value *json_parse(const char *json, json_error *error) {
-    if (!json) return NULL;
+    if (!json) return nullptr;
 
     json_context ctx = {json, 1, 1};
     return parse_value(&ctx, error);
@@ -107,4 +109,44 @@ void json_value_free(json_value *value) {
             break;
     }
     free(value);
+}
+
+
+// -----------------------------------------------------------------
+//      COMPILED PATTERNS
+// -----------------------------------------------------------------
+
+static RegexPattern patterns[] = {
+    {REGEX_TRUE,          {}, "true",  TOK_TRUE  },
+    {REGEX_FALSE,         {}, "false", TOK_FALSE  },
+    {REGEX_NULL,          {}, "null",  TOK_NULL  },
+    {REGEX_LEFT_BRACKET,  {}, "[",     TOK_LEFT_BRACKET  },
+    {REGEX_RIGHT_BRACKET, {}, "]",     TOK_RIGHT_BRACKET  },
+};
+
+constexpr int NUM_PATTERNS = sizeof(patterns) / sizeof(patterns[0]) - 1;
+constexpr int COMPILE_SUCCESS = 0;
+
+// Compiles each regex pattern
+// Returns COMPILE_SUCCESS (0) if no errors, otherwise returns error code > 0.
+static int jsonp_regex_init(void) {
+
+    int reti = COMPILE_SUCCESS;
+    for (int i = 0; i < NUM_PATTERNS; i++) {
+        reti = regcomp(&patterns[i].compiled_regex, patterns[i].pattern_string, REG_ICASE | REG_EXTENDED);
+        if ( reti != COMPILE_SUCCESS) {
+            char msgbuf[100];
+            regerror(reti, &patterns[i].compiled_regex, msgbuf, sizeof(msgbuf));
+            fprintf(stderr, "Regex compilation failed for '%s': %s\n", patterns[i].pattern_string, msgbuf);
+            return reti; // Exit early on compilation error
+        }
+    }
+    return COMPILE_SUCCESS;
+}
+
+void jsonp_init() {
+    // compile regexp patterns
+    jsonp_regex_init();
+    // allocate arena
+
 }

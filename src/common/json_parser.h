@@ -6,13 +6,83 @@
 // Created 2026/06/02 01:37:49 PDT
 
 
+/*
+ *
+JSON-text = ws value ws
+These are the six structural characters:
+begin-array     = ws %x5B ws  ; [ left square bracket
+begin-object    = ws %x7B ws  ; { left curly bracket
+end-array       = ws %x5D ws  ; ] right square bracket
+end-object      = ws %x7D ws  ; } right curly bracket
+name-separator  = ws %x3A ws  ; : colon
+value-separator = ws %x2C ws  ; , comma
+
+ws = *(
+        %x20 /  ; Space
+        %x09 /  ; Horizontal tab
+        %x0A /  ; Line feed or New line
+        %x0D )  ; Carriage return
 
 
+A JSON value MUST be an object, array, number, or string, or one of the following three literal names:
+   false
+   null
+   true
+
+The literal names MUST be lowercase.  No other literal names are allowed.
+   value = false / null / true / object / array / number / string
+
+false = %x66.61.6c.73.65    ; false
+null  = %x6e.75.6c.6c       ; null
+true  = %x74.72.75.65       ; true
+
+
+*/
+#pragma once
 
 #ifndef JSON_PARSER_H
 #define JSON_PARSER_H
+#include <_regex.h>
 
-#include <stddef.h>
+enum Token {
+    TOK_TRUE,
+    TOK_FALSE,
+    TOK_NULL,
+    TOK_LEFT_BRACKET,
+    TOK_RIGHT_BRACKET,
+    TOK_LEFT_BRACE,
+    TOK_RIGHT_BRACE,
+    TOK_COLON,
+    TOK_COMMA,
+
+};
+
+typedef struct {
+    const char *pattern_string;
+    regex_t compiled_regex;
+    const char *name; // For easier identification in output
+    enum Token token;
+} RegexPattern;
+
+// -----------------------------------------------------------------
+//      REGULAR EXPRESSION STRINGS
+// -----------------------------------------------------------------
+
+// RSL: "Regex Start of Line"
+#define SP       "[[:space:]]*"
+#define WS       "[0x20|0x09|0x0A|0x0D]"
+#define WS_star  "[0x20|0x09|0x0A|0x0D]*"
+
+static const char * const REGEX_TRUE   = WS_star "true"  WS_star;
+static const char * const REGEX_FALSE  = WS_star "false" WS_star;
+static const char * const REGEX_NULL   = WS_star "null"  WS_star;
+static const char * const REGEX_LEFT_BRACKET   = WS_star "["  WS_star;
+static const char * const REGEX_RIGHT_BRACKET  = WS_star "]"  WS_star;
+
+
+
+
+
 
 typedef enum {
     JSON_NULL,
