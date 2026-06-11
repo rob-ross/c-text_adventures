@@ -148,7 +148,8 @@ static void display_score(const GameState * gs) {
     const int rooms_visited = room_count_visited();
     printf("\nturns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d\n",
         gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
-    printf("You completed %3.0f%% of the quest.\n", (double)rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1 ) );
+    printf("You completed %3.0f%% of the quest.\n",
+           (double) rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1));
 
 }
 
@@ -422,9 +423,76 @@ static void cleanup(GameState * gs) {
 
 
 static int calc_score(const GameState * gs) {
+    int cash = gs->cash;
     int sum_attributes = gs->stats.strength + gs->stats.charisma + gs->stats.dexterity +
         gs->stats.intelligence + gs->stats.wisdom + gs->stats.constitution;
-    return 3 * gs->cash +  30 * gs->monsters_killed + 3 * sum_attributes + gs->turns  ;
+    int monsters_killed = gs->monsters_killed;
+    double monster_win_ratio = 0;
+    if (gs->monsters_fought > 0) {
+        monster_win_ratio = (double)monsters_killed / gs->monsters_fought;
+    }
+
+    int num_monsters = monsters_num_monsters();
+    double monster_fought_ratio =
+        (double)gs->monsters_fought / (num_monsters - 1.0);  // can't kill dwarf
+
+
+    int turns = gs->turns;
+    // we need to tune this. I am looking forward to using ML to determine this value!
+    // This is the theoretical minimum number of turns required to maximize your score.
+    // 100 is just a starting heuristic
+    int ideal_turns = 107;
+    double turn_ratio = 0;
+    if (turns > 0 && gs->completed) {
+        turn_ratio = (double)ideal_turns / turns;
+    }
+
+    int rooms_visited = room_count_visited();
+    int nice_rooms    = room_num_nice_rooms();
+    double room_ratio = (double)rooms_visited/nice_rooms;
+
+    // todo tune this
+    // cash : 0- 1730 in this game
+    // sum_attributes - 63 is average at start when in good health
+    // monsters_killed  - 19 total possible (can't kill dwarf)
+    // monster_win_ratio - max 1
+    // monster_fought_ratio - max 1
+    // turns - 1 to ??? we'll tune this.
+    // turn ratio - can be < or > 1 if user performs better than ideal
+    // rooms_visited - max 43 in this game. 48 total rooms, -1 for NULL room, -4 death rooms = 43.
+    // room_ratio - max 1
+
+    // user can't fully control attribute values at end of game, so weight this least with 1
+    // cash is fully controllable, but looks like it dominates scoring in this game.
+    // it's unlikely the player can visit every room and kill every monster
+    // there's an optimal number of turns. The user should be rewarded for achieving a low score
+    // in this game rooms visited are slightly linked to monsters killed, as there are monsters in almost
+    // half the rooms.
+    // We should reward visiting all rooms
+
+
+    int weighted_score = 0;
+
+    weighted_score += cash;
+    weighted_score += sum_attributes;
+    if (monsters_killed >= 19) weighted_score += 100; // bonus
+    weighted_score += (int)(200 * monster_fought_ratio);
+    weighted_score +=  3 * monsters_killed;
+    if (monster_win_ratio >= .9999) {
+        weighted_score += 100;
+    }
+
+    if (rooms_visited >= 43) weighted_score += 100; // bonus
+    weighted_score += (int)(250 * room_ratio);
+
+    if (turns <= ideal_turns ) weighted_score += 100; // bonus
+    weighted_score +=  (int)(250 * turn_ratio);
+
+    if (gs->completed && !gs->is_dead) {
+        weighted_score += 200;
+    }
+
+    return weighted_score;
 }
 
 static bool cmd_quit(const GameState * gs) {

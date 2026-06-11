@@ -213,6 +213,13 @@ int room_num_rooms(void) {
     return (int)pvt_rooms->size;
 }
 
+int room_num_nice_rooms(void) {
+    // todo (rob) we need to add a flag like "is_death_room" to the Room struct so we can compute this
+    // dynamically. right now we hard-code this in the .h file for the main file.
+
+    return (int)pvt_rooms->size; // - NUM_DEATH_ROOMS
+}
+
 
 void room_repr(const Room *r) {
     printf("(Room){ .id=%d, .name='%s', .desc='%.20s...'", r->id, r->name, r->desc);

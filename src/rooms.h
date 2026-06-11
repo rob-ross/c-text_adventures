@@ -120,8 +120,10 @@ int  room_index_for_object(const Room *r, int object_id );
 
 bool room_is_full(const Room *r );
 bool room_is_empty(const Room *r);
+// Total number of rooms in the model
 int  room_num_rooms(void);
-
+// These are the rooms you get points for visiting, as opposed to the death rooms where you die.
+int room_num_nice_rooms(void);
 
 void room_repr(const Room *r);
 void room_all_rooms_repr();

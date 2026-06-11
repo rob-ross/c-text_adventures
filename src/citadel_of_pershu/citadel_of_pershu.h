@@ -35,7 +35,7 @@ constexpr int NUM_TREASURES     = 19;
 
 constexpr int ROOM_START                =  6;
 constexpr int ROOM_END                  = 31;
-constexpr int LIBRARY_ROOM              = 4;
+constexpr int LIBRARY_ROOM              =  4;
 constexpr int WINE_CELLAR_EAST          = 12;
 constexpr int BEDCHAMBER_ROOM           = 15;
 constexpr int MARBLE_HALL               = 20;

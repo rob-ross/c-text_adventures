@@ -14,7 +14,7 @@ function(add_adventure_executable target_name main_source macro_name)
             src/objects.c
             src/monsters.c
             src/common/string.c
-            src/roblib/string_utils.c
+            src/roblib/string/string_utils.c
     )
 
     target_include_directories(${target_name} PUBLIC include)

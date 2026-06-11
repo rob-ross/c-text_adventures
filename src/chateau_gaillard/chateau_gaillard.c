@@ -1667,31 +1667,44 @@ static bool main_game_loop(GameState *gs) {
         return cmd_quit(gs);
     }
 
-    // -----------------------------------------------------------------
-    //      Player Presentation Only
-    // -----------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    //      Player Presentation Only - doesn't require changes to the model
+    // ---------------------------------------------------------------------
 
-    if (cmd ==  CMD_DEBUG && pc.verb[0] == '1' ) {
-        display_globals();
-    }
+    switch (cmd) {
+        case CMD_DEBUG: {
+            if (pc.verb[0] == '1') {
+                display_globals();
+            }
+            break;
+        }
+        case CMD_HELP: {
+            display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
+            break;
+        }
+        case CMD_LOOK: {
+            cmd_look(gs, &pc);
+            break;
+        }
+        case CMD_INV: {
+            actor_display_inventory(gs, true, true);
+            break;
+        }
+        case CMD_STATS: {
+            display_char_attributes(gs->stats);
+            break;
+        }
+        case CMD_SCORE: {
+            display_score(gs);
+            break;
+        }
+        case CMD_GOD: {
+            cmd_god_mode(gs, &pc);
+            break;
+        }
 
-    if (cmd == CMD_HELP) {
-        display_paginated("No help for mortals in this game! Although, reading and drinking may help...", 80);
-    }
-    if (cmd == CMD_LOOK) {
-        cmd_look(gs, &pc);
-    }
-    if (cmd == CMD_INV) {
-        actor_display_inventory(gs, true, true);
-    }
-    if (cmd == CMD_STATS) {
-        display_char_attributes(gs->stats);
-    }
-    if (cmd == CMD_SCORE) {
-        display_score(gs);
-    }
-    if (cmd == CMD_GOD ) {
-        cmd_god_mode(gs, &pc);
+        default:
+            break;
     }
 
     // -----------------------------------------------------------------
