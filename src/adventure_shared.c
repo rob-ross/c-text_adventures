@@ -232,22 +232,24 @@ void display_room_content(GameState * gs) {
 
 void display_room_desc(GameState * gs) {
     if (GLOBALS.silent_mode) return;
+    const Room *r = room_find_room(gs->room);
 
-    if (!gs->has_torch && ROOM_GRAPH[gs->room][RGINDEX_TREASURE] != 1 ) {
+    if ( !r->is_lit_bit && !gs->has_torch && !room_contains_lit_object(r) ) {
         display_line("It is too dark to see anything.");
-    } else {
-        const Room *r = room_find_room(gs->room);
-        display_line(r->name);
-        if (r->preamble) {
-            display_random_room_text(gs, r->preamble);
-        }
-
-        display_paginated(r->desc, 80);
-
-        if (r->epilog) {
-            display_random_room_text(gs, r->epilog);
-        }
+        return;
     }
+
+    display_line(r->name);
+    if (r->preamble) {
+        display_random_room_text(gs, r->preamble);
+    }
+
+    display_paginated(r->desc, 80);
+
+    if (r->epilog) {
+        display_random_room_text(gs, r->epilog);
+    }
+
 }
 
 void display_room_monster(GameState * gs) {
@@ -279,7 +281,7 @@ void display_room_treasure(const GameState * gs) {
     const Room *room = room_find_room(gs->room);
     if (room_is_empty(room)) return;
 
-    if ( !gs->has_torch && !room_contains_object(room, ITEM_TORCH) ) {
+    if ( !room->is_lit_bit && !gs->has_torch && !room_contains_lit_object(room) ) {
         return;
     }
 
