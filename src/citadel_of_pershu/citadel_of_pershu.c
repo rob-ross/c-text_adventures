@@ -22,7 +22,7 @@ clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werr
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
     -std=c23 -o citadel_of_pershu.out citadel_of_pershu.c ../adventure_shared.c \
       ../mersenne_twister.c ../common/console_utils.c ../common/string.c ../parser.c ../objects.c \
-      ../rooms.c ../monsters.c ../roblib/string_utils.c
+      ../rooms.c ../monsters.c ../roblib/string/string_utils.c
 */
 
 #include "citadel_of_pershu.h"
