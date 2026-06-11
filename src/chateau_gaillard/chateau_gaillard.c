@@ -310,7 +310,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
             vdisplay_line("It looks like the odds are in favor of the %s.", monster_name);
         }
         vdisplay_line("The %s - %d", monster_name, monster_tally);
-        vdisplay_line("You - %d", hero_tally);
+        vdisplay_line("%s - %d", gs->player_name->buffer, hero_tally);
     }
 
     // we'll pause a bit after every turn during the fight
