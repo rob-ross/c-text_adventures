@@ -143,12 +143,11 @@ static void display_conclusion(const GameState * gs) {
 static void display_score(const GameState * gs) {
     if (GLOBALS.silent_mode) return;
 
-    display("\nSCORE: ");
-    printf("%d\n", calc_score(gs));
+    vdisplay_line("\nSCORE: %d\n", calc_score(gs) );
     const int rooms_visited = room_count_visited();
-    printf("\nturns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d\n",
+    vdisplay_line("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
         gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
-    printf("You completed %3.0f%% of the quest.\n",
+    vdisplay_line("You completed %3.0f%% of the quest.\n",
            (double) rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1));
 
 }
@@ -355,7 +354,7 @@ static ObjectData get_object_data(void) {
     return (ObjectData){
         .size = num_objectz,
         .data = {
-            { .id =  1, .name = "Flaming Torch",         } ,
+            { .id =  1, .name = "Flaming Torch",         .is_light_source_bit = true, .is_lit_bit = true} ,
             { .id =  2, .name = "Silver Key",            },
             { .id =  3, .name = "Gold Key",              },
             { .id =  4, .name = "Sword",                 },
@@ -436,7 +435,6 @@ static int calc_score(const GameState * gs) {
     double monster_fought_ratio =
         (double)gs->monsters_fought / (num_monsters - 1.0);  // can't kill dwarf
 
-
     int turns = gs->turns;
     // we need to tune this. I am looking forward to using ML to determine this value!
     // This is the theoretical minimum number of turns required to maximize your score.
@@ -454,7 +452,7 @@ static int calc_score(const GameState * gs) {
     // todo tune this
     // cash : 0- 1730 in this game
     // sum_attributes - 63 is average at start when in good health
-    // monsters_killed  - 19 total possible (can't kill dwarf)
+    // monsters_killed  - 17 total possible
     // monster_win_ratio - max 1
     // monster_fought_ratio - max 1
     // turns - 1 to ??? we'll tune this.
@@ -470,12 +468,11 @@ static int calc_score(const GameState * gs) {
     // half the rooms.
     // We should reward visiting all rooms
 
-
     int weighted_score = 0;
 
     weighted_score += cash;
     weighted_score += sum_attributes;
-    if (monsters_killed >= 19) weighted_score += 100; // bonus
+    if (monsters_killed >= 17) weighted_score += 100; // bonus
     weighted_score += (int)(200 * monster_fought_ratio);
     weighted_score +=  3 * monsters_killed;
     if (monster_win_ratio >= .9999) {

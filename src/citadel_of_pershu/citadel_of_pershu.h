@@ -30,6 +30,21 @@
 #include "../monsters.h"
 #include "../objects.h"
 
+
+enum Item {
+    ITEM_NULL [[maybe_unused]],
+    ITEM_TORCH,
+    ITEM_SILVER_KEY,
+    ITEM_GOLD_KEY,
+    ITEM_SWORD,
+    ITEM_WAR_HAMMER,
+    ITEM_CHAIN_MAIL,
+    ITEM_SHIELD,
+    ITEM_CLOAK,
+    ITEM_WAND,
+    ITEM_COUNT
+};
+
 constexpr int NUM_DEATH_ROOMS   =  4;
 constexpr int NUM_TREASURES     = 19;
 
