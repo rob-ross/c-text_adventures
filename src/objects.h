@@ -19,19 +19,19 @@
 ////
 //// ------------------------------------------------------------
 
-enum Item {
-    ITEM_NULL [[maybe_unused]],
-    ITEM_TORCH,
-    ITEM_SILVER_KEY,
-    ITEM_GOLD_KEY,
-    ITEM_SWORD,
-    ITEM_WAR_HAMMER,
-    ITEM_CHAIN_MAIL,
-    ITEM_SHIELD,
-    ITEM_CLOAK,
-    ITEM_WAND,
-    ITEM_COUNT
-};
+// enum Item {
+//     ITEM_NULL [[maybe_unused]],
+//     ITEM_TORCH,
+//     ITEM_SILVER_KEY,
+//     ITEM_GOLD_KEY,
+//     ITEM_SWORD,
+//     ITEM_WAR_HAMMER,
+//     ITEM_CHAIN_MAIL,
+//     ITEM_SHIELD,
+//     ITEM_CLOAK,
+//     ITEM_WAND,
+//     ITEM_COUNT
+// };
 
 typedef int object_id;
 
