@@ -792,7 +792,7 @@ static bool cmd_fight(GameState * gs) {
 static bool process_retreat(GameState * gs) {
     const int room = gs->room;
     if (!ROOM_GRAPH[room][RGINDEX_MONSTER]) {
-        display_line("There is nothing to retreat from->");
+        display_line("There is nothing to retreat from");
         return false;
     }
 
@@ -811,7 +811,7 @@ static bool process_retreat(GameState * gs) {
         }
     }
 
-    // randomly move to an adjacent room-> If current room has paths to itself, new room may not change
+    // randomly move to an adjacent room. If current room has paths to itself, new room may not change
     int retreat_index = rnd_range(gs, 0, num_exits);
 
     if ( rnd_d(gs) < .6 || num_exits == 0 || retreat_index == room) {
