@@ -1,0 +1,5 @@
+# monster file for werewolves_and_wanderers
+FEROCIOUS WEREWOLF  # ff = 5
+FANATICAL FLESHGORG # ff = 10
+MALOVENTY MALDEMER  # ff = 15
+DEVASTATING ICE-DRAGON  # ff = 20
