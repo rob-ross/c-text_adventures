@@ -122,6 +122,19 @@ bool room_clear_monster(const Room *r) {
     return true;
 }
 
+bool room_contains_lit_object(const Room *r ) {
+    const int num_objects = r->objects_len;
+    for (int i = 0; i < num_objects; ++i) {
+        const Object *o = obj_find_object(r->objects[i]);
+        if (o) {
+            if (o->is_light_source_bit && o->is_lit_bit) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool room_contains_object(const Room *r, const object_id id) {
     const int len = r->objects_len;
     for (int i = 0; i < len; ++i) {

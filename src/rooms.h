@@ -102,6 +102,8 @@ int  room_remove_object(const Room *room, int object_id);
 void room_remove_all_objects(room_id id);
 
 bool room_clear_monster(const Room *r);
+// Returns true if there is an object in the room that emits light and is on
+bool room_contains_lit_object(const Room *r );
 bool room_contains_object(const Room *r, object_id id);
 int  room_count_of_objects(const Room *r);
 int  room_count_visited();
