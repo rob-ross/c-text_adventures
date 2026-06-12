@@ -45,7 +45,8 @@ constexpr int ROOM_END           = 11;
 const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in a room
 const int MAX_PLAYER_OBJECTS = 6; // max number of items that can be carried
 
-
+constexpr bool CONTINUE_GAME = true;
+constexpr bool END_GAME      = false;
 
 
 int ROOM_GRAPH[20][10] = {
@@ -415,6 +416,34 @@ void do_room_actions(GameState *gs) {
         display_room_desc(gs);
     }
 }
+/**
+ * Death and Win condition check
+ * RETURNS: true if the game is over (win or loss).
+ * The caller should check gs->is_dead or gs->completed to see the outcome.
+ */
+bool check_game_over(GameState *gs) {
+    if (gs->completed) return true;
+
+    if (gs->room == ROOM_END ) {
+        gs->completed = true;
+        gs->game_over = true;
+        return true;
+    }
+
+    for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
+        if (gs->stats.as_array[i] <= 0) {
+            if (!GLOBALS.silent_mode) {
+                display_char_attributes(gs->stats);
+                display_line("\nYour combined attributes are no longer\nenough to sustain you... You are dead.");
+            }
+            gs->is_dead = true;
+            gs->game_over = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 
 //// ------------------------------------------------------------
 ////
@@ -577,28 +606,57 @@ static void cleanup(GameState * gs) {
 // 160 REM MAJOR HANDLING ROUTINE
 // returns true if still alive
 static bool main_game_loop(GameState * gs) {
+    uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
+    const room_id room_id = gs->room;
+    const Room *current_room = room_find_room(room_id);
+    room_set_visit_started_flag(current_room);
+
+    if (current_room->is_visited_bit) {
+        // if we've already seen this room, speed up output display
+        if ( GLOBALS.debug_mode ) {
+            set_char_sleep( GLOBALS.debug_visited_sleep );
+        } else {
+            set_char_sleep( GLOBALS.char_sleep_visited_duration );
+        }
+    }
+
+    if (gs->room != gs->room_last_turn) {
+        // only display room desc once when first entering room. Reduces screen clutter and scrolling.
+        // user can always type "look" to re-display room desc.
+        display_line("");
+        display_room_desc(gs);
+        display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
+    }
+
+    if (check_game_over(gs)){
+        set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+        return END_GAME;
+    }
+
+    // speed up the display of text for the rest of the turn.
+    if ( GLOBALS.debug_mode ) {
+        set_char_sleep( GLOBALS.debug_visited_sleep );
+    } else {
+        set_char_sleep(GLOBALS.char_sleep_visited_duration);
+    }
+
     gs->strength -= 5;
 
     if (gs->strength <= 15) {
         printf("WARNING, %s, YOUR STRENGTH\nIS RUNNING LOW\n", gs->player_name->buffer);
     }
-    if (gs->strength <= 0) {
-        //goto 2300
-        //REM DEATH
-        gs->is_dead = true;
-        return false; // is dead
-    }
 
     gs->turns += 1;
     printf("%s, YOUR STRENGTH IS %d\n", gs->player_name->buffer, gs->strength);
 
-    display_inventory(gs);
-
-    display_room_desc(gs);
+    // display_inventory(gs);
+    //
+    // display_room_desc(gs);
 
 
     int room_contents = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    printf("debug: room_contents = %d\n", room_contents);
+
     if ( room_contents > 0 ) {
         printf("THERE IS TREASURE HERE WORTH $%d\n", room_contents);
     } else if (room_contents < 0 ) {
@@ -699,12 +757,12 @@ static bool main_game_loop(GameState * gs) {
         // move command
         int direction_index = calc_room_graph_direction_index(first_letter);
         gs->room = ROOM_GRAPH[gs->room][direction_index];
-        if (gs->room == 11) {
-            // Exit!!
-            gs->completed = true;
-            return false;
-        }
-        return true;
+        // if (gs->room == 11) {
+        //     // Exit!!
+        //     gs->completed = true;
+        //     return false;
+        // }
+        return CONTINUE_GAME;
     }
 
 
@@ -739,8 +797,18 @@ static bool main_game_loop(GameState * gs) {
 
     }
 
+    set_char_sleep(saved_sleep_duration);
 
-    return true; // continue game
+    if (room_id == gs->room) {
+        // if room at end of turn is same as start of turn, update this so we don't display the room desc again
+        gs->room_last_turn = room_id;
+    } else {
+        gs->room_last_turn = gs->room_prev;
+    }
+
+    room_set_visited_flag(current_room);
+
+    return CONTINUE_GAME;
 }
 
 

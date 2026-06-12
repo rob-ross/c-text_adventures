@@ -835,7 +835,7 @@ bool check_game_over(GameState *gs) {
                 display_line("\nYour combined attributes are no longer\nenough to sustain you... You are dead.");
             }
             gs->is_dead = true;
-            gs->completed = true;
+            gs->game_over = true;
             return true;
         }
     }
