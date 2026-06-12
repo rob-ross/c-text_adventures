@@ -134,7 +134,7 @@ static void _vdisplay_internal(const char * restrict format, va_list args_orig) 
 
 
 // supports format string and variadic args (without adding a newline)
-void vdisplay(const char * restrict format, ...) {
+void displayf(const char * restrict format, ...) {
     if (GLOBALS.silent_mode) return;
 
     va_list args;
@@ -144,7 +144,7 @@ void vdisplay(const char * restrict format, ...) {
 }
 
 // calls vdisplay() and appends a newline.
-void vdisplay_line(const char * restrict format, ...) {
+void display_linef(const char * restrict format, ...) {
     if (GLOBALS.silent_mode) return;
 
     va_list args;

@@ -182,10 +182,10 @@ static void display_score(GameState *gs) {
     const int rooms_visited = room_count_visited();
     const int num_rooms = room_num_rooms();
 
-    vdisplay_line("\nSCORE: %d\n", calc_score(gs) );
-    vdisplay_line("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
+    display_linef("\nSCORE: %d\n", calc_score(gs) );
+    display_linef("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
                   gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
-    vdisplay_line("You completed %3.0f%% of the quest.", (double) rooms_visited * 100.0 / (num_rooms - NUM_DEATH_ROOMS - 1));
+    display_linef("You completed %3.0f%% of the quest.", (double) rooms_visited * 100.0 / (num_rooms - NUM_DEATH_ROOMS - 1));
 }
 
 static void display_conclusion(const GameState *gs) {
@@ -194,7 +194,7 @@ static void display_conclusion(const GameState *gs) {
     set_char_sleep(_30ms); // so final text display is slowed down
 
     if (gs->completed && !gs->is_dead) {
-        vdisplay_line("\nYou have succeeded, %s",gs->player_name->buffer);
+        display_linef("\nYou have succeeded, %s",gs->player_name->buffer);
         display_line("You have escaped the Chateau Gaillard.");
         display_line("\nWell done!");
     } else if (gs->is_dead) {
@@ -235,13 +235,13 @@ bool check_can_move(GameState *gs, int const direction, const bool verbose) {
     }
 
     if (!strchr(VALID_DIRECTIONS, direction)) {
-        if (verbose) vdisplay_line("I don't know how to go %c.", direction);
+        if (verbose) display_linef("I don't know how to go %c.", direction);
         return false;
     }
 
     const int direction_index = calc_room_graph_direction_index((char) direction);
     if (direction_index == DIRECTION_ERR) {
-        if (verbose) vdisplay_line("Bad direction_index, first_letter='%c'", direction);
+        if (verbose) display_linef("Bad direction_index, first_letter='%c'", direction);
         return false;
     }
 
@@ -255,7 +255,7 @@ bool check_can_move(GameState *gs, int const direction, const bool verbose) {
 
     if (next_room_id < 0 || next_room_id >= num_rooms) {
         if (verbose) {
-            vdisplay_line("runtime error: next_room_index is out of bounds: %d, expected range [0, %d]",
+            display_linef("runtime error: next_room_index is out of bounds: %d, expected range [0, %d]",
                           next_room_id, num_rooms - 1);
         }
         return false;
@@ -289,9 +289,9 @@ static bool cmd_move(GameState *gs, const ParsedCommand *pc) {
     const enum Command ocmd = pc->verb_object_command;
     if ( (ocmd < CMD_NORTH || ocmd > CMD_DOWN)) {
         if (!pc->has_verb_object) {
-            vdisplay_line("%s where?", pc->verb);
+            display_linef("%s where?", pc->verb);
         } else {
-            vdisplay_line("I don't know how to %s '%s'.", pc->verb, pc->verb_object);
+            display_linef("I don't know how to %s '%s'.", pc->verb, pc->verb_object);
         }
         return false;
     }
@@ -325,10 +325,10 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     if (missing_weapon) {
         const Object *o = obj_find_object(weapon);
         if (!o) {
-            vdisplay_line("unknown weapon id=%d", weapon);
+            display_linef("unknown weapon id=%d", weapon);
             return false;
         }
-        vdisplay("You're not carrying a %s.", o->name);
+        displayf("You're not carrying a %s.", o->name);
         return false;
     }
     // We add to the hero_tally (8 - weapon)
@@ -371,10 +371,10 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
         } else if (hero_tally > monster_tally) {
             display_line("It looks like the odds are in favor of you.");
         } else {
-            vdisplay_line("It looks like the odds are in favor of the %s.", monster_name);
+            display_linef("It looks like the odds are in favor of the %s.", monster_name);
         }
-        vdisplay_line("The %s - %d", monster_name, monster_tally);
-        vdisplay_line("%s - %d", gs->player_name->buffer, hero_tally);
+        display_linef("The %s - %d", monster_name, monster_tally);
+        display_linef("%s - %d", gs->player_name->buffer, hero_tally);
     }
 
     // we'll pause a bit after every turn during the fight
@@ -393,13 +393,13 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
                 monster_tally--;
                 break;
             case 1:
-                vdisplay_line("The %s strikes out.", monster_name);
+                display_linef("The %s strikes out.", monster_name);
                 hero_tally--;
                 gs->stats.strength--;
                 gs->stats.charisma--;
                 break;
             case 2:
-                vdisplay_line("You draw the %s's blood!", monster_name);
+                display_linef("You draw the %s's blood!", monster_name);
                 monster_tally--;
                 break;
             case 3:
@@ -408,7 +408,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
                 gs->stats.dexterity--;
                 break;
             case 4:
-                vdisplay_line("The %s is tiring.", monster_name);
+                display_linef("The %s is tiring.", monster_name);
                 monster_tally--;
                 break;
             case 5:
@@ -419,7 +419,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
                 break;
             case 6:
             default:
-                vdisplay_line("You wound the %s", monster_name);
+                display_linef("You wound the %s", monster_name);
                 monster_tally--;
                 break;
         }
@@ -576,7 +576,7 @@ static bool cmd_open(GameState *gs, const struct ParsedCommand *pc) {
  */
 static bool can_drop_item(const GameState *gs, const object_id id, const bool verbose) {
     if (!id || !actor_has_item(gs, id)) {
-        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
+        if (verbose) display_linef("You are not carrying that item. object_id:%d", id);
         return false;
     }
     const Room *r = room_find_room(gs->room);
@@ -589,7 +589,7 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
 
     if (room_contains_object(r, id)) {
         if (verbose) {
-            vdisplay_line( "There is already a %s here.",  obj_name_for_id(id));
+            display_linef( "There is already a %s here.",  obj_name_for_id(id));
         }
         return false;
     }
@@ -641,16 +641,16 @@ static bool action_drop(GameState *gs, object_id id) {
  */
 static bool can_read_item(const GameState *gs, const object_id id, const bool verbose) {
     if (!id || !actor_has_item(gs, id)) {
-        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
+        if (verbose) display_linef("You are not carrying that item. object_id:%d", id);
         return false;
     }
     const Object *o = obj_find_object(id);
     if ( !o ) {
-        if (verbose) vdisplay_line("unknown object id=%d", id);
+        if (verbose) display_linef("unknown object id=%d", id);
         return false;
     }
     if ( !o->is_readable_bit) {
-        if (verbose) vdisplay_line("You can't read the %s", o->name);
+        if (verbose) display_linef("You can't read the %s", o->name);
         return false;
     }
     return true;
@@ -677,7 +677,7 @@ static bool cmd_read(GameState *gs, const ParsedCommand *pc) {
     // try to read this object by name
     const object_id id = actor_object_id_for_partial_name(gs, pc->verb_object);
     if ( id == OBJ_NOT_FOUND) {
-        vdisplay_line("You don't have a %s", pc->verb_object);
+        display_linef("You don't have a %s", pc->verb_object);
         return false;
     }
 
@@ -708,14 +708,14 @@ static bool can_take_item(const GameState *gs, const object_id id, const bool ve
     const Room *r = room_find_room(gs->room);
     if (room_index_for_object(r, id) == ROOM_ERR_OBJECT_NOT_FOUND) {
         if (verbose) {
-            vdisplay_line("object_id:%d", id);
+            display_linef("object_id:%d", id);
             display_line("That object is not here.");
         }
         return false;
     }
 
     if (actor_count_of_objects(gs) >= MAX_PLAYER_OBJECTS) {
-        if (verbose) vdisplay_line("You are already carrying your maximum of %d objects.", MAX_PLAYER_OBJECTS);
+        if (verbose) display_linef("You are already carrying your maximum of %d objects.", MAX_PLAYER_OBJECTS);
         return false;
     }
 
@@ -759,7 +759,7 @@ static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
         if (o) {
             id = o->id;
         } else {
-            vdisplay_line("I don't see any %s here.", pc->verb_object);
+            display_linef("I don't see any %s here.", pc->verb_object);
             return false;
         }
     }
@@ -771,7 +771,7 @@ static bool cmd_take(GameState *gs, const ParsedCommand *pc) {
 
     if (success) {
         // vdisplay_line("You now have the object_index:%d, %s", id, obj_name_for_object_id(id));
-        vdisplay_line("%s taken.", obj_name_for_id(id));
+        display_linef("%s taken.", obj_name_for_id(id));
     }
 
 
@@ -825,7 +825,7 @@ bool action_pay(GameState *gs, const monster_id unused ) {
             return false;
         }
         const Object *o = obj_find_object(id);
-        vdisplay_line(" the %s", o->name);
+        display_linef(" the %s", o->name);
         room_clear_monster(r);
         actor_remove_object(gs, id);
     }
@@ -843,9 +843,9 @@ static bool verify_monster_choice(const GameState *gs, const ParsedCommand *pc) 
     // case 1 no monster
     if (current_room->monster == 0) {
         if (pc->has_verb_object) {
-            vdisplay_line("There is no %s here to %s.", pc->verb_object, pc->verb);
+            display_linef("There is no %s here to %s.", pc->verb_object, pc->verb);
         } else {
-            vdisplay_line("There is nothing here to %s.", pc->verb);
+            display_linef("There is nothing here to %s.", pc->verb);
         }
         return false;
     }
@@ -854,7 +854,7 @@ static bool verify_monster_choice(const GameState *gs, const ParsedCommand *pc) 
         // player is referencing a monster by name
         const bool is_present = monsters_monster_is_in_room(pc->verb_object, current_room );
         if (!is_present) {
-            vdisplay_line("There is no %s here.", pc->verb_object);
+            display_linef("There is no %s here.", pc->verb_object);
             return false;
         }
     }
@@ -870,7 +870,7 @@ static bool cmd_pay(GameState *gs, const ParsedCommand *pc) {
     const Monster *m = monsters_find_monster(current_room->monster);
     // player is paying a monster by name
     if ( current_room->monster != MONSTER_DWARF ) {
-        vdisplay_line("You cannot %s the %s", pc->verb, m->name);
+        display_linef("You cannot %s the %s", pc->verb, m->name);
         //monster_is_insulted= true;
         return false;
     }
@@ -885,16 +885,16 @@ static bool cmd_pay(GameState *gs, const ParsedCommand *pc) {
 
 static bool can_drink_item(const GameState *gs, const object_id id, const bool verbose) {
     if (!id || !actor_has_item(gs, id)) {
-        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
+        if (verbose) display_linef("You are not carrying that item. object_id:%d", id);
         return false;
     }
     const Object *o = obj_find_object(id);
     if ( !o ) {
-        if (verbose) vdisplay_line("unknown object id=%d", id);
+        if (verbose) display_linef("unknown object id=%d", id);
         return false;
     }
     if ( !o->is_drinkable_bit) {
-        if (verbose) vdisplay_line("You can't drink the %s", o->name);
+        if (verbose) display_linef("You can't drink the %s", o->name);
         return false;
     }
     return true;
@@ -924,13 +924,13 @@ static bool cmd_drink(GameState *gs, const ParsedCommand *pc) {
     // This code can be pulled up and reused whenever a verb requires a vo
     // but one was not provided, or when the vo doesn't match anything in the user's inventory
     if (!pc->has_verb_object) {
-        vdisplay_line("%s what?", pc->verb);
+        display_linef("%s what?", pc->verb);
         return false;
     }
     // try to read this object by name
     const object_id id = actor_object_id_for_partial_name(gs, pc->verb_object);
     if ( id == OBJ_NOT_FOUND) {
-        vdisplay_line("You don't have a %s to %s", pc->verb_object, pc->verb);
+        display_linef("You don't have a %s to %s", pc->verb_object, pc->verb);
         return false;
     }
 
@@ -951,15 +951,15 @@ static bool can_unlock_room(const GameState *gs, const room_id room, const objec
     const int num_rooms = room_num_rooms();
 
     if (room < 1 || room >= num_rooms) {
-        if (verbose) vdisplay_line("Room id out of bounds: %d", room);
+        if (verbose) display_linef("Room id out of bounds: %d", room);
         return false;
     }
     if (key != OBJECT_SILVER_KEY && key != OBJECT_GOLD_KEY) {
-        if (verbose) vdisplay_line("Invalid key id: %d", key);
+        if (verbose) display_linef("Invalid key id: %d", key);
     }
     if (! actor_has_item(gs, key)) {
         const char *obj_name = obj_name_for_id(key);
-        if (verbose) vdisplay_line("You don't have the %s.", obj_name);
+        if (verbose) display_linef("You don't have the %s.", obj_name);
         return false;
     }
     if (ROOM_GRAPH[room][RGINDEX_REQUIRED_KEY] == 0 ) {
@@ -1098,10 +1098,10 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     Monster *m = monsters_find_monster(mid);
     const char * monster_name = monsters_name_for_id(mid);
     display_line("--------------------------------------");
-    vdisplay_line("Your opponent is a %s.", monster_name);
+    display_linef("Your opponent is a %s.", monster_name);
     int ferocity_factor = m->ferocity_factor;
 
-    vdisplay_line("The %s's danger level is %d", monster_name, ferocity_factor);
+    display_linef("The %s's danger level is %d", monster_name, ferocity_factor);
 
     // todo : possibly a clang bug that erroneously warns
     // " variable length array folded to constant array as an extension [-Werror,-Wgnu-folding-constant]"
@@ -1122,7 +1122,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
                 T[j] = OBJECT_SWORD;
                 break;
             case OBJECT_DAGGER:
-                vdisplay_line("Your dagger is useful against %ss.", monster_name);
+                display_linef("Your dagger is useful against %ss.", monster_name);
                 T[j] = OBJECT_DAGGER;
                 break;
             case OBJECT_MACE:
@@ -1134,7 +1134,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
                 T[j] = OBJECT_QUARTER_STAFF;
                 break;
             case OBJECT_MORNING_STAR:
-                vdisplay_line("Swinging your morning star may inflict heavy wounds on the %s.", monster_name);
+                display_linef("Swinging your morning star may inflict heavy wounds on the %s.", monster_name);
                 T[j] = OBJECT_MORNING_STAR;
                 break;
             case OBJECT_FALCHION:
@@ -1154,12 +1154,12 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     }
     int weapon_choice = 0;
     if (weapon_count == 0) {
-        vdisplay_line("You must fight the %s with your bare hands.", monster_name);
+        display_linef("You must fight the %s with your bare hands.", monster_name);
     } else if (weapon_count == 1) {
         weapon_choice = last_weapon;
         const Object *o = obj_find_object(weapon_choice);
         const char *weapon_name = o ? o->name : "unknown weapon";
-        vdisplay_line("You must fight with your %s.", weapon_name);
+        display_linef("You must fight with your %s.", weapon_name);
     } else {
         display_line("choose your weapon: ");
         for (int j = 0; j < items_len; ++j) {
@@ -1167,7 +1167,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
                 const object_id id = T[j];
                 const Object *o = obj_find_object(id);
                 if (!o) continue;
-                vdisplay_line("%d - %s", (j+1), o->name);
+                display_linef("%d - %s", (j+1), o->name);
             }
         }
         int choice = 0;
@@ -1183,12 +1183,12 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
         const Object *o = obj_find_object(weapon_choice);
         const char *weapon_name = o ? o->name : "unknown weapon";
         if (o) {
-            vdisplay_line("Right, so you choose to fight with the  %s.", weapon_name);
+            display_linef("Right, so you choose to fight with the  %s.", weapon_name);
         }
 
     }
 
-    vdisplay_line("The %s has the following stats:", monster_name);
+    display_linef("The %s has the following stats:", monster_name);
     display_char_attributes(m->stats);
     display_line("\nYour stats are:");
     display_char_attributes(gs->stats);

@@ -95,7 +95,7 @@ static void display_conclusion(const GameState * gs) {
     if (gs->completed && !gs->is_dead) {
         display_line("\nYOU'VE DONE IT!!");
         display_line("THAT WAS THE EXIT FROM THE CASTLE");
-        vdisplay_line("\nYOU HAVE SUCCEEDED, %s!\n", gs->player_name->buffer);
+        display_linef("\nYOU HAVE SUCCEEDED, %s!\n", gs->player_name->buffer);
         display_line("YOU MANAGED TO GET OUT OF THE CASTLE");
         display_line("\nWELL DONE!");
     } else if (gs->is_dead) {
@@ -105,18 +105,18 @@ static void display_conclusion(const GameState * gs) {
 
 static void display_score(const GameState * gs) {
     const int score = 3* gs->turns + 5* gs->strength + 2* gs->cash + gs->food + 30*gs->monsters_killed;
-    vdisplay_line("\nYOUR SCORE IS %d", score);
+    display_linef("\nYOUR SCORE IS %d", score);
 }
 
 
 static void display_status(const GameState * gs) {
     if (GLOBALS.silent_mode ) return;
     if (gs->cash > 0) {
-        vdisplay_line("YOU HAVE $%d WEALTH", gs->cash);
+        display_linef("YOU HAVE $%d WEALTH", gs->cash);
     }
 
     if (gs->food > 0 ) {
-        vdisplay_line("YOUR PROVISIONS SACK HOLDS %d UNITS OF FOOD", gs->food);
+        display_linef("YOUR PROVISIONS SACK HOLDS %d UNITS OF FOOD", gs->food);
     }
 }
 

@@ -113,7 +113,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3);
 
 static void display_status(const GameState * gs) {
     if (GLOBALS.silent_mode ) return;
-    vdisplay("magic spells: %d, $%d\n", gs->magic, gs->cash);
+    displayf("magic spells: %d, $%d\n", gs->magic, gs->cash);
 }
 
 static void display_inventory(const GameState * gs) {
@@ -129,7 +129,7 @@ static void display_conclusion(const GameState * gs) {
     set_char_sleep(_30ms);  // so final text display is slowed down
 
     if (gs->completed && !gs->is_dead) {
-        vdisplay_line("\nYou have succeeded, %s", gs->player_name->buffer);
+        display_linef("\nYou have succeeded, %s", gs->player_name->buffer);
         display_line("You have escaped the Citadel of Pershu.");
         display_line("\nWell done!");
     } else if (gs->is_dead) {
@@ -142,11 +142,11 @@ static void display_conclusion(const GameState * gs) {
 static void display_score(const GameState * gs) {
     if (GLOBALS.silent_mode) return;
 
-    vdisplay_line("\nSCORE: %d\n", calc_score(gs) );
+    display_linef("\nSCORE: %d\n", calc_score(gs) );
     const int rooms_visited = room_count_visited();
-    vdisplay_line("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
+    display_linef("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
         gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
-    vdisplay_line("You completed %3.0f%% of the quest.\n",
+    display_linef("You completed %3.0f%% of the quest.\n",
            (double) rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1));
 
 }
@@ -292,7 +292,7 @@ static bool can_take_item(const GameState *gs, const object_id id, const bool ve
     // in this game, objects with ids > ITEM_WAND are converted to cash and not 'takeable' by the player.
     if (id <= ITEM_WAND && actor_count_of_objects(gs) >= MAX_PLAYER_OBJECTS ) {
         if (verbose) {
-            vdisplay_line("You are already carrying your maximum of %d objects.",
+            display_linef("You are already carrying your maximum of %d objects.",
                     MAX_PLAYER_OBJECTS);
         }
         return false;
@@ -338,7 +338,7 @@ static bool cmd_take(GameState * gs) {
  */
 static bool can_drop_item(const GameState *gs, const object_id id, const bool verbose) {
     if (!id || !actor_has_item(gs, id)) {
-        if (verbose) vdisplay_line("You are not carrying that item. object_id:%d", id);
+        if (verbose) display_linef("You are not carrying that item. object_id:%d", id);
         return false;
     }
     const Room *r = room_find_room(gs->room);
@@ -351,7 +351,7 @@ static bool can_drop_item(const GameState *gs, const object_id id, const bool ve
 
     if (room_contains_object(r, id)) {
         if (verbose) {
-            vdisplay_line( "There is already a %s here.",  obj_name_for_id(id));
+            display_linef( "There is already a %s here.",  obj_name_for_id(id));
         }
         return false;
     }

@@ -30,8 +30,8 @@ void char_sleep(int32_t microseconds);
 void display(char const* msg );
 void display_line(char const* msg );
 // Add the format attribute here
-void vdisplay( const char * restrict format, ... ) __attribute__((format(printf, 1, 2)));
-void vdisplay_line( const char * restrict format, ...) __attribute__((format(printf, 1, 2)));
+void displayf( const char * restrict format, ... ) __attribute__((format(printf, 1, 2)));
+void display_linef( const char * restrict format, ...) __attribute__((format(printf, 1, 2)));
 void display_paginated(char const* msg, int num_columns);
 CharBuffer * get_char_buffer(char const *  prompt);
 char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);

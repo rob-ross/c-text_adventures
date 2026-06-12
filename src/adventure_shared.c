@@ -58,19 +58,19 @@ void actor_display_inventory(const GameState * gs, bool show_item_index, bool sh
             const Object *o = obj_find_object(gs->items[bag_index]);
             if (show_item_index && show_item_value && o->value != 0) {
                 fmt = " % 3d. %s worth $%d";
-                vdisplay_line(fmt, bag_index + 1, o->name, o->value );
+                display_linef(fmt, bag_index + 1, o->name, o->value );
             } else if ( !show_item_index && !show_item_value) {
                 fmt = " %s";
-                vdisplay_line(fmt, o->name );
+                display_linef(fmt, o->name );
             } else if (show_item_index) {
                 fmt = " % 3d. %s";
-                vdisplay_line(fmt, bag_index + 1, o->name );
+                display_linef(fmt, bag_index + 1, o->name );
             } else if (o->value != 0) {
                 fmt = " %s worth $%d";
-                vdisplay_line(fmt, o->name, o->value );
+                display_linef(fmt, o->name, o->value );
             } else {
                 fmt = " %s";
-                vdisplay_line(fmt, o->name );
+                display_linef(fmt, o->name );
             }
         }
     }
@@ -161,13 +161,13 @@ void actor_remove_all_objects( GameState * gs) {
 
 void display_char_attributes(const CharStats stats) {
     if (GLOBALS.silent_mode) return;
-    vdisplay_line("Strength:  %3d  Charisma:     %3d",
+    display_linef("Strength:  %3d  Charisma:     %3d",
         stats.strength, stats.charisma);
 
-    vdisplay_line("Dexterity: %3d  Intelligence: %3d",
+    display_linef("Dexterity: %3d  Intelligence: %3d",
         stats.dexterity, stats.intelligence );
 
-    vdisplay_line( "Wisdom:    %3d  Constitution: %3d",
+    display_linef( "Wisdom:    %3d  Constitution: %3d",
         stats.wisdom, stats.constitution);
 }
 
@@ -280,11 +280,11 @@ void display_room_monster(GameState * gs) {
         const Room *room =  room_find_room(gs->room);
         char const *m_name = (room == nullptr) ? "null" : monsters_name_for_id(room->monster);
         if ( chance < .33) {
-            vdisplay_line("You come face to face with a %s.", m_name);
+            display_linef("You come face to face with a %s.", m_name);
         } else if ( chance < .66){
-            vdisplay_line("The room contains a %s.", m_name);
+            display_linef("The room contains a %s.", m_name);
         } else {
-            vdisplay_line("LOOK OUT! There is a %s here!", m_name);
+            display_linef("LOOK OUT! There is a %s here!", m_name);
         }
     } else {
         display_line("You feel a dangerous presence!");
