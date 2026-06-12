@@ -46,6 +46,8 @@ const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in 
 const int MAX_PLAYER_OBJECTS = 6; // max number of items that can be carried
 
 
+
+
 int ROOM_GRAPH[20][10] = {
     { 0,  0,  0,  0,  0,  0,  0}, // Room 0
     { 0,  2,  0,  0,  0,  0,  0}, // Room 1
@@ -159,7 +161,26 @@ static void display_inventory_menu(struct GameState * gs) {
     printf("            0 - TO CONTINUE ADVENTURE\n");
 }
 
-static void do_inventory(struct GameState * gs) {
+char const * const VALID_COMMANDS = "QNSEWUDRFIBCTPMHAOL123";
+
+static void display_help_info(void) {
+    if (GLOBALS.silent_mode) return;
+
+    display_line("\nVALID COMMANDS ARE:\n");
+
+    display_line("[H]elp       [I]nventory  [Q]uit" );
+    display_line("[A]ttributes Sc[o]re      [L]ook" );
+    display_line("[R]etreat    [F]ight      [C]onsume" );
+    display_line("[T]ake       Dro[p]       [M]agic Amulet");
+    display_line("[N]orth      [S]outh      [B]uy");
+    display_line("[E]ast       [W]est");
+    display_line("[U]p         [D]own");
+
+    display_line("\nDEBUG:");
+    display_line("[1]Globals  [2]GameState [3]Reset  [M]agic");
+}
+
+static void cmd_buy( GameState * gs) {
     printf("PROVISIONS AND INVENTORY\n");
     if (gs->cash <=0 ) {
         printf("YOU HAVE NO MONEY.\n");
@@ -186,17 +207,25 @@ static void do_inventory(struct GameState * gs) {
             break;
         }
 
+        const Object *o = obj_find_object(option_index);
+        if (!o) {
+            printf("got null Object for id=%d\n", option_index);
+            return;
+        }
+
+
         if ( option_index != 4 ) {
-            gs->cash -= ITEM_COSTS[option_index];
-            gs->items[option_index] = true;
+            gs->cash -= o->value;
             if (gs->cash < 0) {
                 printf("YOU HAVE TRIED TO CHEAT ME!\n");
                 //punish user
                 gs->cash = 0;
-                for (int i = 0; i < ITEM_COUNT; ++i) {
-                    gs->items[i] = false;  // no soup for you!
-                }
+                actor_remove_all_objects(gs);
+                gs->has_torch = false;
                 gs->food = gs->food / 4 ;
+            } else {
+                actor_add_object(gs, option_index);
+                if (option_index == ITEM_LIGHT) gs->has_torch = true;
             }
         }
 
@@ -211,7 +240,7 @@ static void do_inventory(struct GameState * gs) {
                 } while ( !(food_quantity >= '0' && food_quantity <= '9') );
 
                 const int qty = food_quantity - '0';
-                int cost = qty * ITEM_COSTS[ITEM_OXY];
+                int cost = qty * o->value;
                 if (gs->cash - cost < 0 ) {
                     printf("YOU HAVEN'T GOT ENOUGH MONEY!\n");
                 } else {
@@ -226,7 +255,7 @@ static void do_inventory(struct GameState * gs) {
 }
 
 
-static void eat_food(struct GameState * gs) {
+static void cmd_eat(struct GameState * gs) {
     if (gs->food <= 0) return;
     for (;;) {
         char food_quantity;
@@ -248,12 +277,12 @@ static void eat_food(struct GameState * gs) {
     }
 }
 
-static void pick_up_treasure(struct GameState * gs) {
+static void cmd_take(struct GameState * gs) {
     if ( ROOM_GRAPH[gs->room][RGINDEX_TREASURE] <= 0 ) {
         printf("THERE IS NO TREASURE TO PICK UP.\n");
         return;
     }
-    if ( !gs->items[ITEM_LIGHT] ) {
+    if ( !gs->has_torch ) {
         printf("YOU CANNOT SEE WHERE IT IS\n");
         return;
     }
@@ -272,7 +301,7 @@ static void use_magic_amulet(struct GameState * gs) {
     }
 }
 
-static void fight(struct GameState * gs) {
+static void cmd_fight(struct GameState * gs) {
     if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE] >= 0) {
         return; // no monster to fight
     }
@@ -347,15 +376,14 @@ static void fight(struct GameState * gs) {
     ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
 }
 
-char const * const VALID_COMMANDS = "QNSEWUDRFICPM123";
 
-static void retreat(GameState * gs) {
+static void cmd_retreat(GameState * gs) {
     if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE] >= 0) {
         return; // no monster to retreat from
     }
     if ( (rand() % 100) > 69 ) {
         printf("NO, YOU MUST STAND AND FIGHT!\n");
-        fight(gs);
+        cmd_fight(gs);
         return;
     }
 
@@ -423,7 +451,7 @@ void reset(GameState * gs, const uint32_t seed) {
         for (;;) {
             // Generate a random number between 1 and 19
             int room_index = (rand() % 19) + 1;
-            if ( !(room_index == 6 || room_index == 11 || ROOM_GRAPH[room_index][RGINDEX_TREASURE] !=0 ) ) {
+            if ( !(room_index == ROOM_START || room_index == ROOM_END || ROOM_GRAPH[room_index][RGINDEX_TREASURE] !=0 ) ) {
                 int treasure = (rand() % 100) + 10;; // rand val between 10 and 109 inclusive
                 ROOM_GRAPH[room_index][RGINDEX_TREASURE] = treasure;
                 break;
@@ -436,7 +464,7 @@ void reset(GameState * gs, const uint32_t seed) {
         for (;;) {
             // Generate a random number between 1 and 19
             int room_index = (rand() % 19) + 1;
-            if ( !(room_index == 6 || room_index == 11 || ROOM_GRAPH[room_index][RGINDEX_TREASURE] !=0 ) ) {
+            if ( !(room_index == ROOM_START || room_index == ROOM_END || ROOM_GRAPH[room_index][RGINDEX_TREASURE] !=0 ) ) {
                 ROOM_GRAPH[room_index][RGINDEX_TREASURE] = -j;
                 break;
             }
@@ -508,6 +536,11 @@ static void initialize() {
     room_init(rd.size,rd.data);
 
     monsters_init("monsters.txt");
+    const int num_monsters = monsters_num_monsters();
+    for (int i = 1; i < num_monsters; ++i) {
+        Monster *m = monsters_find_monster(i);
+        m->ferocity_factor = 5 * i;
+    }
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
@@ -561,16 +594,11 @@ static bool main_game_loop(GameState * gs) {
 
     display_inventory(gs);
 
-    if (gs->items[ITEM_LIGHT]) {
-        //GOSUB 990:REM ROOM DESCRIPTION
-        display_room_desc(gs);
-        putchar('\n');
-    } else {
-        display_line("IT IS TOO DARK TO SEE ANYTHING\n");
-    }
+    display_room_desc(gs);
 
 
     int room_contents = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    printf("debug: room_contents = %d\n", room_contents);
     if ( room_contents > 0 ) {
         printf("THERE IS TREASURE HERE WORTH $%d\n", room_contents);
     } else if (room_contents < 0 ) {
@@ -683,24 +711,27 @@ static bool main_game_loop(GameState * gs) {
 
 
     switch (first_letter) {
-        case 'I':
+        case 'H':
+            display_help_info();
+            break;
+        case 'B':
             //INVENTORY/PROVISIONS
-            do_inventory(gs);
+            cmd_buy(gs);
             break;
         case 'C' :
-            eat_food(gs);
+            cmd_eat(gs);
             break;
-        case 'P':
-            pick_up_treasure(gs);
+        case 'T':
+            cmd_take(gs);
             break;
         case 'M':
             use_magic_amulet(gs);
             break;
         case 'R':
-            retreat(gs);
+            cmd_retreat(gs);
             break;
         case 'F':
-            fight(gs);
+            cmd_fight(gs);
             break;
 
 
@@ -738,7 +769,7 @@ int main_werewolves_and_wanderer(void) {
     display_line("");
 
     // obj_repr();
-    // monsters_names_repr();
+    monsters_names_repr();
     // room_rooms_repr();
 
     bool continue_loop;

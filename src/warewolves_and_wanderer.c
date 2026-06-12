@@ -284,7 +284,7 @@ static void display_inventory_menu(struct GameState * gs) {
     printf("            0 - TO CONTINUE ADVENTURE\n");
 }
 
-static void do_inventory(struct GameState * gs) {
+static void cmd_buy(struct GameState * gs) {
     printf("PROVISIONS AND INVENTORY\n");
     if (gs->wealth <=0 ) {
         printf("YOU HAVE NO MONEY.\n");
@@ -633,7 +633,7 @@ static bool major_handling_routine(struct GameState * gs) {
     switch (first_letter) {
         case 'I':
             //INVENTORY/PROVISIONS
-            do_inventory(gs);
+            cmd_buy(gs);
             break;
         case 'C' :
             eat_food(gs);
