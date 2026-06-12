@@ -137,7 +137,7 @@ bool actor_remove_object(GameState *gs, const object_id id) {
     if (id < 1 || id >= obj_num_objects()) {
         return false;
     }
-    int items_len = gs->items_len;
+    const int items_len = gs->items_len;
     for (int bag_index = 0; bag_index < items_len; ++bag_index) {
         if (gs->items[bag_index] == id) {
             gs->items[bag_index] = gs->items[items_len - 1];  // 'swap'
@@ -148,6 +148,14 @@ bool actor_remove_object(GameState *gs, const object_id id) {
         }
     }
     return false;
+}
+
+void actor_remove_all_objects( GameState * gs) {
+    const int items_len = gs->items_len;
+    for (int i = 0; i < items_len; ++i) {
+        obj_clear_location(gs->items[i]);
+        gs->items[i] = 0;
+    }
 }
 
 
@@ -168,6 +176,13 @@ void display_game_state(const GameState *gs) {
            "has_torch=%d, is_dead=%d, completed=%d, must_fight=%d }\n",
         gs->player_name->buffer, gs->room,  gs->turns, gs->cash, gs->monsters_killed,gs->monsters_fought, gs->magic,
         gs->has_torch, gs->is_dead, gs->completed, gs->must_fight);
+
+    printf("(items[%d]){ ", gs->items_len);
+    for (int i = 0; i < MAX_ITEMS_CAPACITY; ++i) {
+        printf("%d, ", gs->items[i]);
+    }
+    printf("}\n");
+
     struct ObservationSpace os = gs->perception;
     printf("(ObservationSpace){ .monster_is_visible=%d, .treasure_is_visible=%d, .must_fight=%d, .current_monster.id=%d, .current_treasure.id=%d }\n",
         os.monster_is_visible, os.treasure_is_visible, os.must_fight, os.current_monster.id, os.current_treasure.id);

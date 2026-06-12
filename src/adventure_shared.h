@@ -123,6 +123,7 @@ bool actor_has_item(const GameState *gs, object_id id);
 bool actor_has_item_named(const GameState *gs, char const *item_name);
 bool actor_add_object(GameState *gs, object_id id);
 bool actor_remove_object(GameState *gs, object_id id);
+void actor_remove_all_objects( GameState * gs);
 
 void display_char_attributes( CharStats stats );
 
