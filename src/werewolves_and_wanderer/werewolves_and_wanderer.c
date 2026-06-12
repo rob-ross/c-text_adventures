@@ -684,7 +684,7 @@ static bool main_game_loop(GameState * gs) {
     // printf("   you entered: %s\n", input_buffer);
     putchar('\n');
 
-    char first_letter;
+    char cmd_char;
     bool is_invalid_command = false;
 
     // process the next user command. First, check the command is valid for the current state
@@ -692,21 +692,21 @@ static bool main_game_loop(GameState * gs) {
         printf("WHAT DO YOU WANT TO DO? ");
         fscanf(stdin, "%s", input_buffer);
         // printf("   you entered: %s\n", input_buffer);
-        first_letter = (char)toupper(input_buffer[0]);
+        cmd_char = (char)toupper(input_buffer[0]);
 
-        is_invalid_command = ! strchr(VALID_COMMANDS, first_letter);
+        is_invalid_command = ! strchr(VALID_COMMANDS, cmd_char);
 
         if (is_invalid_command) {
-            printf("INVALID COMMAND: '%c'\n", first_letter);
+            printf("INVALID COMMAND: '%c'\n", cmd_char);
             continue;
         }
 
-        if (first_letter == 'Q') {
+        if (cmd_char == 'Q') {
             return false; // quit game
         }
 
         if (room_contents < 0 &&
-            !( first_letter == 'F' || first_letter == 'R' )) {
+            !( cmd_char == 'F' || cmd_char == 'R' )) {
             // if monster, can only Fight or Retreat
             printf("MONSTER! YOU MUST EITHER FIGHT OR RETREAT.\n");
             is_invalid_command = true;
@@ -714,21 +714,21 @@ static bool main_game_loop(GameState * gs) {
         }
 
         if (room_contents >= 0 &&
-            ( first_letter == 'F' || first_letter == 'R' )) {
+            ( cmd_char == 'F' || cmd_char == 'R' )) {
             // nothing to fight
             printf("THERE IS NO MONSTER.\n");
             is_invalid_command = true;
             continue;
         }
 
-        if (first_letter == 'C' && gs->food == 0) {
+        if (cmd_char == 'C' && gs->food == 0) {
             printf("YOU HAVE NO FOOD.\n");
             is_invalid_command = true;
             continue;
         }
 
-        if ( strchr(VALID_DIRECTIONS, first_letter) ) {
-            int direction_index = calc_room_graph_direction_index(first_letter);
+        if ( strchr(VALID_DIRECTIONS, cmd_char) ) {
+            int direction_index = calc_room_graph_direction_index(cmd_char);
             if (ROOM_GRAPH[gs->room][direction_index] == 0) {
                 printf("%s\n", BAD_MOVE_DESC[direction_index]);
                 is_invalid_command = true;
@@ -747,22 +747,22 @@ static bool main_game_loop(GameState * gs) {
     //          DEBUG COMMANDS
     // -----------------------------------------------------------------
 
-    if (first_letter == '1') {
+    if (cmd_char == '1') {
         display_globals();
     }
-    if (first_letter == '2') {
+    if (cmd_char == '2') {
         display_game_state(gs);
     }
-    if (first_letter == '3') {
+    if (cmd_char == '3') {
         reset(gs, DEBUG_RAND_SEED);
     }
 
     // 480 PRINT:PRINT:PRINT "----------------- -------------------"
     printf("\n\n----------------- -------------------\n");
 
-    if (strchr(VALID_DIRECTIONS, first_letter) ) {
+    if (strchr(VALID_DIRECTIONS, cmd_char) ) {
         // move command
-        int direction_index = calc_room_graph_direction_index(first_letter);
+        int direction_index = calc_room_graph_direction_index(cmd_char);
         gs->room = ROOM_GRAPH[gs->room][direction_index];
         // if (gs->room == 11) {
         //     // Exit!!
@@ -775,7 +775,7 @@ static bool main_game_loop(GameState * gs) {
 
 
 
-    switch (first_letter) {
+    switch (cmd_char) {
         case 'H':
             display_help_info();
             break;
@@ -803,7 +803,7 @@ static bool main_game_loop(GameState * gs) {
             break;
 
 
-        default: printf("UNHANDLED COMMAND '%c'\n", first_letter);
+        default: printf("UNHANDLED COMMAND '%c'\n", cmd_char);
 
     }
 
