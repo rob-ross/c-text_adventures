@@ -103,20 +103,20 @@ static void display_conclusion(const GameState * gs) {
     }
 }
 
-static void display_score(const struct GameState * gs) {
-    display_line("\nYOUR SCORE IS");
-    printf("%d\n", 3* gs->turns + 5* gs->strength + 2* gs->cash + gs->food + 30*gs->monsters_killed);
+static void display_score(const GameState * gs) {
+    const int score = 3* gs->turns + 5* gs->strength + 2* gs->cash + gs->food + 30*gs->monsters_killed;
+    vdisplay_line("\nYOUR SCORE IS %d", score);
 }
 
 
 static void display_status(const GameState * gs) {
     if (GLOBALS.silent_mode ) return;
     if (gs->cash > 0) {
-        printf("YOU HAVE $%d WEALTH\n", gs->cash);
+        vdisplay_line("YOU HAVE $%d WEALTH", gs->cash);
     }
 
     if (gs->food > 0 ) {
-        printf("YOUR PROVISIONS SACK HOLDS %d UNITS OF FOOD\n", gs->food);
+        vdisplay_line("YOUR PROVISIONS SACK HOLDS %d UNITS OF FOOD", gs->food);
     }
 }
 
@@ -127,7 +127,7 @@ static void display_inventory(const GameState * gs) {
 
 
 // first_letter must be in "NSEWUD"
-// return true if command was sucessfully processed. If false, the move is not allowed.
+// return true if the command was successfully processed. If false, the move is not allowed.
 static bool cmd_move(struct GameState * gs, char first_letter) {
 
     int location = gs->room;
@@ -781,6 +781,15 @@ static bool main_game_loop(GameState * gs) {
             break;
         case 'L':
             cmd_look(gs);
+            break;
+        case 'I':
+            display_inventory(gs);
+            break;
+        case 'A':
+            display_char_attributes(gs->stats);
+            break;
+        case 'O':
+            display_score(gs);
             break;
         case 'B':
             //INVENTORY/PROVISIONS
