@@ -129,8 +129,7 @@ static void display_conclusion(const GameState * gs) {
     set_char_sleep(_30ms);  // so final text display is slowed down
 
     if (gs->completed && !gs->is_dead) {
-        display("\nYou have succeeded, ");
-        display_line(gs->player_name->buffer);
+        vdisplay_line("\nYou have succeeded, %s", gs->player_name->buffer);
         display_line("You have escaped the Citadel of Pershu.");
         display_line("\nWell done!");
     } else if (gs->is_dead) {
@@ -168,248 +167,6 @@ static void display_help_info(void) {
     display_line("\nDEBUG:");
     display_line("[1]Globals  [2]GameState [3]Reset  [M]agic");
 }
-
-
-
-
-
-//// ------------------------------------------------------------
-////
-////    INITIALIZE
-////
-//// ------------------------------------------------------------
-
-
-// one time inits of ROOM or ROOM_GRAPH data
-static void  init_rooms() {
-    RandomTextArray *rta;
-    // randomized text in Rooms 1, 18, 37, 39
-    // room 1
-    rta = create_rta(2);
-    // ROOMS[1].epilog = create_rta(2);
-    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="There is an exit to the west."};
-    rta->lines[1] = (RandomText){ .chance_percent = .5, .text="A tunnel leads to the south."};
-    room_set_epilog(1, rta);
-
-    // room 18
-    rta = create_rta(1);
-    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="A bat flies past you, shrieking."};
-    room_set_epilog(18, rta);
-    // room 37
-    rta = create_rta(2);
-    rta->lines[0] = (RandomText){ .chance_percent = .7, .text="But now it tells you there is\na hidden stairwell in the room."};
-    rta->lines[1] = (RandomText){ .chance_percent = .3, .text="The voice faintly murmurs of the door to the south."};
-    room_set_epilog(37, rta);
-    // room 39
-    rta = create_rta(1);
-    rta->lines[0] = (RandomText){ .chance_percent = .6, .text="A small door leads to the north\nand another to the east."};
-    room_set_epilog(39, rta);
-}
-
-
-// called at the start of each new game
-void reset(GameState * gs, const uint32_t seed) {
-    // reset GameState
-    *gs = (GameState){ .seed = seed, .player_name = gs->player_name, .room = ROOM_START, .cash = 100, .magic = 3 };
-    
-    mt_initialize_state(&gs->mt_state, seed);  // initialize the PRNG
-    
-    gs->stats = random_hero_stats(gs);
-
-    //clear all monsters, treasure
-    const int num_rooms = room_num_rooms();
-    for ( int room_index = 0; room_index < num_rooms; ++room_index ) {
-        // note: if we dynamically modify the edge graph we'll need to reset those edges here
-        ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
-        ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
-        ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
-        ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
-        const Room *r = room_find_room(room_index);
-        room_clear_monster( r );
-        room_remove_all_objects(room_index);
-    }
-    monsters_clear_all();
-    // special treasure items
-    room_add_object(room_find_room(ROOM_START),      ITEM_TORCH);
-    room_add_object(room_find_room(LIBRARY_ROOM),    ITEM_SILVER_KEY);
-    room_add_object(room_find_room(GLOVE_STOREROOM), ITEM_GOLD_KEY);
-
-    // allot random treasure
-    const int num_objects = obj_num_objects();
-    for (int treasure_index = 4; treasure_index < num_objects; ++treasure_index ) {
-        for (;;) {
-            int rand_room = rnd_range(gs, 1, 43 + 1);
-            const Room *r = room_find_room(rand_room);
-            if ( ! ( r->objects_len > 0 || rand_room == ROOM_START || rand_room == ROOM_END  ) ) {
-                room_add_object(room_find_room( rand_room ), treasure_index);
-                break;
-            }
-        }
-    }
-
-    const int num_monsters = monsters_num_monsters();
-    // allot monsters
-    for (int monster_index= 1; monster_index < num_monsters; ++monster_index ) {
-        for (;;) {
-            int rand_room = rnd_range(gs, 1, 43 + 1);
-            if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_MONSTER] ||
-                    rand_room == ROOM_START ||
-                    rand_room == ROOM_END ||
-                    rand_room == LIBRARY_ROOM ||
-                    rand_room == GLOVE_STOREROOM)) {
-                ROOM_GRAPH[rand_room][RGINDEX_MONSTER]  = monster_index;
-                CharStats stats = random_monster_stats(gs);
-                int ff = sum_character_stats(&stats);
-                room_set_monster(room_find_room(rand_room), monster_index);
-                monsters_update_monster(
-                    &(Monster){
-                        .name = monsters_name_for_id(monster_index),
-                        .id = monster_index,
-                        .ferocity_factor = ff,
-                        .stats = random_monster_stats(gs)
-                    });
-                break;
-            }
-        }
-    }
-
-
-    update_perception(gs);
-}
-
-static constexpr size_t num_roomz = 48;  // todo (temp) until room data is read from file
-typedef struct RoomData {
-    size_t size;
-    Room data[num_roomz];
-} RoomData;
-
-static RoomData get_room_data(void) {
-    return (RoomData){
-        .size = num_roomz,
-        .data = {
-            {.id =  0,  .name= "NULL ROOM",   .desc = "NULL ROOM"},
-            {.id =  1,  .name= "River",       .desc = "An underground river flows swiftly by."},
-            {.id =  2,  .name= "Food Store",  .desc = "You are in the Citadel's food storage area.\nOld cheeses and black loaves of bread can be seen, as well as many sacks of supplies."},
-            {.id =  3,  .name= "Kitchen",     .desc = "You are in the Citadel's kitchen. A huge joint of meat turns slowly over a raging fire. Doors lead into cupboards, as well as to the west and to the south."},
-            {.id =  4,  .name= "Library",     .desc = "This is the Central Library. Leather-bound volumes line the walls, right up to the ornately carved ceiling."},
-            {.id =  5,  .name= "Studio",      .desc = "This room is an awful mess. It used to be an artist's studio. Paint and old easels lie around the floor."},
-            {.id =  6,  .name= "Entrance",    .desc = "This is the entrance to the Citadel of Pershu.\nTurn now, if you wish. Many stronger than you have taken fright at its menacing towers and dark portals. If you wish to proceed, move east towards the black gaping doorway."},
-            {.id =  7,  .name= "Altar",       .desc = "A stone altar stands in the middle of the room with two dead candles on it. An old book lies on one part of the altar top, and a faded red parchment cloth covers the front of it."},
-            {.id =  8,  .name= "Black Tower", .desc = "You stand high on the black tower, the Citadel stretches to the north, south and east of you.\nThere is only one way out."},
-            {.id =  9,  .name= "North Cellar",.desc = "You are in the northern section of the Citadel's large wine cellar. Heavy barrels lie all around you in this end of the cellar. There is a door to the north and one to the south."},
-            {.id = 10,  .name= "West Cellar", .desc = "You are in the west wing of the wine cellar. There is a door to the west and one to the east. The central circular part of the cellar lies beyond the east door."},
-            {.id = 11,  .name= "Wine Cellar", .desc = "You are in the central circular area of the wine cellar. There is a door at each compass point."},
-            {.id = 12,  .name= "East Cellar", .desc = "You are in the east section of the wine cellar. There is a door to the west and one - which you cannot use,as it only allows entrance to where you now stand - to the east."},
-            {.id = 13,  .name= "South Cellar",.desc = "There are many, many wine bottles here lying on their sides in this southern section of the wine cellar. There is a dark, unfriendly-looking hole to the west and doors to the north and to the south."},
-            {.id = 14,  .name= "Armory",      .desc = "This is the Citadel's armory. Row upon row of shiny suits of armor are stored here." },
-            {.id = 15,  .name= "Bedchamber",    .desc = "You are in the ruler's bedchamber.\nA large fire burns in the south of the room, with a small door beside it. Other exits are to the north and to the west." },
-            {.id = 16,  .name= "Sand",          .desc = "Sand covers the floor of this curious room, heaped into drifts.\nBy peeping over the 'dunes' you can see a golden passage way leads to the west, and there is a door to the south. You are not sure whether or not you have seen all the exits." },
-            {.id = 17,  .name= "Gallery",       .desc = "You are in the picture gallery. Portraits of long-dead princes line all of the walls. The room is dominated by a huge landscape, hanging above the exit to the east which leads, via the gold passage way back to that curious room of sand." },
-            {.id = 18,  .name= "Tower Balcony", .desc = "You are on a remote tower balcony.\nThere are stairs here." },
-            {.id = 19,  .name= "Archway",       .desc = "You walk beneath a stone archway.\nYou can only walk north or south unless you decide to take the stairs." },
-            {.id = 20,  .name= "Marble Hall",       .desc = "This vast hall has a marble floor, and the slightest sound echos violently.\nThere are purple drapes concealing the exits from this hall." },
-            {.id = 21,  .name= "Glove Storeroom",   .desc = "You are in the glove storeroom.\nThe west door radiates heat.\nAnother door leads to the south." },
-            {.id = 22,  .name= "Silver Storeroom",  .desc = "You are in the silver crosses storeroom.\nThere are only two exits." },
-            {.id = 23,  .name= "Amulet Storeroom",  .desc = "You are in the amulet storeroom.\nDoors lead north and south." },
-            {.id = 24,  .name= "Kazoom Storeroom",  .desc = "You are in the kazoo storeroom.\nThere are two exits." },
-            {.id = 25,  .name= "Satchel Storeroom", .desc = "You are in the satchel storeroom." },
-            {.id = 26,  .name= "Wooden Storeroom",  .desc = "You are in the storeroom for wooden boxes... There are two exits." },
-            {.id = 27,  .name= "Vase Storage",      .desc = "This is where printed vases are stored... As you can easily see." },
-            {.id = 28,  .name= "Mine",              .desc = "The heavy air of this area seems to make your torch very dim-> You can hardly see that air is rushing up from somewhere.\nYou can just make out that this area must be a mine of some sort." },
-            {.id = 29,  .name= "Tunnels", .desc = "You appear to be in an endless labyrinth,lined with paintings.........\nWhichever way you turn, there seems to be more tunnels, all lined with paintings." },
-            {.id = 30,  .name= "South Tower", .desc = "This is the southern tower of the Citadel." },
-            {.id = 31,  .name= "Exit", .desc = "Well done, you have managed to find the exit.\nTake a deep breath of good, clean air..........." },
-            {.id = 32,  .name= "Meditation Room", .desc = "This room is filled with swirling smoke,so you cannot see... Air rushes past a statue of the goddess Diana. This must be the Citadel's meditation chamber." },
-            {.id = 33,  .name= "Bridge", .desc = "A small forked bridge crosses a stream here.\nYou can move north, south, or west." },
-            {.id = 34,  .name= "Cavern", .desc = "You are in a rough stone cavern. Stairs lead up from here.\nThere is also a single door which leads away from the cavern." },
-            {.id = 35,  .name= "Stable", .desc = "This is the former Citadel underground stable. It smells terrible." },
-            {.id = 36,  .name= "Courtyard", .desc = "You find yourself in an underground courtyard. Strange, twisted trees are around you, and a wind of incredible coldness blows from the east." },
-            {.id = 37,  .name= "Oracle", .desc = "This is the Oracle Room, although the mystic voice has not spoken for many years." },
-            {.id = 38,  .name= "Sacrifice Room", .desc = "Horrors. A cold shudder passes through you as you realize this is the priests' sacrifice room.\nDried-up blood is on the floor and a skull grins at you from high on the wall." },
-            {.id = 39,  .name= "Dungeon", .desc = "Old straw mattresses and rings chained to the wall tell you this was the Citadel's dungeon. The dungeon seems to stretch forever, with many small partitioned areas...." },
-            {.id = 40,  .name= "Alcove",  .desc = "You are in a small alcove, with a solid gray granite throne in the middle of it." },
-            {.id = 41,  .name= "Orc Guardroom", .desc = "This is the orc's guardroom, way below the ground. A stairwell ends here and a door leads to the east." },
-            {.id = 42,  .name= "Healing Pool",  .desc = "There is a healing pool here, with a dangerous, swirling area of water." },
-            {.id = 43,  .name= "Hall of Odric", .desc = "The Underpriests of Odric used this tiny hall for their forbidden worship eons ago. It is an unpleasant area,so you are thrilled to see a set of stone stairs." },
-
-            {.id = 44,  .name= "DEATH BY DROWNING",  .desc = "Water covers your head.\nYou are drowning.\nGLUG... GASP............" },
-            {.id = 45,  .name= "DEATH BY BURNING",  .desc = "The flames strike at you...\nas you slowly burn to death..."},
-            {.id = 46,  .name= "DEATH BY FREEZING", .desc = "You are hit by a freezing spell and turn into a block of perpetual living stone. This is the end."},
-            {.id = 47,  .name= "BOTTOMLESS PIT",    .desc = "You tumble down a bottomless pit.\nDown, down, down..."},
-
-        }
-    };
-}
-
-constexpr size_t num_objectz = 20;
-typedef struct ObjectData {
-    size_t size;
-    Object data[num_objectz];
-} ObjectData;
-
-
-// first 9 elements are items the user can use, carry, or drop (and pick up again.)
-// From Emeralds and higher, these are treasure that are converted to a cash equivalent
-static ObjectData get_object_data(void) {
-    return (ObjectData){
-        .size = num_objectz,
-        .data = {
-            { .id =  1, .name = "Flaming Torch",         .is_light_source_bit = true, .is_lit_bit = true} ,
-            { .id =  2, .name = "Silver Key",            },
-            { .id =  3, .name = "Gold Key",              },
-            { .id =  4, .name = "Sword",                 },
-            { .id =  5, .name = "War Hammer",            },
-            { .id =  6, .name = "Chain Mail Armor",      },
-            { .id =  7, .name = "Shield",                },
-            { .id =  8, .name = "Cloak of Protection",   },
-            { .id =  9, .name = "Wand of Fireballs",     },
-            { .id = 10, .name = "Emeralds",              .value =  99 },
-            { .id = 11, .name = "Silver Rings",          .value = 247 },
-            { .id = 12, .name = "Elven Amethysts",       .value = 166 },
-            { .id = 13, .name = "Diamond Dragon Eyes",   .value = 462 },
-            { .id = 14, .name = "Crystal Ball",          .value = 195 },
-            { .id = 15, .name = "Pieces of Eight",       .value = 231 },
-            { .id = 16, .name = "Elemental Gems",        .value = 162 },
-            { .id = 17, .name = "Shape-Shifting Stones", .value =  27 },
-            { .id = 18, .name = "Gold Doubloons",        .value = 141 },
-        }
-    };
-}
-
-// once time inits. Per-game inits happen in reset()
-void initialize() {
-    // note: random data is initialized in reset()
-    RoomData rd = get_room_data();
-    room_init(rd.size,rd.data);
-    
-    monsters_init("monsters.txt");
-    
-    ObjectData od = get_object_data();
-    obj_init(od.size, od.data);
-    
-    init_rooms();
-}
-
-
-
-
-//// ------------------------------------------------------------
-////
-////    CLEANUP
-////
-//// ------------------------------------------------------------
-
-
-static void cleanup(GameState * gs) {
-    room_destroy();
-    void *free_ptr = (void *) gs->player_name;
-    gs->player_name = nullptr;
-    free( free_ptr);
-    monsters_destroy();
-    obj_destroy();
-}
-
-
 
 
 
@@ -1086,6 +843,254 @@ bool check_game_over(GameState *gs) {
 }
 
 
+
+
+//// ------------------------------------------------------------
+////
+////    INITIALIZE
+////
+//// ------------------------------------------------------------
+
+
+// one time inits of ROOM or ROOM_GRAPH data
+static void  init_rooms() {
+    RandomTextArray *rta;
+    // randomized text in Rooms 1, 18, 37, 39
+    // room 1
+    rta = create_rta(2);
+    // ROOMS[1].epilog = create_rta(2);
+    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="There is an exit to the west."};
+    rta->lines[1] = (RandomText){ .chance_percent = .5, .text="A tunnel leads to the south."};
+    room_set_epilog(1, rta);
+
+    // room 18
+    rta = create_rta(1);
+    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="A bat flies past you, shrieking."};
+    room_set_epilog(18, rta);
+    // room 37
+    rta = create_rta(2);
+    rta->lines[0] = (RandomText){ .chance_percent = .7, .text="But now it tells you there is\na hidden stairwell in the room."};
+    rta->lines[1] = (RandomText){ .chance_percent = .3, .text="The voice faintly murmurs of the door to the south."};
+    room_set_epilog(37, rta);
+    // room 39
+    rta = create_rta(1);
+    rta->lines[0] = (RandomText){ .chance_percent = .6, .text="A small door leads to the north\nand another to the east."};
+    room_set_epilog(39, rta);
+}
+
+
+// -----------------------------------------------------------------
+//      called at the start of each new game
+// -----------------------------------------------------------------
+
+void reset(GameState * gs, const uint32_t seed) {
+    // reset GameState
+    *gs = (GameState){ .seed = seed, .player_name = GLOBALS.player_name, .room = ROOM_START, .cash = 100, .magic = 3 };
+
+    mt_initialize_state(&gs->mt_state, seed);  // initialize the PRNG
+
+    gs->stats = random_hero_stats(gs);
+
+    //clear all monsters, treasure
+    const int num_rooms = room_num_rooms();
+    for ( int room_index = 0; room_index < num_rooms; ++room_index ) {
+        // note: if we dynamically modify the edge graph we'll need to reset those edges here
+        ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
+        const Room *r = room_find_room(room_index);
+        room_clear_monster( r );
+        room_remove_all_objects(room_index);
+    }
+    monsters_clear_all();
+    // special treasure items
+    room_add_object(room_find_room(ROOM_START),      ITEM_TORCH);
+    room_add_object(room_find_room(LIBRARY_ROOM),    ITEM_SILVER_KEY);
+    room_add_object(room_find_room(GLOVE_STOREROOM), ITEM_GOLD_KEY);
+
+    // allot random treasure
+    const int num_objects = obj_num_objects();
+    for (int treasure_index = 4; treasure_index < num_objects; ++treasure_index ) {
+        for (;;) {
+            int rand_room = rnd_range(gs, 1, 43 + 1);
+            const Room *r = room_find_room(rand_room);
+            if ( ! ( r->objects_len > 0 || rand_room == ROOM_START || rand_room == ROOM_END  ) ) {
+                room_add_object(room_find_room( rand_room ), treasure_index);
+                break;
+            }
+        }
+    }
+
+    const int num_monsters = monsters_num_monsters();
+    // allot monsters
+    for (int monster_index= 1; monster_index < num_monsters; ++monster_index ) {
+        for (;;) {
+            int rand_room = rnd_range(gs, 1, 43 + 1);
+            if ( ! ( ROOM_GRAPH[rand_room][RGINDEX_MONSTER] ||
+                    rand_room == ROOM_START ||
+                    rand_room == ROOM_END ||
+                    rand_room == LIBRARY_ROOM ||
+                    rand_room == GLOVE_STOREROOM)) {
+                ROOM_GRAPH[rand_room][RGINDEX_MONSTER]  = monster_index;
+                CharStats stats = random_monster_stats(gs);
+                int ff = sum_character_stats(&stats);
+                room_set_monster(room_find_room(rand_room), monster_index);
+                monsters_update_monster(
+                    &(Monster){
+                        .name = monsters_name_for_id(monster_index),
+                        .id = monster_index,
+                        .ferocity_factor = ff,
+                        .stats = random_monster_stats(gs)
+                    });
+                break;
+            }
+        }
+    }
+
+
+    update_perception(gs);
+}
+
+static constexpr size_t num_roomz = 48;  // todo (temp) until room data is read from file
+typedef struct RoomData {
+    size_t size;
+    Room data[num_roomz];
+} RoomData;
+
+static RoomData get_room_data(void) {
+    return (RoomData){
+        .size = num_roomz,
+        .data = {
+            {.id =  0,  .name= "NULL ROOM",   .desc = "NULL ROOM"},
+            {.id =  1,  .name= "River",       .desc = "An underground river flows swiftly by."},
+            {.id =  2,  .name= "Food Store",  .desc = "You are in the Citadel's food storage area.\nOld cheeses and black loaves of bread can be seen, as well as many sacks of supplies."},
+            {.id =  3,  .name= "Kitchen",     .desc = "You are in the Citadel's kitchen. A huge joint of meat turns slowly over a raging fire. Doors lead into cupboards, as well as to the west and to the south."},
+            {.id =  4,  .name= "Library",     .desc = "This is the Central Library. Leather-bound volumes line the walls, right up to the ornately carved ceiling."},
+            {.id =  5,  .name= "Studio",      .desc = "This room is an awful mess. It used to be an artist's studio. Paint and old easels lie around the floor."},
+            {.id =  6,  .name= "Entrance",    .desc = "This is the entrance to the Citadel of Pershu.\nTurn now, if you wish. Many stronger than you have taken fright at its menacing towers and dark portals. If you wish to proceed, move east towards the black gaping doorway."},
+            {.id =  7,  .name= "Altar",       .desc = "A stone altar stands in the middle of the room with two dead candles on it. An old book lies on one part of the altar top, and a faded red parchment cloth covers the front of it."},
+            {.id =  8,  .name= "Black Tower", .desc = "You stand high on the black tower, the Citadel stretches to the north, south and east of you.\nThere is only one way out."},
+            {.id =  9,  .name= "North Cellar",.desc = "You are in the northern section of the Citadel's large wine cellar. Heavy barrels lie all around you in this end of the cellar. There is a door to the north and one to the south."},
+            {.id = 10,  .name= "West Cellar", .desc = "You are in the west wing of the wine cellar. There is a door to the west and one to the east. The central circular part of the cellar lies beyond the east door."},
+            {.id = 11,  .name= "Wine Cellar", .desc = "You are in the central circular area of the wine cellar. There is a door at each compass point."},
+            {.id = 12,  .name= "East Cellar", .desc = "You are in the east section of the wine cellar. There is a door to the west and one - which you cannot use,as it only allows entrance to where you now stand - to the east."},
+            {.id = 13,  .name= "South Cellar",.desc = "There are many, many wine bottles here lying on their sides in this southern section of the wine cellar. There is a dark, unfriendly-looking hole to the west and doors to the north and to the south."},
+            {.id = 14,  .name= "Armory",      .desc = "This is the Citadel's armory. Row upon row of shiny suits of armor are stored here." },
+            {.id = 15,  .name= "Bedchamber",    .desc = "You are in the ruler's bedchamber.\nA large fire burns in the south of the room, with a small door beside it. Other exits are to the north and to the west." },
+            {.id = 16,  .name= "Sand",          .desc = "Sand covers the floor of this curious room, heaped into drifts.\nBy peeping over the 'dunes' you can see a golden passage way leads to the west, and there is a door to the south. You are not sure whether or not you have seen all the exits." },
+            {.id = 17,  .name= "Gallery",       .desc = "You are in the picture gallery. Portraits of long-dead princes line all of the walls. The room is dominated by a huge landscape, hanging above the exit to the east which leads, via the gold passage way back to that curious room of sand." },
+            {.id = 18,  .name= "Tower Balcony", .desc = "You are on a remote tower balcony.\nThere are stairs here." },
+            {.id = 19,  .name= "Archway",       .desc = "You walk beneath a stone archway.\nYou can only walk north or south unless you decide to take the stairs." },
+            {.id = 20,  .name= "Marble Hall",       .desc = "This vast hall has a marble floor, and the slightest sound echos violently.\nThere are purple drapes concealing the exits from this hall." },
+            {.id = 21,  .name= "Glove Storeroom",   .desc = "You are in the glove storeroom.\nThe west door radiates heat.\nAnother door leads to the south." },
+            {.id = 22,  .name= "Silver Storeroom",  .desc = "You are in the silver crosses storeroom.\nThere are only two exits." },
+            {.id = 23,  .name= "Amulet Storeroom",  .desc = "You are in the amulet storeroom.\nDoors lead north and south." },
+            {.id = 24,  .name= "Kazoom Storeroom",  .desc = "You are in the kazoo storeroom.\nThere are two exits." },
+            {.id = 25,  .name= "Satchel Storeroom", .desc = "You are in the satchel storeroom." },
+            {.id = 26,  .name= "Wooden Storeroom",  .desc = "You are in the storeroom for wooden boxes... There are two exits." },
+            {.id = 27,  .name= "Vase Storage",      .desc = "This is where printed vases are stored... As you can easily see." },
+            {.id = 28,  .name= "Mine",              .desc = "The heavy air of this area seems to make your torch very dim-> You can hardly see that air is rushing up from somewhere.\nYou can just make out that this area must be a mine of some sort." },
+            {.id = 29,  .name= "Tunnels", .desc = "You appear to be in an endless labyrinth,lined with paintings.........\nWhichever way you turn, there seems to be more tunnels, all lined with paintings." },
+            {.id = 30,  .name= "South Tower", .desc = "This is the southern tower of the Citadel." },
+            {.id = 31,  .name= "Exit", .desc = "Well done, you have managed to find the exit.\nTake a deep breath of good, clean air..........." },
+            {.id = 32,  .name= "Meditation Room", .desc = "This room is filled with swirling smoke,so you cannot see... Air rushes past a statue of the goddess Diana. This must be the Citadel's meditation chamber." },
+            {.id = 33,  .name= "Bridge", .desc = "A small forked bridge crosses a stream here.\nYou can move north, south, or west." },
+            {.id = 34,  .name= "Cavern", .desc = "You are in a rough stone cavern. Stairs lead up from here.\nThere is also a single door which leads away from the cavern." },
+            {.id = 35,  .name= "Stable", .desc = "This is the former Citadel underground stable. It smells terrible." },
+            {.id = 36,  .name= "Courtyard", .desc = "You find yourself in an underground courtyard. Strange, twisted trees are around you, and a wind of incredible coldness blows from the east." },
+            {.id = 37,  .name= "Oracle", .desc = "This is the Oracle Room, although the mystic voice has not spoken for many years." },
+            {.id = 38,  .name= "Sacrifice Room", .desc = "Horrors. A cold shudder passes through you as you realize this is the priests' sacrifice room.\nDried-up blood is on the floor and a skull grins at you from high on the wall." },
+            {.id = 39,  .name= "Dungeon", .desc = "Old straw mattresses and rings chained to the wall tell you this was the Citadel's dungeon. The dungeon seems to stretch forever, with many small partitioned areas...." },
+            {.id = 40,  .name= "Alcove",  .desc = "You are in a small alcove, with a solid gray granite throne in the middle of it." },
+            {.id = 41,  .name= "Orc Guardroom", .desc = "This is the orc's guardroom, way below the ground. A stairwell ends here and a door leads to the east." },
+            {.id = 42,  .name= "Healing Pool",  .desc = "There is a healing pool here, with a dangerous, swirling area of water." },
+            {.id = 43,  .name= "Hall of Odric", .desc = "The Underpriests of Odric used this tiny hall for their forbidden worship eons ago. It is an unpleasant area,so you are thrilled to see a set of stone stairs." },
+
+            {.id = 44,  .name= "DEATH BY DROWNING",  .desc = "Water covers your head.\nYou are drowning.\nGLUG... GASP............" },
+            {.id = 45,  .name= "DEATH BY BURNING",  .desc = "The flames strike at you...\nas you slowly burn to death..."},
+            {.id = 46,  .name= "DEATH BY FREEZING", .desc = "You are hit by a freezing spell and turn into a block of perpetual living stone. This is the end."},
+            {.id = 47,  .name= "BOTTOMLESS PIT",    .desc = "You tumble down a bottomless pit.\nDown, down, down..."},
+
+        }
+    };
+}
+
+constexpr size_t num_objectz = 18;
+typedef struct ObjectData {
+    size_t size;
+    Object data[num_objectz];
+} ObjectData;
+
+// first 9 elements are items the user can use, carry, or drop (and pick up again.)
+// From Emeralds and higher, these are treasure that are converted to a cash equivalent
+static ObjectData get_object_data(void) {
+    return (ObjectData){
+        .size = num_objectz,
+        .data = {
+            { .id =  1, .name = "Flaming Torch",         .is_light_source_bit = true, .is_lit_bit = true} ,
+            { .id =  2, .name = "Silver Key",            },
+            { .id =  3, .name = "Gold Key",              },
+            { .id =  4, .name = "Sword",                 },
+            { .id =  5, .name = "War Hammer",            },
+            { .id =  6, .name = "Chain Mail Armor",      },
+            { .id =  7, .name = "Shield",                },
+            { .id =  8, .name = "Cloak of Protection",   },
+            { .id =  9, .name = "Wand of Fireballs",     },
+            { .id = 10, .name = "Emeralds",              .value =  99 },
+            { .id = 11, .name = "Silver Rings",          .value = 247 },
+            { .id = 12, .name = "Elven Amethysts",       .value = 166 },
+            { .id = 13, .name = "Diamond Dragon Eyes",   .value = 462 },
+            { .id = 14, .name = "Crystal Ball",          .value = 195 },
+            { .id = 15, .name = "Pieces of Eight",       .value = 231 },
+            { .id = 16, .name = "Elemental Gems",        .value = 162 },
+            { .id = 17, .name = "Shape-Shifting Stones", .value =  27 },
+            { .id = 18, .name = "Gold Doubloons",        .value = 141 },
+        }
+    };
+}
+
+// once time inits. Per-game inits happen in reset()
+void initialize() {
+    // note: random data is initialized in reset()
+    RoomData rd = get_room_data();
+    room_init(rd.size,rd.data);
+
+    monsters_init("monsters.txt");
+
+    ObjectData od = get_object_data();
+    obj_init(od.size, od.data);
+
+    init_rooms();
+}
+
+
+//// ------------------------------------------------------------
+////
+////    CLEANUP
+////
+//// ------------------------------------------------------------
+
+
+static void cleanup(GameState * gs) {
+    room_destroy();
+    void *free_ptr = (void *) GLOBALS.player_name;
+    GLOBALS.player_name = nullptr;
+    gs->player_name = nullptr;
+    free( free_ptr);
+    monsters_destroy();
+    obj_destroy();
+}
+
+
+
+
+//// ------------------------------------------------------------
+////
+////    MAIN
+////
+//// ------------------------------------------------------------
+
 static bool main_game_loop(GameState * gs) {
     uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
     const room_id room_id = gs->room;
@@ -1193,11 +1198,7 @@ static bool main_game_loop(GameState * gs) {
     return CONTINUE_GAME;
 }
 
-//// ------------------------------------------------------------
-////
-////    MAIN
-////
-//// ------------------------------------------------------------
+
 
 
 
@@ -1212,7 +1213,9 @@ int main_citadel_of_pershu(void) {
     }
 
     const CharBuffer *player_name = get_player_name();
-    GameState gs = {.player_name = player_name};
+    GLOBALS.player_name = player_name;
+
+    GameState gs = {};
 
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
@@ -1230,7 +1233,6 @@ int main_citadel_of_pershu(void) {
     do {
         continue_loop = main_game_loop(&gs);
     } while (continue_loop);
-
 
     display_conclusion(&gs);
     display_score(&gs);

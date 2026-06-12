@@ -27,13 +27,13 @@
 
 
 struct GlobalState {
-    const char * player_name;
-    bool         silent_mode;
-    uint32_t     char_sleep_duration;
-    uint32_t     char_sleep_visited_duration;
-    uint32_t     debug_normal_sleep;
-    uint32_t     debug_visited_sleep;
-    bool         debug_mode;
+    const CharBuffer * player_name;
+    bool               silent_mode;
+    uint32_t           char_sleep_duration;
+    uint32_t           char_sleep_visited_duration;
+    uint32_t           debug_normal_sleep;
+    uint32_t           debug_visited_sleep;
+    bool               debug_mode;
 };
 
 // extern int ROOM_GRAPH[][RGINDEX_COUNT]; // transition graph, room (node) to other rooms via directed edges
@@ -67,6 +67,7 @@ typedef struct GameState {
 
     int turns; // 1 point per turn
     int cash;
+    int food;
 
     int monsters_killed;  // number aliens/androids destroyed
     int monsters_fought;

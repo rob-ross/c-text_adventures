@@ -1369,6 +1369,34 @@ ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
 
 
 
+
+//// ------------------------------------------------------------
+////
+////    DEBUGGING
+////
+//// ------------------------------------------------------------
+
+void display_all_room_desc() {
+    const uint32_t saved_sleep = GLOBALS.char_sleep_duration;
+
+    set_char_sleep(0);
+    const int num_rooms = room_num_rooms();
+
+    for (int i = 1; i < num_rooms; ++i) {
+        const Room *r = room_find_room(i);
+        display_line("");
+        display_line(r->name);
+        display_line("-------------------------------------------------------------------");
+        display_paginated(r->desc, 80);
+    }
+
+    // restore previous sleep duration
+    set_char_sleep(saved_sleep);
+}
+
+
+
+
 //// ------------------------------------------------------------
 ////
 ////    INITIALIZE
@@ -1381,7 +1409,7 @@ ParsedCommand parse_user_command(char const *prompt, char const *err_msg) {
 // -----------------------------------------------------------------
 void reset(GameState *gs, const uint32_t seed) {
     // reset GameState
-    *gs = (GameState){ .seed = seed, .player_name = gs->player_name, .room = ROOM_START, .has_torch = true, .QU = 1};
+    *gs = (GameState){ .seed = seed, .player_name = GLOBALS.player_name, .room = ROOM_START, .has_torch = true, .QU = 1};
 
     mt_initialize_state(&gs->mt_state, seed); // initialize the PRNG
 
@@ -1400,14 +1428,6 @@ void reset(GameState *gs, const uint32_t seed) {
         room_remove_all_objects(room_index);
     }
     monsters_clear_all();
-
-    // ROOM_GRAPH[ROOM_MAGICIAN][RGINDEX_TREASURE]    = OBJECT_SILVER_KEY;
-    // ROOM_GRAPH[ROOM_WOODEN][RGINDEX_TREASURE]      = OBJECT_SWORD;
-    // ROOM_GRAPH[ROOM_DUNGEON][RGINDEX_TREASURE]     = OBJECT_AXE;
-    // ROOM_GRAPH[ROOM_CHARISMA_REDUCE][RGINDEX_TREASURE]      = OBJECT_STONE_CHEST;
-    // ROOM_GRAPH[ROOM_TROPHY][RGINDEX_TREASURE]      = OBJECT_IRON_CHEST;
-    // ROOM_GRAPH[ROOM_SECRET_ROOM][RGINDEX_TREASURE] = OBJECT_AMULET;
-    // ROOM_GRAPH[ROOM_TURRET][RGINDEX_TREASURE]      = OBJECT_GOLD_KEY;
 
     ROOM_GRAPH[ROOM_KITCHEN][RGINDEX_REQUIRED_KEY]     = OBJECT_SILVER_KEY; // locked door i, requires silver key
     ROOM_GRAPH[ROOM_UNEVEN][RGINDEX_REQUIRED_KEY]      = OBJECT_GOLD_KEY; // locked door ii, requires golden key
@@ -1627,10 +1647,10 @@ static void initialize() {
 //// ------------------------------------------------------------
 
 
-
 static void cleanup(GameState *gs) {
     room_destroy();
     void *free_ptr = (void *) gs->player_name;
+    GLOBALS.player_name = nullptr;
     gs->player_name = nullptr;
     free(free_ptr);
     monsters_destroy();
@@ -1638,29 +1658,13 @@ static void cleanup(GameState *gs) {
 }
 
 
+
+
 //// ------------------------------------------------------------
 ////
-////    DEBUGGING
+////    MAIN
 ////
 //// ------------------------------------------------------------
-
-void display_all_room_desc() {
-    const uint32_t saved_sleep = GLOBALS.char_sleep_duration;
-
-    set_char_sleep(0);
-    const int num_rooms = room_num_rooms();
-
-    for (int i = 1; i < num_rooms; ++i) {
-        const Room *r = room_find_room(i);
-        display_line("");
-        display_line(r->name);
-        display_line("-------------------------------------------------------------------");
-        display_paginated(r->desc, 80);
-    }
-
-    // restore previous sleep duration
-    set_char_sleep(saved_sleep);
-}
 
 static bool main_game_loop(GameState *gs) {
     uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
@@ -1813,11 +1817,7 @@ static bool main_game_loop(GameState *gs) {
     return CONTINUE_GAME;
 }
 
-//// ------------------------------------------------------------
-////
-////    MAIN
-////
-//// ------------------------------------------------------------
+
 
 
 int main_chateau_gaillard(void) {
@@ -1831,7 +1831,9 @@ int main_chateau_gaillard(void) {
     }
 
     const CharBuffer *player_name = get_player_name();
-    GameState gs = {.player_name = player_name};
+    GLOBALS.player_name = player_name;
+
+    GameState gs = {};
 
     initialize();
     reset(&gs, DEBUG_RAND_SEED);

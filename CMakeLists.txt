@@ -46,5 +46,9 @@ add_adventure_executable(citadel_of_pershu
         src/citadel_of_pershu/citadel_of_pershu.c
         CITADEL_OF_PERSHU_MAIN)
 
+add_adventure_executable(werewolves_and_wanderer
+        src/werewolves_and_wanderer/werewolves_and_wanderer.c
+        WEREWOLVES_AND_WANDERER_MAIN)
+
 
 add_executable(regex_tests src/regex_tests.c)

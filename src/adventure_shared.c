@@ -153,13 +153,13 @@ bool actor_remove_object(GameState *gs, const object_id id) {
 
 void display_char_attributes(const CharStats stats) {
     if (GLOBALS.silent_mode) return;
-    vdisplay_line("Strength:  %2d  Charisma:     %2d",
+    vdisplay_line("Strength:  %3d  Charisma:     %3d",
         stats.strength, stats.charisma);
 
-    vdisplay_line("Dexterity: %2d  Intelligence: %2d",
+    vdisplay_line("Dexterity: %3d  Intelligence: %3d",
         stats.dexterity, stats.intelligence );
 
-    vdisplay_line( "Wisdom:    %2d  Constitution: %2d",
+    vdisplay_line( "Wisdom:    %3d  Constitution: %3d",
         stats.wisdom, stats.constitution);
 }
 
@@ -195,7 +195,7 @@ void display_globals(void) {
         "(GlobalState){ player_name=%s, silent_mode=%d, char_sleep_duration=%d, "
             "char_sleep_visited_duration%d, debug_normal_sleep=%d, "
             "debug_visited_sleep=%d, debug_mode=%d }\n",
-            GLOBALS.player_name, GLOBALS.silent_mode, saved_sleep,
+            GLOBALS.player_name->buffer, GLOBALS.silent_mode, saved_sleep,
             GLOBALS.char_sleep_visited_duration, GLOBALS.debug_normal_sleep,
             GLOBALS.debug_visited_sleep, GLOBALS.debug_mode );
     if (n < 1 ) printf("display_globals: possible truncation of output.\n");
