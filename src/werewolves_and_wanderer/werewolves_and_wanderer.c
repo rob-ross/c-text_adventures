@@ -409,6 +409,13 @@ static void cmd_retreat(GameState * gs) {
 
 }
 
+bool cmd_look(GameState *gs) {
+    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
+    display_room_desc(gs);
+    display_room_content(gs);
+    return true;
+}
+
 void do_room_actions(GameState *gs) {
     if (gs->room == 9) {
         // if in Room 9 transition to Room 10 and show description
@@ -772,6 +779,9 @@ static bool main_game_loop(GameState * gs) {
         case 'H':
             display_help_info();
             break;
+        case 'L':
+            cmd_look(gs);
+            break;
         case 'B':
             //INVENTORY/PROVISIONS
             cmd_buy(gs);
@@ -793,7 +803,7 @@ static bool main_game_loop(GameState * gs) {
             break;
 
 
-        default: printf("UNEXPECTED COMMAND '%c'\n", first_letter);
+        default: printf("UNHANDLED COMMAND '%c'\n", first_letter);
 
     }
 
