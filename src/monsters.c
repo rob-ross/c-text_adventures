@@ -36,11 +36,15 @@ int monsters_init(const char * monster_filename) {
     if (result != 0) {
         return result;
     }
-    pvt_monsters = malloc(sizeof(Monster) * monsters_num_monsters());
+    pvt_monsters = calloc(1, sizeof(Monster) * monsters_num_monsters());
     if (!pvt_monsters) {
         free_LenStrArray(pvt_monster_names);
         pvt_monster_names = nullptr;
         return ENOMEM;
+    }
+    const size_t num_monsters = pvt_monster_names->size;
+    for (int i = 0; i < num_monsters; ++i) {
+        pvt_monsters[i] = (Monster){.name = pvt_monster_names->array[i].s, .id = i};
     }
     return 0;
 }
@@ -110,6 +114,11 @@ void monsters_names_repr(void) {
         printf("'%s',\n", pvt_monster_names->array[i].s);
     }
     printf("};\n");
+}
+
+void monsters_repr(const monster_id id) {
+    Monster m = pvt_monsters[id];
+    printf("(Monster){}");
 }
 
 const char * monsters_name_for_id(const monster_id id) {
