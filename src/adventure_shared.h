@@ -41,6 +41,8 @@ extern struct GlobalState GLOBALS;
 extern const int MAX_ROOM_OBJECTS;   // max number of objects that a room can contain.
 extern const int MAX_PLAYER_OBJECTS; // max number of objects that can be carried; number varies by game rules
 
+constexpr bool CONTINUE_GAME = true;
+constexpr bool END_GAME      = false;
 
 // todo (rob) need to define location ids, player vs room. -1 means "player" but is a kludge
 // in zork, everything had a unique string id, ie, "player", "room-1", "axe", so there was one

@@ -59,9 +59,6 @@ constexpr int SILVER_CROSSES_STOREROOM  = 22;
 constexpr int DROWNING_ROOM             = 44;
 
 
-constexpr bool CONTINUE_GAME = true;
-constexpr bool END_GAME      = false;
-
 char const * const VALID_COMMANDS = "HIQACLRFTPNSEWUDM123";
 
 const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in a room

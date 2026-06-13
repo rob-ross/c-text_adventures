@@ -40,9 +40,6 @@
 
 
 
-constexpr bool CONTINUE_GAME = true;
-constexpr bool END_GAME      = false;
-
 char const * const VALID_COMMANDS = "HIQATRFPGNSEWUDLM12";
 
 constexpr int BARE_HANDS           =  0;

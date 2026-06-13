@@ -731,83 +731,6 @@ bool monster_check(const GameState * gs, const char cmd) {
     return true;
 }
 
-/**
-  * Core Game Engine Logic
-  * This function is "Pure Logic" - it updates state based on an action.
-  * It returns true if the action was accepted as a turn, false otherwise.
-  *
-  * @param gs
-  * @param action
-  * @param arg1 For 'F': strategy (1:magic, 2:skill). For 'G': item index.
-  * @param arg2 For 'F': first skill stat index.
-  * @param arg3 For 'F': second skill stat index.
-  *
-  *
-  */
-bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
-    const char cmd = (char)toupper(action);
-
-    if (!strchr(VALID_COMMANDS, cmd)) {
-        return false; // Unknown command: Not a turn, no state change.
-    }
-
-    gs->turns++;
-
-    if (gs->room == MARBLE_HALL ) {
-        // if player is here, they already used the key to unlock the west door
-        actor_remove_object(gs, ITEM_GOLD_KEY);
-    }
-    if (gs->room == WINE_CELLAR_EAST ) {
-        actor_remove_object(gs, ITEM_SILVER_KEY);
-    }
-    if ( !monster_check(gs, cmd) ) {
-        return false;
-    }
-
-    if (strchr(VALID_DIRECTIONS, cmd)) {
-        // Special logic for locked doors
-
-        if (gs->room == BEDCHAMBER_ROOM && cmd == 'W' && !actor_has_item( gs,ITEM_SILVER_KEY ) ) {
-            display_line("You need the Silver Key to unlock the door.");
-            return false;
-        }
-        if (gs->room == SILVER_CROSSES_STOREROOM && cmd == 'W' && !actor_has_item( gs,ITEM_GOLD_KEY )) {
-            display_line("You need the Gold Key to unlock the door.");
-            return false;
-        }
-
-        // We must update perception after the move is processed but before returning
-        // so the new room's content is visible in the GameState.
-        const bool result = cmd_move(gs, cmd);
-        update_perception(gs);  // room may have changed
-        return result;
-    }
-
-    bool result = false;
-    switch (cmd) {
-        case 'T':
-            result = cmd_take(gs);
-            break;
-        case 'F':
-            result = action_fight(gs, arg1, (enum StatIndex)arg2, (enum StatIndex)arg3);
-            break;
-        case 'R':
-            result =  process_retreat(gs);
-            break;
-        case 'P':
-            result =  action_drop(gs, arg1);
-            break;
-        default:
-            // Unknown action
-            result = false;
-            break;
-    }
-
-    // Single point of truth. Update perception after any turn-based action.
-    update_perception(gs);
-
-    return result;
-}
 
 bool cmd_look(GameState *gs) {
     // This is a presentation-layer-only command. It just displays text to the user they have already seen.
@@ -1093,6 +1016,86 @@ static void cleanup(GameState * gs) {
 ////
 //// ------------------------------------------------------------
 
+
+/**
+  * Core Game Engine Logic
+  * This function is "Pure Logic" - it updates state based on an action.
+  * It returns true if the action was accepted as a turn, false otherwise.
+  *
+  * @param gs
+  * @param action
+  * @param arg1 For 'F': strategy (1:magic, 2:skill). For 'G': item index.
+  * @param arg2 For 'F': first skill stat index.
+  * @param arg3 For 'F': second skill stat index.
+  *
+  *
+  */
+bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
+    const char cmd = (char)toupper(action);
+
+    if (!strchr(VALID_COMMANDS, cmd)) {
+        return false; // Unknown command: Not a turn, no state change.
+    }
+
+    gs->turns++;
+
+    if (gs->room == MARBLE_HALL ) {
+        // if player is here, they already used the key to unlock the west door
+        actor_remove_object(gs, ITEM_GOLD_KEY);
+    }
+    if (gs->room == WINE_CELLAR_EAST ) {
+        actor_remove_object(gs, ITEM_SILVER_KEY);
+    }
+    if ( !monster_check(gs, cmd) ) {
+        return false;
+    }
+
+    if (strchr(VALID_DIRECTIONS, cmd)) {
+        // Special logic for locked doors
+
+        if (gs->room == BEDCHAMBER_ROOM && cmd == 'W' && !actor_has_item( gs,ITEM_SILVER_KEY ) ) {
+            display_line("You need the Silver Key to unlock the door.");
+            return false;
+        }
+        if (gs->room == SILVER_CROSSES_STOREROOM && cmd == 'W' && !actor_has_item( gs,ITEM_GOLD_KEY )) {
+            display_line("You need the Gold Key to unlock the door.");
+            return false;
+        }
+
+        // We must update perception after the move is processed but before returning
+        // so the new room's content is visible in the GameState.
+        const bool result = cmd_move(gs, cmd);
+        update_perception(gs);  // room may have changed
+        return result;
+    }
+
+    bool result = false;
+    switch (cmd) {
+        case 'T':
+            result = cmd_take(gs);
+            break;
+        case 'F':
+            result = action_fight(gs, arg1, (enum StatIndex)arg2, (enum StatIndex)arg3);
+            break;
+        case 'R':
+            result =  process_retreat(gs);
+            break;
+        case 'P':
+            result =  action_drop(gs, arg1);
+            break;
+        default:
+            // Unknown action
+            result = false;
+            break;
+    }
+
+    // Single point of truth. Update perception after any turn-based action.
+    update_perception(gs);
+
+    return result;
+}
+
+
 static bool main_game_loop(GameState * gs) {
     uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
     const room_id room_id = gs->room;
@@ -1177,7 +1180,7 @@ static bool main_game_loop(GameState * gs) {
         display_score(gs);
     } else if ( !monster_check(gs, cmd) ) {
         room_set_visited_flag(current_room);
-        return true;
+        return CONTINUE_GAME;
     } else if ( cmd == 'F' ) {
         //specialized code to prompt user and gather options to pass to perform_action()
         cmd_fight(gs);
