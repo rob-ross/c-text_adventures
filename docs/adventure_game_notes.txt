@@ -52,10 +52,52 @@ From a class creeate specific entity, link with asssets such as backstory, name,
 
 Tool: need to run simulations with character classes against monsters to evaluate balance.
 
+
+
+Monsters (but also applies to Heroes....)
+Actors
+-------------
+
+1. Classes
+    These are the typical monsters. There is a prototype store for each class, like Troll, Goblin, etc, and a new
+    monster is constructed from the prototype, with customizations for variables like name, stats, etc.
+2. Named
+    These are similar to prototype monsters but have been pre-created. They exist as a specific instance of a class/prototype.
+    Think legendary heros/villains like General Zod. He's a Kryptonian, and shares traits with other Kryptonians. But he
+    exits as a unique-named instance.
+3. Sui Generis
+    Added for completeness. The only example I can think of now is the Abrahamic concept of a single "God." That one
+    God would be sui generis. Every other example I can think of right now, say "Jupiter" or "Posiden", may have
+    very different individual traits, but they are still classes of gods from the Roman pantheon.
+
+
+Objects
+-------------------
+There are similarities and differences with monsters.
+1. Sui Generis
+    In many text adventures, you collect special objects for points or because you need them to solve puzzles. Say,
+    "golden key" which you need to unlock a particular door in that game. The concept of "key" may be pervasive enough
+    to warrant creating an object class Key, of which a "golden key" is a named instance. Ie., has identity. Other objects
+    may not warrant the overhead of a class, like "golden diadem" as a treasure object. We can probably consider it
+    a unique item and not just a named representative of a "Tiara" class. In another game, perhaps there are many
+    tiaras with different abilities and thus in that game you'd *want* a Tiara class.
+2. Classes
+    In a text adventure, most objects are one-offs and don't require a formal class. But in the broader scope of D&D games,
+    there are many examples. A sword, for example, is a type of weapon. A special sword like "Flaming Sword of Gilgamesh"
+    might be best described as a type of sword with additional properties, rather than a sui generis item.
+3. Value types. like a pile of a thing with a quantity/amount field. A "stack of gold coins" worth 20.
+
+
+Terms : Unique Entities, Identifiable Objects vs Value Types, Commodities, Fungible Items
+
+value types
+    Managed by Value Types, Counters, or Inventory Slot Structures
+
+
 Balance design
- 1. traits and attributes should ideally occur in spectrums, perhaps multiple spectrums.
+ 1. traits and attributes should ideally occur in spectra, perhaps multiple spectra.
         specific values across all spectrums should sum or average equally along all the classes.
-        Example: Say STRENGTH and DEFENSE are opposing spectrums. The combination of these values should
+        Example: Say STRENGTH and DEFENSE are opposing spectra. The combination of these values should
         be roughly comparable between different classes.
         Simplified concept - there could be a total amount of points to distribute among various attributes..
             Distributing these points in different combinations in two classes should allow entities from those classes,
