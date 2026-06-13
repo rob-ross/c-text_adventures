@@ -45,10 +45,6 @@ constexpr int ROOM_END           = 11;
 const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in a room
 const int MAX_PLAYER_OBJECTS = 6; // max number of items that can be carried
 
-constexpr bool CONTINUE_GAME = true;
-constexpr bool END_GAME      = false;
-
-
 int ROOM_GRAPH[20][10] = {
     { 0,  0,  0,  0,  0,  0,  0}, // Room 0
     { 0,  2,  0,  0,  0,  0,  0}, // Room 1
@@ -93,9 +89,7 @@ static void display_conclusion(const GameState * gs) {
     set_char_sleep(_30ms);  // so final text display is slowed down
 
     if (gs->completed && !gs->is_dead) {
-        display_line("\nYOU'VE DONE IT!!");
-        display_line("THAT WAS THE EXIT FROM THE CASTLE");
-        display_linef("\nYOU HAVE SUCCEEDED, %s!\n", gs->player_name->buffer);
+        display_linef("\nYOU HAVE SUCCEEDED, %s!", gs->player_name->buffer);
         display_line("YOU MANAGED TO GET OUT OF THE CASTLE");
         display_line("\nWELL DONE!");
     } else if (gs->is_dead) {
@@ -127,24 +121,24 @@ static void display_inventory(const GameState * gs) {
 
 
 // first_letter must be in "NSEWUD"
-// return true if the command was successfully processed. If false, the move is not allowed.
-static bool cmd_move( GameState * gs, char first_letter) {
+// return true if command was successfully processed. If false, the move is not allowed and an error message
+// will have been displayed
+static bool cmd_move(GameState * gs, char const first_letter) {
+    const int location = gs->room;
+    const int direction_index = calc_room_graph_direction_index(first_letter);
+    if (direction_index == DIRECTION_ERR) {
+        display("Bad direction_index, first_letter='");
+        printf("%c'\n", first_letter);
+        return false;
+    }
+    gs->room_prev = gs->room;
 
-    int location = gs->room;
-    int direction_index = calc_room_graph_direction_index(first_letter);
     if (ROOM_GRAPH[location][direction_index] > 0) {
         gs->room = ROOM_GRAPH[location][direction_index];
-        if (gs->room == 11) {
-            // Exit!!
-
-            gs->completed = true;
-        }
         return true;
     }
 
-    printf("%s\n", BAD_MOVE_DESC[direction_index]);
-
-
+    display_line(BAD_MOVE_DESC[direction_index]);
     return false;
 }
 
@@ -172,8 +166,8 @@ static void display_help_info(void) {
     display_line("[H]elp       [I]nventory  [Q]uit" );
     display_line("[A]ttributes Sc[o]re      [L]ook" );
     display_line("[R]etreat    [F]ight      [C]onsume" );
-    display_line("[T]ake       Dro[p]       [M]agic Amulet");
-    display_line("[N]orth      [S]outh      [B]uy");
+    display_line("[T]ake       [B]uy        [M]agic Amulet");
+    display_line("[N]orth      [S]outh");
     display_line("[E]ast       [W]est");
     display_line("[U]p         [D]own");
 
@@ -181,11 +175,11 @@ static void display_help_info(void) {
     display_line("[1]Globals  [2]GameState [3]Reset  [M]agic");
 }
 
-static void cmd_buy( GameState * gs) {
+static bool cmd_buy( GameState * gs) {
     printf("PROVISIONS AND INVENTORY\n");
     if (gs->cash <=0 ) {
         printf("YOU HAVE NO MONEY.\n");
-        return;
+        return false;
     }
 
     for (;;) {
@@ -211,7 +205,7 @@ static void cmd_buy( GameState * gs) {
         const Object *o = obj_find_object(option_index);
         if (!o) {
             printf("got null Object for id=%d\n", option_index);
-            return;
+            return false;
         }
 
 
@@ -224,10 +218,10 @@ static void cmd_buy( GameState * gs) {
                 actor_remove_all_objects(gs);
                 gs->has_torch = false;
                 gs->food = gs->food / 4 ;
-            } else {
-                actor_add_object(gs, option_index);
-                if (option_index == ITEM_LIGHT) gs->has_torch = true;
+                return false;
             }
+            actor_add_object(gs, option_index);
+            if (option_index == ITEM_LIGHT) gs->has_torch = true;
         }
 
         if (option_index == 4 ) {
@@ -252,12 +246,15 @@ static void cmd_buy( GameState * gs) {
             }
         }
     }
-
+    return true;
 }
 
 
-static void cmd_eat( GameState * gs) {
-    if (gs->food <= 0) return;
+static bool cmd_eat( GameState * gs) {
+    if (gs->food <= 0) {
+        display_line("YOU HAVE NO FOOD.");
+        return false;
+    }
     for (;;) {
         char food_quantity;
         fflush(stdin);
@@ -274,118 +271,134 @@ static void cmd_eat( GameState * gs) {
             gs->food -= qty;
             gs->strength += (5 * qty);
             break;
+        } else {
+            display_line("YOU DON'T HAVE THAT MUCH FOOD.");
         }
     }
+    return true;
 }
 
-static void cmd_take(GameState * gs) {
+static bool cmd_take(GameState * gs) {
     if ( ROOM_GRAPH[gs->room][RGINDEX_TREASURE] <= 0 ) {
         printf("THERE IS NO TREASURE TO PICK UP.\n");
-        return;
+        return false;
     }
     if ( !gs->has_torch ) {
         printf("YOU CANNOT SEE WHERE IT IS\n");
-        return;
+        return false;
     }
     gs->cash += ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
     ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
+    return true;
 }
 
-static void use_magic_amulet( GameState * gs) {
+static bool use_magic_amulet( GameState * gs) {
+    if (!actor_has_item(gs, ITEM_TRANSPORTER)) {
+        display_line("YOU'RE NOT CARRYING THE AMULET.");
+    }
     for (;;) {
         // Generate a random number between 1 and 19
-        int room_index = (rand() % 19) + 1;
-        if ( !(room_index == 6 || room_index == 11 )) {
+        int room_index = rnd_range(gs, 1, room_num_rooms() + 1);
+        if ( !(room_index == ROOM_START || room_index ==ROOM_END )) {
             gs->room = room_index;
+            actor_remove_object( gs, ITEM_TRANSPORTER);
             break;
         }
     }
+    return true;
 }
 
-static void cmd_fight( GameState * gs) {
+static bool cmd_fight( GameState * gs) {
     if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
-        return; // no monster to fight
+        display_line("THERE IS NO MONSTER.");
+        return false; // no monster to fight
     }
     int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
     const Monster * monster =  monsters_find_monster(monster_index);
     int ferocity_factor = monster->ferocity_factor;
 
-    if (gs->items[ITEM_SUIT]) {
-        printf("YOUR ARMOR INCREASES YOUR CHANCE OF SUCCESS.\n");
-        ferocity_factor = 3 * (ferocity_factor / 4);  //armor gives 25% more advantage
+    if ( actor_has_item(gs, ITEM_SUIT)) {
+        display_line("YOUR ARMOR INCREASES YOUR CHANCE OF SUCCESS.");
+        ferocity_factor = (int)(3 * ferocity_factor / 4.0 ) ;  //armor gives 25% more advantage
     }
 
-    for (int j = 0; j < 6; ++j ) {
-        printf("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n");
-    }
+    // for (int j = 0; j < 6; ++j ) {
+        display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
+    // }
 
-    const bool has_axe   = gs->items[ITEM_ION];
-    const bool has_sword = gs->items[ITEM_LASER];
+    const bool has_axe   = actor_has_item(gs, ITEM_ION);
+    const bool has_sword = actor_has_item(gs, ITEM_LASER);
 
     if ( !has_axe && !has_sword) {
-        printf("YOU HAVE NO WEAPONS.\nYOU MUST FIGHT WITH BARE HANDS.\n");
-        ferocity_factor = ferocity_factor + ferocity_factor / 5;
+        display_line("YOU HAVE NO WEAPONS. YOU MUST FIGHT WITH BARE HANDS.");
+        ferocity_factor = (int)(ferocity_factor + ferocity_factor / 5.0);
     } else if ( has_axe && !has_sword) {
-        printf("YOU HAVE ONLY AN AXE TO FIGHT WITH.\n");
-        ferocity_factor = 4 * ferocity_factor / 5;
+        display_line("YOU HAVE ONLY AN AXE TO FIGHT WITH.");
+        ferocity_factor = (int)(4 * ferocity_factor / 5.0);
     } else if ( !has_axe && has_sword) {
-        printf("YOU MUST FIGHT WITH YOUR SWORD.\n");
-        ferocity_factor = 3 * ferocity_factor / 4;
+        display_line("YOU MUST FIGHT WITH YOUR SWORD.");
+        ferocity_factor = (int)(3 * ferocity_factor / 4.0);
     } else {
         char option;
         fflush(stdin);
         do {
-            printf("WHICH WEAPON? 1 - AXE, 2 - SWORD ");
+            display("WHICH WEAPON? 1 - AXE, 2 - SWORD ");
             option = (char)getchar();
             fflush(stdin);
         } while (option != '1' && option != '2');
 
         if (option == '1') {
-            ferocity_factor = 4 * ferocity_factor / 5;
+            ferocity_factor = (int)(4 * ferocity_factor / 5.0);
         } else {
-            ferocity_factor = 3 * ferocity_factor / 4;
+            ferocity_factor = (int)(3 * ferocity_factor / 4.0);
         }
 
     }
 
     do {
-        if ( rand() % 2 == 1) {
-            printf("\n%s ATTACKS.\n", monster->name);
+        if ( rnd_d(gs) < .5 ) {
+            display_linef("\n%s ATTACKS.", monster->name);
         } else {
-            printf("\nYOU ATTACK.\n");
+            display_linef("\nYOU ATTACK.");
         }
 
-        if ( rand() % 2 == 1 ) {
-            printf("YOU MANAGE TO WOUND IT.\n");
-            ferocity_factor = 5 * ferocity_factor / 6;
+        if ( rnd_d(gs) < .5 ) {
+            display_line("YOU MANAGE TO WOUND IT.");
+            ferocity_factor = (int)(5 * ferocity_factor / 6.0);
         }
 
-        if ( rand() % 2 == 1 ) {
-            printf("THE MONSTER WOUNDS YOU!\n");
+        if ( rnd_d(gs) < .5 ) {
+            display_line("THE MONSTER WOUNDS YOU!");
             gs->strength -= 5;
         }
-    } while ( rand() % 100 > 34);
+        // printf("monster ff=%d\n", ferocity_factor);
+    } while ( rnd_d(gs) < .666 );
 
-    if ( rand() % 16 > ferocity_factor) {
-        printf("\n\nAND YOU MANAGED TO KILL THE %s\n", monster->name);
+    bool player_won = false;
+    int roll = rnd_range(gs, 5, 16);
+    // printf("final roll: %d, ff:%d\n", roll, ferocity_factor);
+    if ( roll > ferocity_factor) {
+        display_linef("\n\nAND YOU MANAGED TO KILL THE %s", monster->name);
         gs->monsters_killed++;
+        player_won = true;
     } else {
-        printf("\n\nTHE %s DEFEATED YOU!.\n", monster->name);
+        display_linef("\n\nTHE %s DEFEATED YOU!.", monster->name);
         gs->strength /= 2;
     }
 
     ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
+    return player_won;
 }
 
 
-static void cmd_retreat(GameState * gs) {
+static bool cmd_retreat(GameState * gs) {
     if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
-        return; // no monster to retreat from
+        return false; // no monster to retreat from
     }
-    if ( (rand() % 100) > 69 ) {
+    if ( rnd_d(gs) < .30 ) {
         printf("NO, YOU MUST STAND AND FIGHT!\n");
         cmd_fight(gs);
-        return;
+        return false;
     }
 
 
@@ -406,7 +419,7 @@ static void cmd_retreat(GameState * gs) {
         }
     } while (is_invalid_command || !cmd_move(gs, first_letter) );
 
-
+    return true;
 }
 
 bool cmd_look(GameState *gs) {
@@ -415,6 +428,15 @@ bool cmd_look(GameState *gs) {
     display_room_content(gs);
     return true;
 }
+
+static bool cmd_quit(GameState * gs) {
+    gs->game_over = true;
+    gs->ended_by_quitting = true;
+    // todo (rob) ask for confirmation?
+    return END_GAME;
+}
+
+
 
 void do_room_actions(GameState *gs) {
     if (gs->room == 9) {
@@ -429,7 +451,7 @@ void do_room_actions(GameState *gs) {
  * The caller should check gs->is_dead or gs->completed to see the outcome.
  */
 bool check_game_over(GameState *gs) {
-    if (gs->completed) return true;
+    if (gs->completed || gs->game_over) return true;
 
     if (gs->room == ROOM_END ) {
         gs->completed = true;
@@ -449,6 +471,22 @@ bool check_game_over(GameState *gs) {
         }
     }
     return false;
+}
+
+// checks if there is a monster and if so, that the user has selected either F or R. Returns true for success.
+bool monster_check(const GameState * gs, const char cmd) {
+    const bool has_monster = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
+    // Rule: Must deal with monsters first. Recognized command, but logic fails.
+    if ( has_monster && gs->must_fight && cmd != 'F') {
+        display_line("DANGER! You can only FIGHT!");
+        return false;
+    }
+    if (has_monster && cmd != 'F' && cmd != 'R') {
+        display_line("DANGER! You must either FIGHT or RETREAT.");
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -505,12 +543,13 @@ void reset(GameState * gs, const uint32_t seed) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = j;
                 CharStats stats = random_monster_stats(gs);
                 int ff = sum_character_stats(&stats);
+                Monster *m = monsters_find_monster(j);
                 room_set_monster(room_find_room(rand_room), j);
                 monsters_update_monster(
                     &(Monster){
-                        .name = monsters_name_for_id(j),
+                        .name = m->name,
                         .id = j,
-                        .ferocity_factor = ff,
+                        .ferocity_factor = m->ferocity_factor,
                         .stats = random_monster_stats(gs)
                     });
                 break;
@@ -544,11 +583,11 @@ static RoomData get_room_data(void) {
             {.id =  8,  .name= "STORE ROOM",       .desc = "YOU ARE IN THE STORE ROOM, AMIDST SPICES, VEGETABLES, AND VAST SACKS OF FLOUR AND OTHER PROVISIONS. THERE IS A DOOR TO THE NORTH AND ONE TO THE SOUTH."},
             {.id =  9,  .name= "LIFT",             .desc = "YOU HAVE ENTERED THE LIFT... IT SLOWLY DESCENDS..."},
             {.id = 10, .name= "REAR VESTIBULE",    .desc = "YOU ARE IN THE REAR VESTIBULE. THERE ARE WINDOWS TO THE SOUTH FROM WHICH YOU CAN SEE THE ORNAMENTAL LAKE. THERE IS AN EXIT TO THE EAST, AND ONE TO THE NORTH."},
-            {.id = 11, .name= "EXIT",              .desc = "EXIT"},
+            {.id = 11, .name= "EXIT",              .desc = "YOU'VE DONE IT!!\nTHAT WAS THE EXIT FROM THE CASTLE"},
             {.id = 12, .name= "DUNGEON",           .desc = "YOU ARE IN THE DANK, DARK DUNGEON. THERE IS A SINGLE EXIT, A SMALL HOLE IN THE WALL TOWARDS THE WEST."},
             {.id = 13, .name= "GUARDROOM",         .desc = "YOU ARE IN THE PRISON GUARDROOM, IN THE BASEMENT OF THE CASTLE. THE STAIRWELL ENDS IN THIS ROOM. THERE IS ONE OTHER EXIT, A SMALL HOLE IN THE EASST WALL."},
             {.id = 14, .name= "MASTER BEDROOM",    .desc = "YOU ARE IN THE MASTER BEDROOM ON THE UPPER LEVEL OF THE CASTLE.... LOOKING DOWN FROM THE WINDOW TO THE WEST YOU CAN SEE THE ENTRANCE TO THE CASTLE, WHILE THE SECRET HERB GARDEN IS VISIBLE BELOW THE NORTH WINDOW. THERE ARE DOORS TO THE EAST AND TO THE SOUTH...."},
-            {.id = 15, .name= "UPPER HALLWAY",     .desc = "THIS IS THE L-SHAPPED UPPER HALLWAY. TO THE NORTH IS A DOOR, AND THERE IS A STAIRWELL IN THE HALL AS WELL. YOU CAN SEE THE LAKE THROUGH THE SOUTH WINDOWS."},
+            {.id = 15, .name= "UPPER HALLWAY",     .desc = "THIS IS THE L-SHAPED UPPER HALLWAY. TO THE NORTH IS A DOOR, AND THERE IS A STAIRWELL IN THE HALL AS WELL. YOU CAN SEE THE LAKE THROUGH THE SOUTH WINDOWS."},
             {.id = 16, .name= "TREASURY",          .desc = "THIS ROOM WAS USED AS THE CASTLE TREASURY IN BY-GONE YEARS.... THERE ARE NO WINDOWS, JUST EXITS TO THE NORTH AND TO THE EAST."},
             {.id = 17, .name= "BEDROOM",           .desc = "OOOOH... YOU ARE IN THE CHAMBERMAID'S BEDROOM. THERE IS AN EXIT TO THE WEST AND A DOOR TO THE SOUTH...."},
             {.id = 18, .name= "DRESSING CHAMBER",  .desc = "THIS TINY ROOM ON THE UPPER LEVEL IS THE DRESSING CHAMBER. THERE IS A WINDOW TO THE NORTH, WITH A VIEW OF THE HERB GARDEN DOWN BELOW. A DOOR LEAVES TO THE SOUTH."},
@@ -620,6 +659,57 @@ static void cleanup(GameState * gs) {
 //// ------------------------------------------------------------
 
 
+// Core Game Engine Logic
+bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
+    const char cmd = (char)toupper(action);
+
+    if (!strchr(VALID_COMMANDS, cmd)) {
+        return false; // Unknown command: Not a turn, no state change.
+    }
+
+    gs->turns++;
+
+
+
+    if ( !monster_check(gs, cmd) ) {
+        return false;
+    }
+
+    if (strchr(VALID_DIRECTIONS, cmd) ) {
+        const bool result = cmd_move(gs, cmd);
+        return result;
+    }
+
+    bool result = false;
+    switch ( cmd ) {
+        case 'B':
+            //add to inventory/PROVISIONS
+            result = cmd_buy(gs);
+            break;
+        case 'C' :
+            result = cmd_eat(gs);
+            break;
+        case 'T':
+            result = cmd_take(gs);
+            break;
+        case 'M':
+            result = use_magic_amulet(gs);
+            break;
+        case 'R':
+            result = cmd_retreat(gs);
+            break;
+        case 'F':
+            result = cmd_fight(gs);
+            break;
+        default:
+            // Unknown action
+            result = false;
+            break;
+    }
+
+    return result;
+}
+
 
 // 160 REM MAJOR HANDLING ROUTINE
 // returns true if still alive
@@ -628,6 +718,11 @@ static bool main_game_loop(GameState * gs) {
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
     room_set_visit_started_flag(current_room);
+
+    // in this game, every turn player loses 5 strength points
+    // this normally belongs in the model, but we want to make every turn significant.
+    gs->strength -= 5;
+
 
     if (current_room->is_visited_bit) {
         // if we've already seen this room, speed up output display
@@ -652,6 +747,9 @@ static bool main_game_loop(GameState * gs) {
         return END_GAME;
     }
 
+    // todo (rob) we need a framework hook for action routines for rooms and objects
+    do_room_actions(gs);
+
     // speed up the display of text for the rest of the turn.
     if ( GLOBALS.debug_mode ) {
         set_char_sleep( GLOBALS.debug_visited_sleep );
@@ -659,102 +757,32 @@ static bool main_game_loop(GameState * gs) {
         set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    gs->strength -= 5;
-
     if (gs->strength <= 15) {
         printf("WARNING, %s, YOUR STRENGTH\nIS RUNNING LOW\n", gs->player_name->buffer);
     }
 
-    gs->turns += 1;
+
     printf("%s, YOUR STRENGTH IS %d\n", gs->player_name->buffer, gs->strength);
 
-    // display_inventory(gs);
-    //
-    // display_room_desc(gs);
-
-
     int room_treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    int room_monster_id  = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
     if ( room_treasure_id > 0 ) {
         printf("THERE IS TREASURE HERE WORTH $%d\n", room_treasure_id);
     }
-    //else if (room_contents < 0 ) {
-    //     int index = -room_contents;
-    //     display_line("\n\nDANGER...THERE IS A MONSTER HERE....");
-    //     const Monster *m = monsters_find_monster(index);
-    //     printf("\nIT IS A %s\n", m->name );
-    //     printf("\nTHE DANGER LEVEL IS %d!!\n", m->ferocity_factor);
-    // }
 
+    // -----------------------------------------------------------------
+    //      process user input
+    // -----------------------------------------------------------------
+    flush_input();
+    char prompt_buffer[1024] = {};
+    snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
+    char cmd_char = get_command_char(prompt_buffer, VALID_COMMANDS, nullptr);
 
-
-    // todo (rob) we need a framework hook for action routines for rooms and objects
-    do_room_actions(gs);
-
-    char input_buffer[1024];  // there's an env variable for terminal that defines this
-    // fscanf(stdin, "%s", input_buffer);
-    // printf("   you entered: %s\n", input_buffer);
-    putchar('\n');
-
-    char cmd_char;
-    bool is_invalid_command = false;
-
-    // process the next user command. First, check the command is valid for the current state
-    do {
-        printf("WHAT DO YOU WANT TO DO? ");
-        fscanf(stdin, "%s", input_buffer);
-        // printf("   you entered: %s\n", input_buffer);
-        cmd_char = (char)toupper(input_buffer[0]);
-
-        is_invalid_command = ! strchr(VALID_COMMANDS, cmd_char);
-
-        if (is_invalid_command) {
-            printf("INVALID COMMAND: '%c'\n", cmd_char);
-            continue;
-        }
-
-        if (cmd_char == 'Q') {
-            return false; // quit game
-        }
-
-        if (room_monster_id != 0 &&
-            !( cmd_char == 'F' || cmd_char == 'R' )) {
-            // if monster, can only Fight or Retreat
-            printf("MONSTER! YOU MUST EITHER FIGHT OR RETREAT.\n");
-            is_invalid_command = true;
-            continue;
-        }
-
-        if (room_monster_id == 0 &&
-            ( cmd_char == 'F' || cmd_char == 'R' )) {
-            // nothing to fight
-            printf("THERE IS NO MONSTER.\n");
-            is_invalid_command = true;
-            continue;
-        }
-
-        if (cmd_char == 'C' && gs->food == 0) {
-            printf("YOU HAVE NO FOOD.\n");
-            is_invalid_command = true;
-            continue;
-        }
-
-        if ( strchr(VALID_DIRECTIONS, cmd_char) ) {
-            int direction_index = calc_room_graph_direction_index(cmd_char);
-            if (ROOM_GRAPH[gs->room][direction_index] == 0) {
-                printf("%s\n", BAD_MOVE_DESC[direction_index]);
-                is_invalid_command = true;
-                continue;
-            }
-            is_invalid_command = false;
-            break;
-
-        }
-
-    } while (is_invalid_command);
-
-    // Now process the command
+    if (cmd_char == 'Q') {
+        set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+        return cmd_quit(gs);
+    }
 
     // -----------------------------------------------------------------
     //          DEBUG COMMANDS
@@ -770,63 +798,25 @@ static bool main_game_loop(GameState * gs) {
         reset(gs, DEBUG_RAND_SEED);
     }
 
-    // 480 PRINT:PRINT:PRINT "----------------- -------------------"
-    printf("\n\n----------------- -------------------\n");
+    // -----------------------------------------------------------------
+    //      Player Presentation Only
+    // -----------------------------------------------------------------
 
-    if (strchr(VALID_DIRECTIONS, cmd_char) ) {
-        // move command
-        int direction_index = calc_room_graph_direction_index(cmd_char);
-        gs->room = ROOM_GRAPH[gs->room][direction_index];
-        // if (gs->room == 11) {
-        //     // Exit!!
-        //     gs->completed = true;
-        //     return false;
-        // }
-        return CONTINUE_GAME;
-    }
-
-
-
-
-    switch (cmd_char) {
-        case 'H':
-            display_help_info();
-            break;
-        case 'L':
-            cmd_look(gs);
-            break;
-        case 'I':
-            display_inventory(gs);
-            break;
-        case 'A':
-            display_char_attributes(gs->stats);
-            break;
-        case 'O':
-            display_score(gs);
-            break;
-        case 'B':
-            //INVENTORY/PROVISIONS
-            cmd_buy(gs);
-            break;
-        case 'C' :
-            cmd_eat(gs);
-            break;
-        case 'T':
-            cmd_take(gs);
-            break;
-        case 'M':
-            use_magic_amulet(gs);
-            break;
-        case 'R':
-            cmd_retreat(gs);
-            break;
-        case 'F':
-            cmd_fight(gs);
-            break;
-
-
-        default: printf("UNHANDLED COMMAND '%c'\n", cmd_char);
-
+    if (cmd_char == 'H' ) {
+        display_help_info();
+    } else if (cmd_char == 'L') {
+        cmd_look(gs);
+    } else if (cmd_char == 'I' ) {
+        display_inventory(gs);
+    } else if (cmd_char == 'A' ) {
+        display_char_attributes(gs->stats);
+    } else if (cmd_char == 'O' ) {
+        display_score(gs);
+    } else if ( !monster_check(gs, cmd_char) ) {
+        // no-op, but prevents perform_action from running.
+    } else {
+        // Now the human call and the ML call use the exact same entry point
+        perform_action(gs, cmd_char, 0,0, 0);
     }
 
     set_char_sleep(saved_sleep_duration);
@@ -839,9 +829,11 @@ static bool main_game_loop(GameState * gs) {
     }
 
     room_set_visited_flag(current_room);
-
     return CONTINUE_GAME;
 }
+
+
+
 
 
 int main_werewolves_and_wanderer(void) {
