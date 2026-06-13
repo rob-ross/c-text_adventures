@@ -249,8 +249,10 @@ static int calc_score(const GameState * gs) {
     return weighted_score;
 }
 
-static bool cmd_quit(const GameState * gs) {
+static bool cmd_quit(GameState * gs) {
     display_line("COWARD...QUITTER....TURNCOAT.....");
+    gs->game_over = true;
+    gs->ended_by_quitting = true;
     // todo (rob) ask for confirmation?
     return END_GAME;
 }
@@ -1127,7 +1129,9 @@ static bool main_game_loop(GameState * gs) {
         set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    // process user input
+    // -----------------------------------------------------------------
+    //      process user input
+    // -----------------------------------------------------------------
     flush_input();
     char prompt_buffer[1024] = {};
     snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
