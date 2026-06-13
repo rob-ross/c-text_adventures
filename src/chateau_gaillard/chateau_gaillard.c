@@ -188,20 +188,6 @@ static void display_score(GameState *gs) {
     display_linef("You completed %3.0f%% of the quest.", (double) rooms_visited * 100.0 / (num_rooms - NUM_DEATH_ROOMS - 1));
 }
 
-static void display_conclusion(const GameState *gs) {
-    if (GLOBALS.silent_mode) return;
-
-    set_char_sleep(_30ms); // so final text display is slowed down
-
-    if (gs->completed && !gs->is_dead) {
-        display_linef("\nYou have succeeded, %s",gs->player_name->buffer);
-        display_line("You have escaped the Chateau Gaillard.");
-        display_line("\nWell done!");
-    } else if (gs->is_dead) {
-        display_line("You have died.........");
-    }
-}
-
 // Print the name of the current room and current number of turns, along with
 // dashes to separate each turn
 static void display_room_header(const GameState *gs) {
@@ -466,12 +452,6 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     return true;
 }
 
-bool cmd_look(GameState *gs, const ParsedCommand *pc) {
-    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
-    display_room_desc(gs);
-    display_room_content(gs);
-    return true;
-}
 
 
 //// ------------------------------------------------------------
@@ -1207,13 +1187,6 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     return perform_action(gs, CMD_FIGHT, weapon_choice, first_skill, second_skill);
 }
 
-static bool cmd_quit( GameState *gs) {
-    gs->QU = 4;
-    gs->game_over = true;
-    gs->ended_by_quitting = true;
-    // todo (rob) ask for confirmation?
-    return END_GAME;
-}
 
 /**
  * Death and Win condition check
@@ -1286,39 +1259,6 @@ static bool adjust_stats(GameState *gs) {
             gs->stats.as_array[i] = 0;
         }
     }
-
-    /*
-    if (gs->stats.strength < 0) {
-        gs->stats.strength = 0;
-    } else {
-        if (rnd_d(gs) < .16) --gs->stats.strength;
-    }
-   if (gs->stats.charisma < 0) {
-        gs->stats.charisma = 0;
-    } else {
-        if (rnd_d(gs) < .16) --gs->stats.charisma;
-    }
-    if (gs->stats.dexterity < 0) {
-        gs->stats.dexterity = 0;
-    } else {
-        if (rnd_d(gs) < .16) --gs->stats.dexterity;
-    }
-    if (gs->stats.intelligence < 0) {
-        gs->stats.intelligence = 0;
-    } else {
-        if (rnd_d(gs) < .16) --gs->stats.intelligence;
-    }
-    if (gs->stats.wisdom < 0) {
-        gs->stats.wisdom = 0;
-    } else {
-        if (rnd_d(gs) < .16) --gs->stats.wisdom;
-    }
-    if (gs->stats.constitution < 0) {
-        gs->stats.constitution = 0;
-    } else {
-        if (rnd_d(gs) < .16) --gs->stats.constitution;
-    }*/
-
 
     return check_game_over(gs);
 }
@@ -1515,6 +1455,11 @@ void reset(GameState *gs, const uint32_t seed) {
     // update_perception(gs);
 }
 
+static void init_string_assets() {
+    // this will eventually be loaded from a text file
+    global_string_assets.conclusion_completed = "You have succeeded!\nYou have escaped the Chateau Gaillard.\nWell done!";
+    global_string_assets.conclusion_died      = "You have died.........";
+}
 
 static void init_rooms(void) {
     // random text for rooms 4
@@ -1636,6 +1581,8 @@ static void initialize() {
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
 
+    init_string_assets();
+
     init_rooms();
 }
 
@@ -1751,7 +1698,7 @@ static bool main_game_loop(GameState *gs) {
             break;
         }
         case CMD_LOOK: {
-            cmd_look(gs, &pc);
+            cmd_look(gs);
             break;
         }
         case CMD_INV: {

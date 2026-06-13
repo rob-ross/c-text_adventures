@@ -17,6 +17,9 @@
 #include "attribute_stats.h"
 #include "common/console_utils.h"
 
+
+StringAssets global_string_assets = {};
+
 int actor_calc_inventory_value(const GameState *gs) {
     int cash = 0;
     const int items_len = gs->items_len;
@@ -158,6 +161,22 @@ void actor_remove_all_objects( GameState * gs) {
     }
 }
 
+bool cmd_look(GameState *gs) {
+    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
+    display_room_desc(gs);
+    display_room_content(gs);
+    return true;
+}
+
+bool cmd_quit(GameState * gs) {
+    if ( global_string_assets.conclusion_quit ) {
+        display_line(global_string_assets.conclusion_quit );
+    }
+    gs->game_over = true;
+    gs->ended_by_quitting = true;
+    // todo (rob) ask for confirmation?
+    return END_GAME;
+}
 
 void display_char_attributes(const CharStats stats) {
     if (GLOBALS.silent_mode) return;
@@ -170,6 +189,23 @@ void display_char_attributes(const CharStats stats) {
     display_linef( "Wisdom:    %3d  Constitution: %3d",
         stats.wisdom, stats.constitution);
 }
+
+
+void display_conclusion(const GameState *gs) {
+    if (GLOBALS.silent_mode) return;
+
+    set_char_sleep(_30ms); // so final text display is slowed down
+    display_line("");
+
+    if (gs->completed && !gs->is_dead) {
+        displayf("%s, ",gs->player_name->buffer);
+        display_line(global_string_assets.conclusion_completed);
+    } else if (gs->is_dead) {
+        display_line(global_string_assets.conclusion_died);
+    }
+}
+
+
 
 void display_game_state(const GameState *gs) {
     printf("\n(GameState){ player_name=%s, room=%d, turns=%d, cash=%d, killed=%d, fought=%d, magic=%d, "

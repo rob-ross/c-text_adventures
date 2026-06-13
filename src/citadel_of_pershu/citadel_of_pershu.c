@@ -123,33 +123,6 @@ static void display_inventory(const GameState * gs) {
 
 
 
-static void display_conclusion(const GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    set_char_sleep(_30ms);  // so final text display is slowed down
-
-    if (gs->completed && !gs->is_dead) {
-        display_linef("\nYou have succeeded, %s", gs->player_name->buffer);
-        display_line("You have escaped the Citadel of Pershu.");
-        display_line("\nWell done!");
-    } else if (gs->is_dead) {
-        display_line("You have died.........");
-    }
-}
-
-
-
-static void display_score(const GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    display_linef("\nSCORE: %d\n", calc_score(gs) );
-    const int rooms_visited = room_count_visited();
-    display_linef("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
-        gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
-    display_linef("You completed %3.0f%% of the quest.\n",
-           (double) rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1));
-
-}
 
 static void display_help_info(void) {
     if (GLOBALS.silent_mode) return;
@@ -249,13 +222,19 @@ static int calc_score(const GameState * gs) {
     return weighted_score;
 }
 
-static bool cmd_quit(GameState * gs) {
-    display_line("COWARD...QUITTER....TURNCOAT.....");
-    gs->game_over = true;
-    gs->ended_by_quitting = true;
-    // todo (rob) ask for confirmation?
-    return END_GAME;
+static void display_score(const GameState * gs) {
+    if (GLOBALS.silent_mode) return;
+
+    display_linef("\nSCORE: %d\n", calc_score(gs) );
+    const int rooms_visited = room_count_visited();
+    display_linef("turns: %d, cash: $%d, monsters fought: %d, killed: %d, rooms: %d",
+        gs->turns, gs->cash, gs->monsters_fought, gs->monsters_killed, rooms_visited);
+    display_linef("You completed %3.0f%% of the quest.\n",
+           (double) rooms_visited * 100.0 / (room_num_rooms() - NUM_DEATH_ROOMS - 1));
+
 }
+
+
 
 
 
@@ -732,12 +711,6 @@ bool monster_check(const GameState * gs, const char cmd) {
 }
 
 
-bool cmd_look(GameState *gs) {
-    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
-    display_room_desc(gs);
-    display_room_content(gs);
-    return true;
-}
 
 /**
  * Death and Win condition check
@@ -775,33 +748,6 @@ bool check_game_over(GameState *gs) {
 ////    INITIALIZE
 ////
 //// ------------------------------------------------------------
-
-
-// one time inits of ROOM or ROOM_GRAPH data
-static void  init_rooms() {
-    RandomTextArray *rta;
-    // randomized text in Rooms 1, 18, 37, 39
-    // room 1
-    rta = create_rta(2);
-    // ROOMS[1].epilog = create_rta(2);
-    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="There is an exit to the west."};
-    rta->lines[1] = (RandomText){ .chance_percent = .5, .text="A tunnel leads to the south."};
-    room_set_epilog(1, rta);
-
-    // room 18
-    rta = create_rta(1);
-    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="A bat flies past you, shrieking."};
-    room_set_epilog(18, rta);
-    // room 37
-    rta = create_rta(2);
-    rta->lines[0] = (RandomText){ .chance_percent = .7, .text="But now it tells you there is\na hidden stairwell in the room."};
-    rta->lines[1] = (RandomText){ .chance_percent = .3, .text="The voice faintly murmurs of the door to the south."};
-    room_set_epilog(37, rta);
-    // room 39
-    rta = create_rta(1);
-    rta->lines[0] = (RandomText){ .chance_percent = .6, .text="A small door leads to the north\nand another to the east."};
-    room_set_epilog(39, rta);
-}
 
 
 // -----------------------------------------------------------------
@@ -876,6 +822,40 @@ void reset(GameState * gs, const uint32_t seed) {
 
     update_perception(gs);
 }
+
+static void init_string_assets() {
+    // this will eventually be loaded from a text file
+    global_string_assets.conclusion_completed = "You have succeeded!\nYou have escaped the Citadel of Pershu.\nWell done!";
+    global_string_assets.conclusion_died      = "You have died.........";
+    global_string_assets.conclusion_quit      = "COWARD...QUITTER....TURNCOAT.....";
+}
+
+// one time inits of ROOM or ROOM_GRAPH data
+static void  init_rooms() {
+    RandomTextArray *rta;
+    // randomized text in Rooms 1, 18, 37, 39
+    // room 1
+    rta = create_rta(2);
+    // ROOMS[1].epilog = create_rta(2);
+    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="There is an exit to the west."};
+    rta->lines[1] = (RandomText){ .chance_percent = .5, .text="A tunnel leads to the south."};
+    room_set_epilog(1, rta);
+
+    // room 18
+    rta = create_rta(1);
+    rta->lines[0] = (RandomText){ .chance_percent = .5, .text="A bat flies past you, shrieking."};
+    room_set_epilog(18, rta);
+    // room 37
+    rta = create_rta(2);
+    rta->lines[0] = (RandomText){ .chance_percent = .7, .text="But now it tells you there is\na hidden stairwell in the room."};
+    rta->lines[1] = (RandomText){ .chance_percent = .3, .text="The voice faintly murmurs of the door to the south."};
+    room_set_epilog(37, rta);
+    // room 39
+    rta = create_rta(1);
+    rta->lines[0] = (RandomText){ .chance_percent = .6, .text="A small door leads to the north\nand another to the east."};
+    room_set_epilog(39, rta);
+}
+
 
 static constexpr size_t num_roomz = 48;  // todo (temp) until room data is read from file
 typedef struct RoomData {
@@ -985,6 +965,8 @@ void initialize() {
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
+
+    init_string_assets();
 
     init_rooms();
 }

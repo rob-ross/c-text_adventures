@@ -31,10 +31,10 @@
 enum Item {
     ITEM_DUMMY,
     ITEM_LIGHT,
-    ITEM_ION,
-    ITEM_LASER,
-    ITEM_OXY,
-    ITEM_TRANSPORTER,
+    ITEM_AXE,
+    ITEM_SWORD,
+    ITEM_FOOD,
+    ITEM_AMULET,
     ITEM_SUIT,
     ITEM_COUNT
 };
@@ -79,27 +79,13 @@ struct GlobalState GLOBALS = {
     .debug_mode = false,
 };
 
-
-
-
-
-static void display_conclusion(const GameState * gs) {
-    if (GLOBALS.silent_mode) return;
-
-    set_char_sleep(_30ms);  // so final text display is slowed down
-
-    if (gs->completed && !gs->is_dead) {
-        display_linef("\nYOU HAVE SUCCEEDED, %s!", gs->player_name->buffer);
-        display_line("YOU MANAGED TO GET OUT OF THE CASTLE");
-        display_line("\nWELL DONE!");
-    } else if (gs->is_dead) {
-        display_line("You have died.........");
-    }
+static int calc_score(const GameState * gs) {
+    const int score = 3* gs->turns + 5* gs->strength + 2* gs->cash + gs->food + 30*gs->monsters_killed;
+    return score;
 }
 
 static void display_score(const GameState * gs) {
-    const int score = 3* gs->turns + 5* gs->strength + 2* gs->cash + gs->food + 30*gs->monsters_killed;
-    display_linef("\nYOUR SCORE IS %d", score);
+    display_linef("\nYOUR SCORE IS %d", calc_score(gs));
 }
 
 
@@ -292,8 +278,8 @@ static bool cmd_take(GameState * gs) {
     return true;
 }
 
-static bool use_magic_amulet( GameState * gs) {
-    if (!actor_has_item(gs, ITEM_TRANSPORTER)) {
+static bool cmd_use_amulet( GameState * gs) {
+    if (!actor_has_item(gs, ITEM_AMULET)) {
         display_line("YOU'RE NOT CARRYING THE AMULET.");
     }
     for (;;) {
@@ -301,7 +287,7 @@ static bool use_magic_amulet( GameState * gs) {
         int room_index = rnd_range(gs, 1, room_num_rooms() + 1);
         if ( !(room_index == ROOM_START || room_index ==ROOM_END )) {
             gs->room = room_index;
-            actor_remove_object( gs, ITEM_TRANSPORTER);
+            actor_remove_object( gs, ITEM_AMULET);
             break;
         }
     }
@@ -326,8 +312,8 @@ static bool cmd_fight( GameState * gs) {
         display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
     // }
 
-    const bool has_axe   = actor_has_item(gs, ITEM_ION);
-    const bool has_sword = actor_has_item(gs, ITEM_LASER);
+    const bool has_axe   = actor_has_item(gs, ITEM_AXE);
+    const bool has_sword = actor_has_item(gs, ITEM_SWORD);
 
     if ( !has_axe && !has_sword) {
         display_line("YOU HAVE NO WEAPONS. YOU MUST FIGHT WITH BARE HANDS.");
@@ -422,20 +408,6 @@ static bool cmd_retreat(GameState * gs) {
     return true;
 }
 
-bool cmd_look(GameState *gs) {
-    // This is a presentation-layer-only command. It just displays text to the user they have already seen.
-    display_room_desc(gs);
-    display_room_content(gs);
-    return true;
-}
-
-static bool cmd_quit(GameState * gs) {
-    gs->game_over = true;
-    gs->ended_by_quitting = true;
-    // todo (rob) ask for confirmation?
-    return END_GAME;
-}
-
 
 
 void do_room_actions(GameState *gs) {
@@ -496,10 +468,6 @@ bool monster_check(const GameState * gs, const char cmd) {
 ////
 //// ------------------------------------------------------------
 
-// one time inits of ROOM or ROOM_GRAPH data
-static void  init_rooms() {
-
-}
 
 // -----------------------------------------------------------------
 //      called at the start of each new game
@@ -559,6 +527,19 @@ void reset(GameState * gs, const uint32_t seed) {
     // rooms 4 and 16 get special treasures, $100-$200
     ROOM_GRAPH[4][RGINDEX_TREASURE]  = rnd_range(gs, 100, 200 + 1);
     ROOM_GRAPH[16][RGINDEX_TREASURE] = rnd_range(gs, 100, 200 + 1);
+
+}
+
+static void init_string_assets() {
+    // this will eventually be loaded from a text file
+    global_string_assets.conclusion_completed = "YOU HAVE SUCCEEDED!\nYOU MANAGED TO GET OUT OF THE CASTLE\nWELL DONE!";
+    global_string_assets.conclusion_died      = "You have died.........";
+
+}
+
+
+// one time inits of ROOM or ROOM_GRAPH data
+static void  init_rooms() {
 
 }
 
@@ -631,6 +612,8 @@ static void initialize() {
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
 
+    init_string_assets();
+
     init_rooms();
 }
 
@@ -693,7 +676,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
             result = cmd_take(gs);
             break;
         case 'M':
-            result = use_magic_amulet(gs);
+            result = cmd_use_amulet(gs);
             break;
         case 'R':
             result = cmd_retreat(gs);

@@ -51,6 +51,16 @@ constexpr int PLAYER_LOCATION = -1;
 constexpr int MAX_ITEMS_CAPACITY = 10; // size of the items[] array in GameState
 
 
+// Temp struct that will hold asset strings by name (using member names). This will eventually become a hash map.
+
+typedef struct string_assets_s {
+    char const * conclusion_completed;
+    char const * conclusion_died;
+    char const * conclusion_quit;
+} StringAssets;
+
+extern StringAssets global_string_assets;
+
 //// ------------------------------------------------------------
 ////
 ////    GAME STATE
@@ -127,8 +137,11 @@ bool actor_add_object(GameState *gs, object_id id);
 bool actor_remove_object(GameState *gs, object_id id);
 void actor_remove_all_objects( GameState * gs);
 
-void display_char_attributes( CharStats stats );
+bool cmd_look(GameState *gs);
+bool cmd_quit(GameState * gs);
 
+void display_char_attributes( CharStats stats );
+void display_conclusion(const GameState *gs);
 void display_game_state(const GameState *gs);
 void display_globals(void);
 

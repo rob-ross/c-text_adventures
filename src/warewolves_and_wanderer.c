@@ -22,10 +22,10 @@
 enum Item {
     ITEM_DUMMY,
     ITEM_LIGHT,
-    ITEM_ION,
+    ITEM_AXE,
     ITEM_LASER,
-    ITEM_OXY,
-    ITEM_TRANSPORTER,
+    ITEM_FOOD,
+    ITEM_AMULET,
     ITEM_SUIT,
     ITEM_COUNT
 };
@@ -215,23 +215,23 @@ static void actor_display_inventory(struct GameState * gs) {
         display_line("YOU ARE WEARING ARMOR");
     }
 
-    if (gs->items[ITEM_ION] || gs->items[ITEM_LASER] || gs->items[ITEM_TRANSPORTER]) {
+    if (gs->items[ITEM_AXE] || gs->items[ITEM_SWORD] || gs->items[ITEM_AMULET]) {
         printf("YOU ARE CARRYING ");
     }
 
-    if (gs->items[ITEM_ION]) {
+    if (gs->items[ITEM_AXE]) {
         printf("AN AXE ");
     }
 
-    if (gs->items[ITEM_LASER]) {
+    if (gs->items[ITEM_SWORD]) {
         printf("A SWORD ");
     }
 
-    if (gs->items[ITEM_TRANSPORTER] && (gs->items[ITEM_ION] || gs->items[ITEM_LASER]) ) {
+    if (gs->items[ITEM_AMULET] && (gs->items[ITEM_AXE] || gs->items[ITEM_SWORD]) ) {
         printf("AND ");
     }
 
-    if (gs->items[ITEM_TRANSPORTER]) {
+    if (gs->items[ITEM_AMULET]) {
         printf("THE MAGIC AMULET");
     }
 
@@ -336,7 +336,7 @@ static void cmd_buy(struct GameState * gs) {
                 } while ( !(food_quantity >= '0' && food_quantity <= '9') );
 
                 const int qty = food_quantity - '0';
-                int cost = qty * ITEM_COSTS[ITEM_OXY];
+                int cost = qty * ITEM_COSTS[ITEM_FOOD];
                 if (gs->wealth - cost < 0 ) {
                     printf("YOU HAVEN'T GOT ENOUGH MONEY!\n");
                 } else {
@@ -386,7 +386,7 @@ static void pick_up_treasure(struct GameState * gs) {
     ROOM_GRAPH[gs->room][CONTENTS] = 0;
 }
 
-static void use_magic_amulet(struct GameState * gs) {
+static void cmd_use_amulet(struct GameState * gs) {
     for (;;) {
         // Generate a random number between 1 and 19
         int room_index = (rand() % 19) + 1;
@@ -414,8 +414,8 @@ static void fight(struct GameState * gs) {
         printf("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*\n");
     }
 
-    const bool has_axe   = gs->items[ITEM_ION];
-    const bool has_sword = gs->items[ITEM_LASER];
+    const bool has_axe   = gs->items[ITEM_AXE];
+    const bool has_sword = gs->items[ITEM_SWORD];
 
     if ( !has_axe && !has_sword) {
         printf("YOU HAVE NO WEAPONS.\nYOU MUST FIGHT WITH BARE HANDS.\n");
@@ -642,7 +642,7 @@ static bool major_handling_routine(struct GameState * gs) {
             pick_up_treasure(gs);
             break;
         case 'M':
-            use_magic_amulet(gs);
+            cmd_use_amulet(gs);
             break;
         case 'R':
             retreat(gs);
