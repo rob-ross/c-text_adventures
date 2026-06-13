@@ -128,7 +128,7 @@ static void display_inventory(const GameState * gs) {
 
 // first_letter must be in "NSEWUD"
 // return true if the command was successfully processed. If false, the move is not allowed.
-static bool cmd_move(struct GameState * gs, char first_letter) {
+static bool cmd_move( GameState * gs, char first_letter) {
 
     int location = gs->room;
     int direction_index = calc_room_graph_direction_index(first_letter);
@@ -150,7 +150,7 @@ static bool cmd_move(struct GameState * gs, char first_letter) {
 
 static int const ITEM_COSTS[] = { 0, 15, 10, 20, 2, 30, 50};
 
-static void display_inventory_menu(struct GameState * gs) {
+static void display_inventory_menu( GameState * gs) {
     printf("\nYOU HAVE $%d\n", gs->cash);
 
     printf("YOU CAN BUY 1 - FLAMING TORCH ($15)\n");
@@ -201,7 +201,7 @@ static void cmd_buy( GameState * gs) {
 
         const int option_index = option - '0';
 
-        printf("You selected ** %c ** \n", option);
+        // printf("You selected ** %c ** \n", option);
 
         if ( option_index == 0 ) {
             //cls
@@ -256,7 +256,7 @@ static void cmd_buy( GameState * gs) {
 }
 
 
-static void cmd_eat(struct GameState * gs) {
+static void cmd_eat( GameState * gs) {
     if (gs->food <= 0) return;
     for (;;) {
         char food_quantity;
@@ -278,7 +278,7 @@ static void cmd_eat(struct GameState * gs) {
     }
 }
 
-static void cmd_take(struct GameState * gs) {
+static void cmd_take(GameState * gs) {
     if ( ROOM_GRAPH[gs->room][RGINDEX_TREASURE] <= 0 ) {
         printf("THERE IS NO TREASURE TO PICK UP.\n");
         return;
@@ -291,7 +291,7 @@ static void cmd_take(struct GameState * gs) {
     ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
 }
 
-static void use_magic_amulet(struct GameState * gs) {
+static void use_magic_amulet( GameState * gs) {
     for (;;) {
         // Generate a random number between 1 and 19
         int room_index = (rand() % 19) + 1;
@@ -302,11 +302,11 @@ static void use_magic_amulet(struct GameState * gs) {
     }
 }
 
-static void cmd_fight(struct GameState * gs) {
-    if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE] >= 0) {
+static void cmd_fight( GameState * gs) {
+    if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
         return; // no monster to fight
     }
-    int const monster_index = -ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
     const Monster * monster =  monsters_find_monster(monster_index);
     int ferocity_factor = monster->ferocity_factor;
 
@@ -374,12 +374,12 @@ static void cmd_fight(struct GameState * gs) {
         gs->strength /= 2;
     }
 
-    ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
+    ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
 }
 
 
 static void cmd_retreat(GameState * gs) {
-    if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE] >= 0) {
+    if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
         return; // no monster to retreat from
     }
     if ( (rand() % 100) > 69 ) {
@@ -474,7 +474,7 @@ void reset(GameState * gs, const uint32_t seed) {
 
     gs->stats = random_hero_stats(gs);
     gs->stats.strength = 105;
-
+    const int num_rooms = room_num_rooms();
     //clear all monsters, treasure
 
     // allot random treasure
@@ -485,30 +485,41 @@ void reset(GameState * gs, const uint32_t seed) {
     //allot treasure
     for (int j = 0; j < 4; ++j ) {
         for (;;) {
-            // Generate a random number between 1 and 19
-            int room_index = (rand() % 19) + 1;
-            if ( !(room_index == ROOM_START || room_index == ROOM_END || ROOM_GRAPH[room_index][RGINDEX_TREASURE] !=0 ) ) {
-                int treasure = (rand() % 100) + 10;; // rand val between 10 and 109 inclusive
-                ROOM_GRAPH[room_index][RGINDEX_TREASURE] = treasure;
+            // Generate a random number between 1 and num_rooms inclusive
+            const int rand_room = rnd_range(gs, 1, num_rooms + 1);
+            if ( !(rand_room == ROOM_START || rand_room == ROOM_END || ROOM_GRAPH[rand_room][RGINDEX_TREASURE] !=0 ) ) {
+                // rand val between 10 and 110 inclusive
+                const int treasure = rnd_range(gs, 10, 110 + 1);
+                ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure;
                 break;
             }
-
         }
     }
     //allot monsters
-    for (int j = 0; j < 4; ++j ) {
+    for (int j = 1; j <= 4; ++j ) {
         for (;;) {
-            // Generate a random number between 1 and 19
-            int room_index = (rand() % 19) + 1;
-            if ( !(room_index == ROOM_START || room_index == ROOM_END || ROOM_GRAPH[room_index][RGINDEX_TREASURE] !=0 ) ) {
-                ROOM_GRAPH[room_index][RGINDEX_TREASURE] = -j;
+
+            // Generate a random number between 1 and num_rooms inclusive
+            const int rand_room = rnd_range(gs, 1, num_rooms + 1);
+            if ( !(rand_room == ROOM_START || rand_room == ROOM_END || ROOM_GRAPH[rand_room][RGINDEX_MONSTER] !=0 ) ) {
+                ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = j;
+                CharStats stats = random_monster_stats(gs);
+                int ff = sum_character_stats(&stats);
+                room_set_monster(room_find_room(rand_room), j);
+                monsters_update_monster(
+                    &(Monster){
+                        .name = monsters_name_for_id(j),
+                        .id = j,
+                        .ferocity_factor = ff,
+                        .stats = random_monster_stats(gs)
+                    });
                 break;
             }
         }
     }
-    // rooms 4 and 16 get special treasures
-    ROOM_GRAPH[4][RGINDEX_TREASURE] = 100 + (rand() % 100);
-    ROOM_GRAPH[16][RGINDEX_TREASURE] = 100 + (rand() % 100);
+    // rooms 4 and 16 get special treasures, $100-$200
+    ROOM_GRAPH[4][RGINDEX_TREASURE]  = rnd_range(gs, 100, 200 + 1);
+    ROOM_GRAPH[16][RGINDEX_TREASURE] = rnd_range(gs, 100, 200 + 1);
 
 }
 
@@ -662,17 +673,19 @@ static bool main_game_loop(GameState * gs) {
     // display_room_desc(gs);
 
 
-    int room_contents = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    int room_treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    int room_monster_id  = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
-    if ( room_contents > 0 ) {
-        printf("THERE IS TREASURE HERE WORTH $%d\n", room_contents);
-    } else if (room_contents < 0 ) {
-        int index = -room_contents;
-        display_line("\n\nDANGER...THERE IS A MONSTER HERE....");
-        const Monster *m = monsters_find_monster(index);
-        printf("\nIT IS A %s\n", m->name );
-        printf("\nTHE DANGER LEVEL IS %d!!\n", m->ferocity_factor);
+    if ( room_treasure_id > 0 ) {
+        printf("THERE IS TREASURE HERE WORTH $%d\n", room_treasure_id);
     }
+    //else if (room_contents < 0 ) {
+    //     int index = -room_contents;
+    //     display_line("\n\nDANGER...THERE IS A MONSTER HERE....");
+    //     const Monster *m = monsters_find_monster(index);
+    //     printf("\nIT IS A %s\n", m->name );
+    //     printf("\nTHE DANGER LEVEL IS %d!!\n", m->ferocity_factor);
+    // }
 
 
 
@@ -705,7 +718,7 @@ static bool main_game_loop(GameState * gs) {
             return false; // quit game
         }
 
-        if (room_contents < 0 &&
+        if (room_monster_id != 0 &&
             !( cmd_char == 'F' || cmd_char == 'R' )) {
             // if monster, can only Fight or Retreat
             printf("MONSTER! YOU MUST EITHER FIGHT OR RETREAT.\n");
@@ -713,7 +726,7 @@ static bool main_game_loop(GameState * gs) {
             continue;
         }
 
-        if (room_contents >= 0 &&
+        if (room_monster_id == 0 &&
             ( cmd_char == 'F' || cmd_char == 'R' )) {
             // nothing to fight
             printf("THERE IS NO MONSTER.\n");
