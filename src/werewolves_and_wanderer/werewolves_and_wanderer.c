@@ -281,6 +281,7 @@ static bool cmd_take(GameState * gs) {
 static bool cmd_use_amulet( GameState * gs) {
     if (!actor_has_item(gs, ITEM_AMULET)) {
         display_line("YOU'RE NOT CARRYING THE AMULET.");
+        return false;
     }
     for (;;) {
         // Generate a random number between 1 and 19
