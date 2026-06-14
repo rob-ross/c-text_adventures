@@ -6,7 +6,7 @@
 // Created 2026/05/30 00:44:42 PDT
 
 
-
+#include "roblib/json_parser/json_parser.h"
 #include "common/string.h"
 #include "common/files.c"
 #include "monsters.h"
@@ -16,12 +16,17 @@ static Monster     *pvt_monsters = nullptr;
 static LenStrArray *pvt_monster_names;
 
 static int create_string_array(FILE *fptr, void **result_out);
+static int load_monster_json_file(FILE *fptr, void **monster_out);
 
 // reads a text file where each line is a string. This function will skip line comments and blank lines as well as
 // multiline comments. Line comments start with '//' or '#' and multiline comments are C-style /* */
 // Leading and trailing whitespace is trimmed.
 static int monster_read_string_file(const char * monster_filename) {
-    int err = process_file( monster_filename, create_string_array, (void**) &pvt_monster_names);
+
+    //temp debug
+    int err = process_file( monster_filename, load_monster_json_file, (void**) &pvt_monster_names);
+
+    // int err = process_file( monster_filename, create_string_array, (void**) &pvt_monster_names);
     // if (err == 0) {
     //     printf("In main, LenStrArray from monsters.txt is:\n");
     //     for (int i = 0; i < lsa->size; ++i) {
@@ -243,3 +248,50 @@ static int create_string_array(FILE *fptr, void **result_out) {
     return 0;
 }
 
+// parses the json file from the argument stream pointer and extracts monster objects into a Monster struct instance
+// returns the result in the out ptr, a *Monster
+static int load_monster_json_file(FILE *fptr, void **monster_out) {
+    if (!fptr) return EINVAL;
+
+    // 1. Determine file size
+    fseek(fptr, 0, SEEK_END);
+    long length = ftell(fptr);
+    if (length < 0) return EIO;
+    rewind(fptr);
+
+    // 2. Allocate memory
+    char *buffer = malloc(length + 1);
+    if (!buffer) return ENOMEM;
+
+    // 3. Read the file into the buffer
+    size_t read_size = fread(buffer, 1, length, fptr);
+    if (read_size != (size_t)length) {
+        free(buffer);
+        return EIO;
+    }
+
+    // 4. Null-terminate the string
+    buffer[length] = '\0';
+
+    // TODO: Pass 'buffer' to your JSON parser here
+    Error error = jsonp_init();
+    if (error.err) {
+        err_print(error);
+        return error.reported_err;
+    }
+    JsonError err = {.json = buffer};
+    printf("\nParsing json string '%s': \n", buffer);
+    JsonValue *jval = json_parse(buffer, &err);
+    if (!jval) {
+        printf("ERROR : line:%d col:%d start:%d end:%d  %s\n",
+            err.line, err.column, err.parse_start, err.parse_end -1, err.message);
+    }
+    else {
+        json_value_str(jval);
+        printf("\n");
+    }
+
+    jsonp_destroy();
+    free(buffer);
+    return 0;
+}

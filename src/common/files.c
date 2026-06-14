@@ -13,6 +13,7 @@
 #include "files.h"
 #include "string.h"
 
+constexpr char QUOTATION_MARK = '"';
 
 int get_next_line_chunk(FILE *fptr, int len, char buffer[static len]) {
     if (!fptr) {
@@ -195,7 +196,7 @@ void free_LenStrArray(LenStrArray *lsa) {
 int process_file(string file_name, file_process_action function, void **result_ptr) {
     FILE *fptr = nullptr;
 
-    fptr = fopen(file_name, "r");
+    fptr = fopen(file_name, "rb");
     if (!fptr) {
         printf("fopen failed for %s, error:%d, ", file_name, errno);
         perror(" ");

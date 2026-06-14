@@ -15,6 +15,9 @@ function(add_adventure_executable target_name main_source macro_name)
             src/monsters.c
             src/common/string.c
             src/roblib/string/string_utils.c
+            src/roblib/json_parser/json_parser.c
+            src/roblib/json_parser/arena.c
+            src/roblib/json_parser/error_result.c
     )
 
     target_include_directories(${target_name} PUBLIC include)
@@ -45,6 +48,10 @@ add_adventure_executable(chateau_gaillard
 add_adventure_executable(citadel_of_pershu
         src/citadel_of_pershu/citadel_of_pershu.c
         CITADEL_OF_PERSHU_MAIN)
+
+add_adventure_executable(asimovian_aftermath
+        src/asimovian_aftermath/asimovian_aftermath.c
+        ASIMOVIAN_AFTERMATH_MAIN)
 
 add_adventure_executable(werewolves_and_wanderer
         src/werewolves_and_wanderer/werewolves_and_wanderer.c

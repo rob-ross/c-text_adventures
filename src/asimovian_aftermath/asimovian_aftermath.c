@@ -77,6 +77,9 @@ constexpr int ROOM_END       = 6;
 constexpr int POD_ROOM       = 11;
 constexpr int RADIATION_ROOM = 13;
 
+const int MAX_ROOM_OBJECTS =  1; //maximum number of items that can be placed in a room
+const int MAX_PLAYER_OBJECTS = 9; // max number of items that can be carried
+
 
 int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 0,  0,  0,  0,  0,  0,  0}, // Room 0
@@ -101,6 +104,17 @@ int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     { 0, 12,  0,  0, 15,  0,  0}, // Room 19
 };
 
+constexpr int DEBUG_RAND_SEED = 67;
+struct GlobalState GLOBALS = {
+    .player_name = nullptr,
+    .silent_mode = false,
+    .char_sleep_duration = _10ms,
+    .char_sleep_visited_duration = _1ms,
+    .debug_normal_sleep = 0,
+    .debug_visited_sleep = 0,
+    .debug_mode = false,
+};
+
 enum Item {
     ITEM_DUMMY,
     ITEM_LIGHT,
@@ -113,14 +127,6 @@ enum Item {
 };
 
 
-
-static struct Monster MONSTERS[5] = {
-    { .FF =  1, .name = "ELON ANDROID"},  // dummy placeholder, not actually used
-    { .FF =  5, .name = "BERSERK ANDROID"},
-    { .FF = 10, .name = "DERANGED DEL-FIEVIAN"},
-    { .FF = 15, .name = "RAMPAGING ROBOTIC DEVICE"},
-    { .FF = 20, .name = "SNIGGERING GREEN ALIEN"},
-};
 
 // state for Mersenne Twister PRNG
 static MTState mt_state;
@@ -312,8 +318,11 @@ void fight( GameState * gs) {
     }
 
     int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    struct Monster const monster = MONSTERS[ monster_index ];
-    int ferocity_factor = monster.ferocity_factor;
+    Room const *r =  room_find_room(gs->room);
+
+    Monster *m = monsters_find_monster(r->monster);
+
+    int ferocity_factor = m->ferocity_factor;
 
     display_line("");
 
@@ -358,7 +367,7 @@ void fight( GameState * gs) {
         bool has_light = gs->items[ITEM_LIGHT];
 
         if ( mt_random_double(&mt_state) < .5 || !has_light ) {
-            display(monster.name);
+            display(m->name);
             display_line(" ATTACKS.");
 
             if (mt_random_double(&mt_state) < .5) {
@@ -435,11 +444,11 @@ void fight( GameState * gs) {
     printf("win_chance: %d, ferocity_factor: %d\n", win_chance, ferocity_factor);
     if ( win_chance > ferocity_factor) {
         display("AND YOU MANAGED TO KILL THE ");
-        display_line(monster.name);
+        display_line( m->name);
         gs->monsters_killed++;
     } else {
         display("THE ");
-        display(monster.name);
+        display(m->name);
         display_line(" SERIOUSLY WOUNDS YOU.");
         gs->strength /= 2;
     }
@@ -504,12 +513,12 @@ void custom_display_room_content( GameState * gs) {
     }
     if (monster_id) {
         if (gs->items[ITEM_LIGHT] ) {
-            Monster m = MONSTERS[monster_id];
+            Monster *m = monsters_find_monster(monster_id);
             display_line("\nDANGER••• THERE IS DANGER HERE•••• ");
             display("IT IS A ");
-            display_line(m.name);
+            display_line(m->name);
             display("YOUR PERSONAL DANGER METER REGISTERS ");
-            printf("%d!!\n", m.ferocity_factor);
+            printf("%d!!\n", m->ferocity_factor);
         } else {
             display_line("YOU FEEL A DANGEROUS PRESENCE!");
         }
@@ -778,7 +787,7 @@ void initialize( GameState * gs) {
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
 
-    monsters_init("monsters.txt");
+    monsters_init("monsters.json");
     const int num_monsters = monsters_num_monsters();
     for (int i = 1; i < num_monsters; ++i) {
         Monster *m = monsters_find_monster(i);
@@ -831,18 +840,19 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
     return true;
 }
 
+static int radiation_turn_count = 0;
 static bool main_game_loop( GameState * gs) {
     gs->turns++;
 
     printf("---------------------------------------------------------------------- %d\n", gs->turns);
 
     if (gs->room == RADIATION_ROOM ) {
-        gs->radiation_turn_count++;
+        radiation_turn_count++;
     }
 
     gs->strength -= 5;
 
-    if ( gs->radiation_turn_count == 2 || gs->strength < 1 ) {
+    if ( radiation_turn_count == 2 || gs->strength < 1 ) {
         if (gs->strength < 1) {
             display_line("YOU HAVE RUN OUT OF OXYGEN....");
         } else {
@@ -861,7 +871,8 @@ static bool main_game_loop( GameState * gs) {
         return false;
     }
     custom_display_room_content(gs);
-    const int room_contents = ROOM_GRAPH[gs->room][RGINDEX_CONTENTS];
+    const int treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    const int monster_id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
     char first_letter;
     bool is_invalid_command;
@@ -876,14 +887,14 @@ static bool main_game_loop( GameState * gs) {
             return false; // quit game
         }
 
-        if (room_contents < 0 &&
+        if (monster_id != 0 &&
                 !( first_letter == 'F' || first_letter == 'R' ) ) {
             // if monster, can only Fight or Retreat
             display_line("DANGER! YOU MUST EITHER FIGHT OR RETREAT.");
             is_invalid_command = true;
             continue;
         }
-        if (room_contents >= 0 &&
+        if (monster_id == 0 &&
             ( first_letter == 'F' || first_letter == 'R' )) {
             // nothing to fight
             display_line("THERE IS NOTHING TO FIGHT.");
@@ -910,7 +921,7 @@ static bool main_game_loop( GameState * gs) {
             display_help_info();
             break;
         case 'I':
-            custom_display_inventory(gs);
+            custom_display_inventory(gs, false, false);
             break;
         case 'B':
             buy_supplies(gs);
@@ -958,9 +969,9 @@ static int main_asimovian_aftermath(void) {
 
     GameState gs = {};
 
-    display("HELLO CAPTAIN ");
-    display_line(gs.player_name->buffer);
-    display_line("TYPE 'HELP' FOR LIST OF COMMANDS.");
+    // display("HELLO CAPTAIN ");
+    // display_line(gs.player_name->buffer);
+    // display_line("TYPE 'HELP' FOR LIST OF COMMANDS.");
 
 
 
