@@ -24,7 +24,7 @@ typedef struct Room Room;
 
 typedef int monster_id;
 
-typedef struct Monster {
+typedef struct monster_s {
     char const * name;
     monster_id id;
     int ferocity_factor;
@@ -33,6 +33,13 @@ typedef struct Monster {
         union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength or m.as_array[StatIndex]
     };
 } Monster;
+
+
+typedef struct monster_array_s {
+    uint32_t len;
+    Monster monsters[];  // flexible array
+} MonsterArray;
+
 
 int monsters_init(const char * monster_filename);
 void monsters_destroy(void);

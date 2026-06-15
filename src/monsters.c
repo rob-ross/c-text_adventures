@@ -11,12 +11,18 @@
 #include "common/files.c"
 #include "monsters.h"
 
+#include <assert.h>
 
-static Monster     *pvt_monsters = nullptr;
+
+static MonsterArray *monster_array = nullptr;  // this acts like a singleton in this monster library
+
+//static Monster *pvt_monsters = nullptr;
+
+
 static LenStrArray *pvt_monster_names;
 
 static int create_string_array(FILE *fptr, void **result_out);
-static int load_monster_json_file(FILE *fptr, void **monster_out);
+static int load_monster_json_file(FILE *fptr, void **monster_array_out);
 
 // reads a text file where each line is a string. This function will skip line comments and blank lines as well as
 // multiline comments. Line comments start with '//' or '#' and multiline comments are C-style /* */
@@ -36,20 +42,17 @@ static int monster_read_string_file(const char * monster_filename) {
     return err;
 }
 
+static int monster_read_json_file(const char * monster_json_filename) {
+    // `load_monster_json_file` is the worker method here; `process_file` just ensures the file is closed properly
+    int err = process_file( monster_json_filename, load_monster_json_file, (void**) &monster_array);
+    return err;
+}
+
 int monsters_init(const char * monster_filename) {
-    int result = monster_read_string_file(monster_filename);
+    int result = monster_read_json_file(monster_filename);
     if (result != 0) {
+        // show error message here?
         return result;
-    }
-    pvt_monsters = calloc(1, sizeof(Monster) * monsters_num_monsters());
-    if (!pvt_monsters) {
-        free_LenStrArray(pvt_monster_names);
-        pvt_monster_names = nullptr;
-        return ENOMEM;
-    }
-    const size_t num_monsters = pvt_monster_names->size;
-    for (int i = 0; i < num_monsters; ++i) {
-        pvt_monsters[i] = (Monster){.name = pvt_monster_names->array[i].s, .id = i};
     }
     return 0;
 }
@@ -58,17 +61,25 @@ int monsters_init(const char * monster_filename) {
 void monsters_destroy(void) {
     free_LenStrArray(pvt_monster_names);
     pvt_monster_names = nullptr;
-    free(pvt_monsters);
-    pvt_monsters = nullptr;
+
+    const uint32_t num_monsters = monster_array->len;
+
+    // monster names were copied from json parser arena via strdup, so we must free them
+    for (int i = 0; i < num_monsters ; ++i) {
+        free((void*)monster_array->monsters[i].name);
+    }
+
+    free(monster_array);
+    monster_array = nullptr;
 }
 
 
 int monsters_num_monsters(void) {
-    return (int)pvt_monster_names->size;
+    return (int)monster_array->len;
 }
 
 static Monster * pvt_monsters_find_monster(const monster_id id) {
-    return &pvt_monsters[id];
+    return &monster_array->monsters[id];
 }
 
 // find_monster() will eventually use some better data structure, but we're using an internal array for now
@@ -76,7 +87,7 @@ static Monster * pvt_monsters_find_monster(const monster_id id) {
 // the non-pvt version is intended for outside API use and should be const qualified. But for now, it's not because
 // many methods are mutating the monsters. As we implement more service methods, we can eventually add const here
 Monster * monsters_find_monster(const monster_id id) {
-    if (id < 0 || id > pvt_monster_names->size - 1 ) {
+    if (id < 0 || id > monster_array->len - 1 ) {
         // Oh, I miss you Java! This would be a good place to throw an exception.
         // todo (rob) this would be a good place for returning a ResultError struct,
         // containing an error code (0 for no error) and the result of the function if no error
@@ -84,7 +95,7 @@ Monster * monsters_find_monster(const monster_id id) {
         return nullptr;
     }
 
-    return &pvt_monsters[id];
+    return &monster_array->monsters[id];
 }
 
 // overwrites the state of the monster object in storage for the argument's id member.
@@ -93,15 +104,15 @@ void monsters_update_monster(const Monster *m) {
     if (!m || m->id < 0 || m->id > num_monsters - 1 ) {
         return;
     }
-    pvt_monsters[m->id] = *m;
+    monster_array->monsters[m->id] = *m;
 }
 
-void monsters_clear_all(void) {
-    const int num_monsters = monsters_num_monsters();
-    for (int i = 0; i < num_monsters; ++i) {
-        pvt_monsters[i] = (Monster){};
-    }
-}
+// void monsters_clear_all(void) {
+//     const int num_monsters = monsters_num_monsters();
+//     for (int i = 0; i < num_monsters; ++i) {
+//         pvt_monsters[i] = (Monster){};
+//     }
+// }
 
 
 bool monsters_monster_is_in_room( const char *monster_name, const Room *r ) {
@@ -121,9 +132,22 @@ void monsters_names_repr(void) {
     printf("};\n");
 }
 
+static void monsters_stats_repr(const CharStats stats) {
+    printf("(CharStats){ .strength=%d, .charisma=%d, .dexterity=%d, .intelligence=%d, .wisdom=%d, .constitution=%d }",
+            stats.strength, stats.charisma, stats.dexterity, stats.intelligence, stats.wisdom, stats.constitution);
+}
+
 void monsters_repr(const monster_id id) {
-    Monster m = pvt_monsters[id];
-    printf("(Monster){}");
+    Monster *m = pvt_monsters_find_monster(id);
+    printf("(Monster){ .id=%d, .ferocity_factor=%d, ", m->id, m->ferocity_factor);
+    monsters_stats_repr(m->stats);
+    printf(", .name='%s' } \n", m->name);
+}
+
+void monsters_all_repr() {
+    for (int i = 0; i < monster_array->len; ++i) {
+        monsters_repr(i);
+    }
 }
 
 const char * monsters_name_for_id(const monster_id id) {
@@ -250,7 +274,7 @@ static int create_string_array(FILE *fptr, void **result_out) {
 
 // parses the json file from the argument stream pointer and extracts monster objects into a Monster struct instance
 // returns the result in the out ptr, a *Monster
-static int load_monster_json_file(FILE *fptr, void **monster_out) {
+static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
     if (!fptr) return EINVAL;
 
     // 1. Determine file size
@@ -260,18 +284,18 @@ static int load_monster_json_file(FILE *fptr, void **monster_out) {
     rewind(fptr);
 
     // 2. Allocate memory
-    char *buffer = malloc(length + 1);
-    if (!buffer) return ENOMEM;
+    char *json_text_buffer = malloc(length + 1);
+    if (!json_text_buffer) return ENOMEM;
 
     // 3. Read the file into the buffer
-    size_t read_size = fread(buffer, 1, length, fptr);
+    size_t read_size = fread(json_text_buffer, 1, length, fptr);
     if (read_size != (size_t)length) {
-        free(buffer);
+        free(json_text_buffer);
         return EIO;
     }
 
     // 4. Null-terminate the string
-    buffer[length] = '\0';
+    json_text_buffer[length] = '\0';
 
     // TODO: Pass 'buffer' to your JSON parser here
     Error error = jsonp_init();
@@ -279,9 +303,9 @@ static int load_monster_json_file(FILE *fptr, void **monster_out) {
         err_print(error);
         return error.reported_err;
     }
-    JsonError err = {.json = buffer};
-    printf("\nParsing json string '%s': \n", buffer);
-    JsonValue *jval = json_parse(buffer, &err);
+    JsonError err = {.json = json_text_buffer};
+    printf("\nParsing json string '%s': \n", json_text_buffer);
+    JsonValue *jval = json_parse(json_text_buffer, &err);
     if (!jval) {
         printf("ERROR : line:%d col:%d start:%d end:%d  %s\n",
             err.line, err.column, err.parse_start, err.parse_end -1, err.message);
@@ -291,7 +315,32 @@ static int load_monster_json_file(FILE *fptr, void **monster_out) {
         printf("\n");
     }
 
+    assert(jval->type == JSON_ARRAY);
+    const size_t num_monsters = jval->u.array.count + 1;  // we add one for the null monster
+
+    //todo mem migrate to long-term RO arena
+    MonsterArray *ma = (MonsterArray *)calloc(1, sizeof(MonsterArray) + sizeof(Monster) * num_monsters);
+    if (!ma) {
+        jsonp_destroy();
+        free(json_text_buffer);
+        return ENOMEM;
+    }
+    // add the null monster object
+    ma->monsters[0] = (Monster){.name = "(null)", .id = 0};
+
+    // populate our Monster[] with entries from the parsed json file
+    ma->len = num_monsters;
+    for (int i = 1; i < num_monsters; ++i) {
+        // we don't own the jason parser arena, so we have to make a copy of this string
+        JsonValue *map = jval->u.array.elements[i];
+        assert(map->type == JSON_OBJECT);
+        char const *dup_str = strdup(map->u.string);
+        ma->monsters[i] = (Monster){.name = dup_str, .id = i};
+    }
+
+    *monster_array_out = ma;
+
     jsonp_destroy();
-    free(buffer);
+    free(json_text_buffer);
     return 0;
 }

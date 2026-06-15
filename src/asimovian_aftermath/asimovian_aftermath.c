@@ -738,7 +738,6 @@ static RoomData get_room_data(void) {
         {.id =  3,  .name= "WRECKED HOLD", .desc = "YOU ARE IN THE WRECKED HOLD OF A SPACE SHIP. THE CAVERNOUS INTERIOR IS LITTERED WITH FLOATING WRECKAGE, AS IF FROM SOME TERRIBLE EXPLOSION EONS AGO......"},
         {.id =  4,  .name= "OBSERVATORY",  .desc = "THE VIEW OF THE STARS FROM THIS OBSERVATION PLATFORM IS MAGNIFICENT, AS FAR AS THE EYE CAN SEE. THE SINGLE EXIT IS BACK WHERE YOU CAME FROM."},
         {.id =  5,  .name= "HYDRO FARM",   .desc = "ACRE UPON ACRE OF DRIED-UP HYDROPONIC PLANT BEDS STRETCH AROUND YOU. ONCE THIS AREA FED THE THOUSAND ON BOARD THE SHIP."},
-
         {.id =  6,  .name= "ESCAPE",             .desc = "YOU ARE FREE. YOU HAVE MADE IT. YOUR POD SAILS FREE INTO SPACE..........."},
         {.id =  7,  .name= "CREW QUARTERS",      .desc = "YOU ARE IN THE CREW'S SLEEPING QUARTERS."},
         {.id =  8,  .name= "PASSENGER QUARTERS", .desc = "THE FORMER PASSENGER SUSPENDED ANIMATION DORMITORY..."},
@@ -788,11 +787,6 @@ void initialize( GameState * gs) {
     room_init(rd.size,rd.data);
 
     monsters_init("monsters.json");
-    const int num_monsters = monsters_num_monsters();
-    for (int i = 1; i < num_monsters; ++i) {
-        Monster *m = monsters_find_monster(i);
-        m->ferocity_factor = 5 * i;
-    }
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);

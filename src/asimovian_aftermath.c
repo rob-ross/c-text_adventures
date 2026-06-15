@@ -193,12 +193,12 @@ struct GameState {
     bool items[ITEM_COUNT];
 };
 
-struct Monster {
+struct monster_s {
     int FF; // ferocity factor
     char const * name;
 };
 
-static struct Monster MONSTERS[5] = {
+static struct monster_s MONSTERS[5] = {
     { .FF =  1, .name = "ELON ANDROID"},  // dummy placeholder, not actually used
     { .FF =  5, .name = "BERSERK ANDROID"},
     { .FF = 10, .name = "DERANGED DEL-FIEVIAN"},
@@ -545,7 +545,7 @@ void fight(struct GameState * gs) {
     }
 
     int const monster_index = -ROOM_GRAPH[gs->room][RGINDEX_CONTENTS];
-    struct Monster const monster = MONSTERS[ monster_index ];
+    struct monster_s const monster = MONSTERS[ monster_index ];
     int ferocity_factor = monster.FF;
 
     display_line("");
@@ -806,7 +806,7 @@ void display_room_content(struct GameState * gs) {
             printf("%d\n", room_content);
         }
     } else if (gs->items[ITEM_LIGHT] ) {
-        struct Monster m = MONSTERS[-room_content];
+        struct monster_s m = MONSTERS[-room_content];
         display_line("\nDANGER••• THERE IS DANGER HERE•••• ");
         display("IT IS A ");
         display_line(m.name);

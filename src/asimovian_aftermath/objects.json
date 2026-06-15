@@ -1,0 +1,8 @@
+[
+  { "id" :  1, "name" : "NUCLEONIC LIGHT",    "value" : 15, "is_light_source_bit" : true, "is_lit_bit" : true} ,
+  { "id" :  2, "name" : "ION GUN",            "value" : 10, "is_weapon" : true },
+  { "id" :  3, "name" : "LASER",              "value" : 20, "is_weapon" : true },
+  { "id" :  4, "name" : "OXYGEN",             "value" : 2,  "is_eatable_bit" : true },
+  { "id" :  5, "name" : "MATTER TRANSPORTER", "value" : 30 },
+  { "id" :  6, "name" : "COMBAT SUIT",        "value" : 50 }
+]
