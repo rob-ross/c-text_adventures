@@ -24,7 +24,7 @@ typedef struct Room Room;
 
 typedef int monster_id;
 
-typedef struct monster_s {
+typedef struct monster_prototype_s {
     char const * name;
     monster_id id;
     int ferocity_factor;
@@ -32,22 +32,30 @@ typedef struct monster_s {
         CharStats stats; // Named access: m.stats.strength
         union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength or m.as_array[StatIndex]
     };
-} Monster;
+} MonsterPrototype;
 
+typedef struct spawned_monster_s {
+    MonsterPrototype m;
+    int entity_id;
+    room_id location;
+} SpawnedMonster;
 
-typedef struct monster_array_s {
+typedef struct monster_prototype_array_s {
     uint32_t len;
-    Monster monsters[];  // flexible array
-} MonsterArray;
+    MonsterPrototype monsters[];  // flexible array
+} MonsterPrototypeArray;
 
 
 int monsters_init(const char * monster_filename);
 void monsters_destroy(void);
 int monsters_num_monsters(void);
-void monsters_names_repr(void);
+
 bool monsters_monster_is_in_room( const char *monster_name, const Room *r );
 const char * monsters_name_for_id(monster_id id);
-Monster * monsters_find_monster(monster_id id);
-void monsters_update_monster(const Monster *m);
+MonsterPrototype * monsters_find_monster(monster_id id);
+void monsters_update_monster(const MonsterPrototype *m);
 // initializes all monster objects to 0 state
 void monsters_clear_all(void);
+
+void monsters_all_repr();
+void monsters_repr(monster_id id);;

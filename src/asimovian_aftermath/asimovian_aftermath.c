@@ -320,7 +320,7 @@ void fight( GameState * gs) {
     int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
     Room const *r =  room_find_room(gs->room);
 
-    Monster *m = monsters_find_monster(r->monster);
+    MonsterPrototype *m = monsters_find_monster(r->monster);
 
     int ferocity_factor = m->ferocity_factor;
 
@@ -513,7 +513,7 @@ void custom_display_room_content( GameState * gs) {
     }
     if (monster_id) {
         if (gs->items[ITEM_LIGHT] ) {
-            Monster *m = monsters_find_monster(monster_id);
+            MonsterPrototype *m = monsters_find_monster(monster_id);
             display_line("\nDANGER••• THERE IS DANGER HERE•••• ");
             display("IT IS A ");
             display_line(m->name);
@@ -787,13 +787,11 @@ void initialize( GameState * gs) {
     room_init(rd.size,rd.data);
 
     monsters_init("monsters.json");
+    monsters_all_repr();
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
 
-    init_string_assets();
-
-    init_rooms();
 
 
 

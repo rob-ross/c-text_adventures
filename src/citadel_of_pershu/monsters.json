@@ -1,0 +1,21 @@
+[
+  { "id":  1, "name": "Swashbuckler" },
+  { "id":  2, "name": "Werebear" },
+  { "id":  3, "name": "Caecliae" },
+  { "id":  4, "name": "Manticore"  },
+  { "id":  5, "name": "Vampire"  },
+  { "id":  6, "name": "Predebeast" },
+  { "id":  7, "name": "Gargoyle" },
+  { "id":  8, "name": "Medusae"  },
+  { "id":  9, "name": "Magi" },
+  { "id": 10, "name": "Fire Lizard"  },
+  { "id": 11, "name": "Phase Spider" },
+  { "id": 12, "name": "Troll"  },
+  { "id": 13, "name": "Hell Hound" },
+  { "id": 14, "name": "Frost Giant"  },
+  { "id": 15, "name": "Necromancer"  },
+  { "id": 16, "name": "Hydra of 10 Heads"  },
+  { "id": 17, "name": "Patriarch"  },
+  { "id": 18, "name": "Master Thief" },
+  { "id": 19, "name": "Living Statue"  }
+]

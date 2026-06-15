@@ -1,0 +1,22 @@
+[
+  { "id":  1,  "name": "Dwarf" , "ff" : 25 },
+  { "id":  2,  "name": "Monoceros"  },
+  { "id":  3,  "name": "Paradrus"  },
+  { "id":  4,  "name": "Vampyre"  },
+  { "id":  5,  "name": "Wrnach"  },
+  { "id":  6,  "name": "Giolla Dacker"  },
+  { "id":  7,  "name": "Kraken"  },
+  { "id":  8,  "name": "Fenris Wolf"  },
+  { "id":  9,  "name": "Calopus"  },
+  { "id": 10,  "name": "Basilisk"  },
+  { "id": 11,  "name": "Grimoire"  },
+  { "id": 12,  "name": "Flying Buffalo"  },
+  { "id": 13,  "name": "Ber SerkoiD"  },
+  { "id": 14,  "name": "Wyrm"  },
+  { "id": 15,  "name": "Crowtherwood"  },
+  { "id": 16,  "name": "Gygax"  },
+  { "id": 17,  "name": "Ragnarok"  },
+  { "id": 18,  "name": "Fomorine"  },
+  { "id": 19,  "name": "Hafgygr"  },
+  { "id": 20,  "name": "Grendel"  }
+]

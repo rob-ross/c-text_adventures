@@ -9,6 +9,8 @@
 
 #include <stddef.h>
 
+typedef int monster_id;
+typedef int room_id;
 
 #include "monsters.h"
 #include "objects.h"
@@ -40,8 +42,7 @@ typedef struct RandomTextArray {
 ////
 //// ------------------------------------------------------------
 
-typedef int monster_id;
-typedef int room_id;
+
 
 // size of the objects[] array in struct Room
 // this must be >= MAX_ROOM_OBJECTS

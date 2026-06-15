@@ -334,7 +334,7 @@ bool action_fight(GameState *gs, const object_id weapon, const enum StatIndex st
     // gs->must_fight = false;
     const Room *room = room_find_room(gs->room);
     const monster_id mid = room->monster;
-    const Monster *m = monsters_find_monster(mid);
+    const MonsterPrototype *m = monsters_find_monster(mid);
     const char * monster_name = monsters_name_for_id(mid);
     int monster_tally = 0;
     int hero_tally = 0;
@@ -847,7 +847,7 @@ static bool cmd_pay(GameState *gs, const ParsedCommand *pc) {
     if (! verify_monster_choice(gs, pc) ) return false;
 
     // case 2, monster is present
-    const Monster *m = monsters_find_monster(current_room->monster);
+    const MonsterPrototype *m = monsters_find_monster(current_room->monster);
     // player is paying a monster by name
     if ( current_room->monster != MONSTER_DWARF ) {
         display_linef("You cannot %s the %s", pc->verb, m->name);
@@ -1075,7 +1075,7 @@ static bool cmd_fight(GameState *gs, const ParsedCommand *pc) {
     const Room *r = room_find_room(gs->room);
 
     const monster_id mid = r->monster;
-    Monster *m = monsters_find_monster(mid);
+    MonsterPrototype *m = monsters_find_monster(mid);
     const char * monster_name = monsters_name_for_id(mid);
     display_line("--------------------------------------");
     display_linef("Your opponent is a %s.", monster_name);
@@ -1417,7 +1417,7 @@ void reset(GameState *gs, const uint32_t seed) {
     room_set_monster(room_find_room(ROOM_YELLOW), MONSTER_DWARF);
     CharStats stats = random_monster_stats(gs);
     int ff = sum_character_stats(&stats);
-    monsters_update_monster( &(Monster) {
+    monsters_update_monster( &(MonsterPrototype) {
                                     .name = monsters_name_for_id(MONSTER_DWARF),
                                     .id = MONSTER_DWARF,
                                     .ferocity_factor = ff,
@@ -1440,7 +1440,7 @@ void reset(GameState *gs, const uint32_t seed) {
                 stats = random_monster_stats(gs);
                 ff = sum_character_stats(&stats);
                 room_set_monster(room_find_room(rand_room), monster_index);
-                monsters_update_monster( &(Monster) {
+                monsters_update_monster( &(MonsterPrototype) {
                             .name = monsters_name_for_id(monster_index),
                             .id = monster_index,
                             .ferocity_factor = ff,
@@ -1576,7 +1576,9 @@ static void initialize() {
     room_init(rd.size,rd.data);
 
     parser_init();
-    monsters_init("monsters.txt");
+    monsters_init("monsters.json");
+
+    monsters_all_repr();
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);

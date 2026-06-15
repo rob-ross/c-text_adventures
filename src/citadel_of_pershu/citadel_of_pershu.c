@@ -375,7 +375,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         return false;  // nothing to fight
     }    
     const Room *r = room_find_room(gs->room);
-    Monster *m = monsters_find_monster(r->monster);
+    MonsterPrototype *m = monsters_find_monster(r->monster);
     
     if (strategy == 1 && gs->magic == 0 ) {
         // not enough magic
@@ -538,7 +538,7 @@ static bool cmd_fight(GameState * gs) {
         return false;
     }
     const Room *r = room_find_room(gs->room);
-    Monster *m = monsters_find_monster(r->monster);
+    MonsterPrototype *m = monsters_find_monster(r->monster);
 
     if (gs->has_torch) {
         display("\nYour opponent is a ");
@@ -661,7 +661,7 @@ static void update_perception(GameState * gs) {
     // reset perceptions
     gs->perception.monster_is_visible  = false;
     gs->perception.treasure_is_visible = false;
-    gs->perception.current_monster  = (Monster){};
+    gs->perception.current_monster  = (MonsterPrototype){};
     gs->perception.current_treasure = (Object){};
     gs->perception.legal_actions_mask = 0;
 
@@ -678,7 +678,7 @@ static void update_perception(GameState * gs) {
     // Note: Object index 1 is the Torch itself, which is visible in the dark.
     if (gs->has_torch || treasure_index == ITEM_TORCH ) {
         if (monster_index > 0 ) {
-            Monster *m = monsters_find_monster(monster_index);
+            MonsterPrototype *m = monsters_find_monster(monster_index);
             if (! m) {
                 printf("update_perception: m is null: monster_index=%d\n", monster_index);
                 display_game_state(gs);
@@ -808,7 +808,7 @@ void reset(GameState * gs, const uint32_t seed) {
                 int ff = sum_character_stats(&stats);
                 room_set_monster(room_find_room(rand_room), monster_index);
                 monsters_update_monster(
-                    &(Monster){
+                    &(MonsterPrototype){
                         .name = monsters_name_for_id(monster_index),
                         .id = monster_index,
                         .ferocity_factor = ff,
@@ -961,7 +961,7 @@ void initialize() {
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
 
-    monsters_init("monsters.txt");
+    monsters_init("monsters.json");
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);

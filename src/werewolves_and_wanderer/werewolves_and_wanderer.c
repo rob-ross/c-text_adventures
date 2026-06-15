@@ -301,7 +301,7 @@ static bool cmd_fight( GameState * gs) {
         return false; // no monster to fight
     }
     int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    const Monster * monster =  monsters_find_monster(monster_index);
+    const MonsterPrototype * monster =  monsters_find_monster(monster_index);
     int ferocity_factor = monster->ferocity_factor;
 
     if ( actor_has_item(gs, ITEM_SUIT)) {
@@ -512,10 +512,10 @@ void reset(GameState * gs, const uint32_t seed) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = j;
                 CharStats stats = random_monster_stats(gs);
                 int ff = sum_character_stats(&stats);
-                Monster *m = monsters_find_monster(j);
+                MonsterPrototype *m = monsters_find_monster(j);
                 room_set_monster(room_find_room(rand_room), j);
                 monsters_update_monster(
-                    &(Monster){
+                    &(MonsterPrototype){
                         .name = m->name,
                         .id = j,
                         .ferocity_factor = m->ferocity_factor,
@@ -603,10 +603,10 @@ static void initialize() {
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
 
-    monsters_init("monsters.txt");
+    monsters_init("monsters.json");
     const int num_monsters = monsters_num_monsters();
     for (int i = 1; i < num_monsters; ++i) {
-        Monster *m = monsters_find_monster(i);
+        MonsterPrototype *m = monsters_find_monster(i);
         m->ferocity_factor = 5 * i;
     }
 
@@ -845,7 +845,7 @@ int main_werewolves_and_wanderer(void) {
     display_line("");
 
     // obj_repr();
-    monsters_names_repr();
+    monsters_all_repr();
     // room_rooms_repr();
 
     bool continue_loop;
