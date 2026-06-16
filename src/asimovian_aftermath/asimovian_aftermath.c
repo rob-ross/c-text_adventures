@@ -24,13 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdbool.h>
 
-#ifdef _WIN32
-#include <conio.h>
-#else
-#include <poll.h>
-#endif
+
 
 #include "../adventure_shared.h"
 #include "../directions.h"
