@@ -45,7 +45,7 @@ constexpr int ROOM_END           = 11;
 const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in a room
 const int MAX_PLAYER_OBJECTS = 6; // max number of items that can be carried
 
-int ROOM_GRAPH[20][10] = {
+int ROOM_GRAPH[][RGINDEX_COUNT] = {
     { 0,  0,  0,  0,  0,  0,  0}, // Room 0
     { 0,  2,  0,  0,  0,  0,  0}, // Room 1
     { 1,  3,  3,  0,  0,  0,  0}, // Room 2
@@ -128,7 +128,6 @@ static bool cmd_move(GameState * gs, char const first_letter) {
     return false;
 }
 
-static int const ITEM_COSTS[] = { 0, 15, 10, 20, 2, 30, 50};
 
 static void display_inventory_menu( GameState * gs) {
     printf("\nYOU HAVE $%d\n", gs->cash);
@@ -164,7 +163,7 @@ static void display_help_info(void) {
 static bool cmd_buy( GameState * gs) {
     printf("PROVISIONS AND INVENTORY\n");
     if (gs->cash <=0 ) {
-        printf("YOU HAVE NO MONEY.\n");
+        display_line("YOU HAVE NO MONEY.");
         return false;
     }
 
@@ -174,7 +173,7 @@ static bool cmd_buy( GameState * gs) {
         char option;
         fflush(stdin);
         do {
-            printf("ENTER NO. OF ITEM REQUIRED ");
+            display("ENTER NO. OF ITEM REQUIRED ");
             option = (char)getchar();
             fflush(stdin);
         } while ( !(option >= '0' && option <= '6') );
@@ -190,15 +189,14 @@ static bool cmd_buy( GameState * gs) {
 
         const Object *o = obj_find_object(option_index);
         if (!o) {
-            printf("got null Object for id=%d\n", option_index);
+            display_linef("got null Object for id=%d", option_index);
             return false;
         }
 
 
         if ( option_index != 4 ) {
-            gs->cash -= o->value;
-            if (gs->cash < 0) {
-                printf("YOU HAVE TRIED TO CHEAT ME!\n");
+            if (gs->cash < o->value) {
+                display_line("YOU HAVE TRIED TO CHEAT ME!");
                 //punish user
                 gs->cash = 0;
                 actor_remove_all_objects(gs);
@@ -206,6 +204,7 @@ static bool cmd_buy( GameState * gs) {
                 gs->food = gs->food / 4 ;
                 return false;
             }
+            gs->cash -= o->value;
             actor_add_object(gs, option_index);
             if (option_index == ITEM_LIGHT) gs->has_torch = true;
         }
@@ -215,7 +214,7 @@ static bool cmd_buy( GameState * gs) {
                 char food_quantity;
                 fflush(stdin);
                 do {
-                    printf("HOW MANY UNITS OF FOOD (0-9)? ");
+                    display("HOW MANY UNITS OF FOOD (0-9)? ");
                     food_quantity = (char)getchar();
                     fflush(stdin);
                 } while ( !(food_quantity >= '0' && food_quantity <= '9') );
@@ -223,7 +222,7 @@ static bool cmd_buy( GameState * gs) {
                 const int qty = food_quantity - '0';
                 int cost = qty * o->value;
                 if (gs->cash - cost < 0 ) {
-                    printf("YOU HAVEN'T GOT ENOUGH MONEY!\n");
+                    display_line("YOU HAVEN'T GOT ENOUGH MONEY!");
                 } else {
                     gs->cash -= cost;
                     gs->food += qty;
@@ -266,15 +265,16 @@ static bool cmd_eat( GameState * gs) {
 
 static bool cmd_take(GameState * gs) {
     if ( ROOM_GRAPH[gs->room][RGINDEX_TREASURE] <= 0 ) {
-        printf("THERE IS NO TREASURE TO PICK UP.\n");
+        display_line("THERE IS NO TREASURE TO PICK UP.");
         return false;
     }
     if ( !gs->has_torch ) {
-        printf("YOU CANNOT SEE WHERE IT IS\n");
+        display_line("YOU CANNOT SEE WHERE IT IS.");
         return false;
     }
     gs->cash += ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
     ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
+    display_line("TAKEN.");
     return true;
 }
 
@@ -418,6 +418,27 @@ void do_room_actions(GameState *gs) {
         display_room_desc(gs);
     }
 }
+
+void display_strength(const  GameState * gs) {
+    display("YOUR STRENGTH IS ");
+    printf("%d.\n", gs->strength);
+    if (gs->strength <= 20) {
+        display("*** WARNING ***\nCAPTAIN ");
+        display(gs->player_name->buffer);
+        display_line(",");
+        if (gs->strength <= 5) {
+            display_line("YOUR STRENGTH IS EXTREMELY LOW.");
+            display_line("YOU ARE ABOUT TO DIE!!!");
+        } else if (gs->strength <= 10) {
+            display_line("YOUR STRENGTH IS VERY LOW.");
+            display_line("YOU NEED AN OXYGEN BOOST.");
+        } else {
+            display_line("YOUR STRENGTH IS RUNNING LOW.");
+        }
+    }
+}
+
+
 /**
  * Death and Win condition check
  * RETURNS: true if the game is over (win or loss).
@@ -425,12 +446,6 @@ void do_room_actions(GameState *gs) {
  */
 bool check_game_over(GameState *gs) {
     if (gs->completed || gs->game_over) return true;
-
-    if (gs->room == ROOM_END ) {
-        gs->completed = true;
-        gs->game_over = true;
-        return true;
-    }
 
     for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
         if (gs->stats.as_array[i] <= 0) {
@@ -443,6 +458,13 @@ bool check_game_over(GameState *gs) {
             return true;
         }
     }
+
+    if (gs->room == ROOM_END ) {
+        gs->completed = true;
+        gs->game_over = true;
+        return true;
+    }
+
     return false;
 }
 
@@ -481,19 +503,27 @@ void reset(GameState * gs, const uint32_t seed) {
 
     gs->stats = random_hero_stats(gs);
     gs->stats.strength = 105;
-    const int num_rooms = room_num_rooms();
+
     //clear all monsters, treasure
+    const int num_rooms = room_num_rooms();
+    for ( int room_index = 0; room_index < num_rooms; ++room_index ) {
+        // note: if we dynamically modify the edge graph we'll need to reset those edges here
+        ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
+        const Room *r = room_find_room(room_index);
+        room_clear_monster( r );
+        room_remove_all_objects(room_index);
+    }
 
-    // allot random treasure
-
-    // allot random monsters
 
 
     //allot treasure
     for (int j = 0; j < 4; ++j ) {
         for (;;) {
             // Generate a random number between 1 and num_rooms inclusive
-            const int rand_room = rnd_range(gs, 1, num_rooms + 1);
+            const int rand_room = rnd_range(gs, 1, num_rooms );
             if ( !(rand_room == ROOM_START || rand_room == ROOM_END || ROOM_GRAPH[rand_room][RGINDEX_TREASURE] !=0 ) ) {
                 // rand val between 10 and 110 inclusive
                 const int treasure = rnd_range(gs, 10, 110 + 1);
@@ -507,11 +537,9 @@ void reset(GameState * gs, const uint32_t seed) {
         for (;;) {
 
             // Generate a random number between 1 and num_rooms inclusive
-            const int rand_room = rnd_range(gs, 1, num_rooms + 1);
+            const int rand_room = rnd_range(gs, 1, num_rooms );
             if ( !(rand_room == ROOM_START || rand_room == ROOM_END || ROOM_GRAPH[rand_room][RGINDEX_MONSTER] !=0 ) ) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = j;
-                CharStats stats = random_monster_stats(gs);
-                int ff = sum_character_stats(&stats);
                 MonsterPrototype *m = monsters_find_monster(j);
                 room_set_monster(room_find_room(rand_room), j);
                 monsters_update_monster(
@@ -604,11 +632,6 @@ static void initialize() {
     room_init(rd.size,rd.data);
 
     monsters_init("monsters.json");
-    const int num_monsters = monsters_num_monsters();
-    for (int i = 1; i < num_monsters; ++i) {
-        MonsterPrototype *m = monsters_find_monster(i);
-        m->ferocity_factor = 5 * i;
-    }
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
@@ -741,12 +764,12 @@ static bool main_game_loop(GameState * gs) {
         set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    if (gs->strength <= 15) {
-        printf("WARNING, %s, YOUR STRENGTH\nIS RUNNING LOW\n", gs->player_name->buffer);
-    }
+    // if (gs->strength <= 15) {
+    //     printf("WARNING, %s, YOUR STRENGTH\nIS RUNNING LOW\n", gs->player_name->buffer);
+    // }
 
-
-    printf("%s, YOUR STRENGTH IS %d\n", gs->player_name->buffer, gs->strength);
+    display_strength(gs);
+    // printf("%s, YOUR STRENGTH IS %d\n", gs->player_name->buffer, gs->strength);
 
     int room_treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
 
@@ -831,13 +854,14 @@ int main_werewolves_and_wanderer(void) {
     }
 
 
-    const CharBuffer *player_name = get_player_name();
+    const CharBuffer *player_name = get_player_name("Hello, Explorer ");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};
 
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
+    display_line("Type '[H]elp' for a list of commands.");
     display_line("Your character attribute stats are:");
     display_char_attributes(gs.stats);
     display_line("");
