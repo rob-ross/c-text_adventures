@@ -15,6 +15,40 @@
 
 constexpr char QUOTATION_MARK = '"';
 
+// Acts like a resource guard to run the method in the function pointer argument
+// between file open and close commands.
+int process_file(string file_name, file_process_action function, void **result_ptr) {
+    FILE *fptr = nullptr;
+
+    fptr = fopen(file_name, "rb");
+    if (!fptr) {
+        printf("fopen failed for %s, error:%d, ", file_name, errno);
+        perror(" ");
+        return errno;
+    }
+
+    // printf("file opened: %s\n", file_name);
+
+    int result = function(fptr, result_ptr);
+
+    if (fclose(fptr) != 0) {
+        printf("fclose failed for %s, error:%d, ", file_name, errno);
+        perror(" ");
+        return errno;
+    }
+
+    // printf("file closed: %s\n", file_name);
+    return result;
+}
+
+
+
+/*
+ *  Below is code for extracting lines from a text file into a LenStr array. It also handles comments in the
+ *  text file. Not currently used, but could be useful for reading in config files or other unstructured text.
+ *
+ */
+
 int get_next_line_chunk(FILE *fptr, int len, char buffer[static len]) {
     if (!fptr) {
         printf("get_next_line_chunk() called with nullptr.\n");
@@ -31,7 +65,6 @@ int get_next_line_chunk(FILE *fptr, int len, char buffer[static len]) {
 
     return 0;
 }
-
 
 
 LenStr parsed_strings[100] = {}; // fixed buffer for example code. in prod code this would be a dynamic list.
@@ -192,30 +225,121 @@ void free_LenStrArray(LenStrArray *lsa) {
     free(lsa);
 }
 
+// reads the text file from the argument stream pointer and extracts each line into an array element in LenStrArray
+// returns the result in the out ptr, a *LenStrArray
+// reads a text file where each line is a string. This function will skip line comments and blank lines as well as
+// multiline comments. Line comments start with '//' or '#' and multiline comments are C-style /* */
+// Leading and trailing whitespace is trimmed.
+static int create_string_array(FILE *fptr, void **result_out) {
 
-int process_file(string file_name, file_process_action function, void **result_ptr) {
-    FILE *fptr = nullptr;
+    size_t results_capacity = 100;
+    size_t result_counter = 0;
+    LenStr *results = malloc(sizeof(LenStr) * results_capacity);
+    if (!results) return ENOMEM;
+    // we insert the null monster name in the first position
+    results[result_counter++] = (LenStr){.s = strdup("NULL"), .len=strlen("NULL") };
 
-    fptr = fopen(file_name, "rb");
-    if (!fptr) {
-        printf("fopen failed for %s, error:%d, ", file_name, errno);
-        perror(" ");
-        return errno;
+    char buffer[1024] = {};
+    constexpr size_t buffer_len = sizeof(buffer);
+    bool in_block_comment = false;
+
+    // Dynamic buffer to accumulate the string
+    size_t val_capacity = 128;
+    size_t val_len = 0;
+    char *val_buffer = malloc(val_capacity);
+    if (!val_buffer) {
+        free(results);
+        return ENOMEM;
     }
 
-    // printf("file opened: %s\n", file_name);
+    while ( get_next_line_chunk(fptr, buffer_len, buffer) == 0 ) {
+        // strip leading and trailing spaces
+        string_trim(buffer);
+        int buffer_index = 0;
+        val_len = 0;
+        while (buffer[buffer_index] != '\0') {
+            char c = buffer[buffer_index++];
+            bool one_more_char = buffer[buffer_index] != '\0';
 
-    int result = function(fptr, result_ptr);
+            if (in_block_comment) {
+                if (c == '*' && one_more_char && buffer[buffer_index] == '/') {
+                    // end of block comment
+                    in_block_comment = false;
+                    break; // match original behavior: skip rest of line
+                }
+                // Skip all characters while in block comment
+                continue;
+            }
 
-    if (fclose(fptr) != 0) {
-        printf("fclose failed for %s, error:%d, ", file_name, errno);
-        perror(" ");
-        return errno;
+            // Check for comment starts anywhere on the line
+            if (c == '#') break;
+            if (c == '/' && one_more_char) {
+                if (buffer[buffer_index] == '/') break; // line comment
+                if (buffer[buffer_index] == '*') {
+                    in_block_comment = true;
+                    break; // match original behavior: skip rest of line
+                }
+            }
+
+            if ( add_to_expandable_buffer(c, &val_len, &val_capacity, &val_buffer) != 0 ) {
+                free(val_buffer);
+                free_LenStr(result_counter, results);
+                free(results);
+                return ENOMEM;
+            }
+        }
+
+        if ( val_len ) {
+            // save this string if it's not empty
+            val_buffer[val_len] = '\0';
+            // Trim trailing spaces that might remain before a comment
+            string_trim(val_buffer);
+            size_t trimmed_len = strlen(val_buffer);
+            if (trimmed_len == 0) continue;
+
+            if (result_counter >= results_capacity) {
+                results_capacity *= 2;
+                LenStr *temp = realloc(results, sizeof(LenStr) * results_capacity);
+                if (!temp) {
+                    free_LenStr(result_counter, results);
+                    free(results);
+                    free(val_buffer);
+                    return ENOMEM;
+                }
+                results = temp;
+            }
+
+            char *s = strdup(val_buffer);
+            if (!s) {
+                free_LenStr(result_counter, results);
+                free(results);
+                free(val_buffer);
+                return ENOMEM;
+            }
+            results[result_counter++] = (LenStr){.len=trimmed_len, .s = s};
+        }
+    }
+    free(val_buffer);
+
+    LenStrArray *lsa = malloc(sizeof(LenStrArray) + sizeof(LenStr) * result_counter);
+    if (!lsa) {
+        free_LenStr(result_counter, results);
+        free(results);
+        return ENOMEM;
     }
 
-    // printf("file closed: %s\n", file_name);
-    return result;
+    lsa->size = result_counter;
+
+    for (int i = 0; i < (int)result_counter; ++i) {
+        lsa->array[i] = results[i];
+    }
+    free(results);
+    (*result_out) = lsa;
+
+    return 0;
 }
+
+
 
 // make:
 // clang -g -std=c23 -fsanitize=address -fsanitize=leak files.c string.c -o files_test.out
