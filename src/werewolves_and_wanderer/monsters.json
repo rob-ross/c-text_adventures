@@ -1,0 +1,6 @@
+[
+  { "id": 1, "name":  "FEROCIOUS WEREWOLF",     "ferocity_factor":  5 },
+  { "id": 2, "name":  "FANATICAL FLESHGORG",    "ferocity_factor": 10 },
+  { "id": 3, "name":  "MALOVENTY MALDEMER",     "ferocity_factor": 15 },
+  { "id": 4, "name":  "DEVASTATING ICE-DRAGON", "ferocity_factor": 20 }
+]
