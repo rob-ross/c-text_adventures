@@ -1,5 +1,5 @@
 [
-  { "id":  1,  "name": "Dwarf" , "ff" : 25 },
+  { "id":  1,  "name": "Dwarf" , "ferocity_factor" : 25 },
   { "id":  2,  "name": "Monoceros"  },
   { "id":  3,  "name": "Paradrus"  },
   { "id":  4,  "name": "Vampyre"  },
