@@ -897,7 +897,7 @@ void reset(GameState * gs, const uint32_t seed) {
     const int num_objects = obj_num_objects();
     for (int treasure_index = 4; treasure_index < num_objects; ++treasure_index ) {
         for (;;) {
-            int rand_room = rnd_range(gs, 1, 43 + 1);
+            int rand_room = rnd_range(gs, 1, 43 + 1);  // rooms after 43 are death rooms
             const Room *r = room_find_room(rand_room);
             if ( ! ( r->objects_len > 0 || rand_room == ROOM_START || rand_room == ROOM_END  ) ) {
                 room_add_object(room_find_room( rand_room ), treasure_index);
@@ -1314,13 +1314,15 @@ int main_citadel_of_pershu(void) {
         set_char_sleep(GLOBALS.char_sleep_duration);
     }
 
-    const CharBuffer *player_name = get_player_name();
+    const CharBuffer *player_name = get_player_name("Hello, Explorer ");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};
 
     initialize();
     reset(&gs, DEBUG_RAND_SEED);
+
+    display_line("Type '[H]elp' for a list of commands.");
     display_line("Your character attribute stats are:");
     display_char_attributes(gs.stats);
     display_line("");
