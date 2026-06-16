@@ -410,7 +410,7 @@ static bool cmd_fight( GameState * gs) {
 
     bool player_won = false;
     const int win_chance = rnd_range(gs, hits_on_monster, 16 + hits_on_monster);
-    printf("win_chance: %d, ferocity_factor: %d\n", win_chance, ferocity_factor);
+    // printf("win_chance: %d, ferocity_factor: %d\n", win_chance, ferocity_factor);
     if ( win_chance > ferocity_factor) {
         display("AND YOU MANAGED TO KILL THE ");
         display_line( m->name);
