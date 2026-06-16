@@ -39,34 +39,7 @@
 
 
 
-static  Room ROOMS[20] = {
-    {.id =  0,  .name= "DEAD END", .desc = "YOU HAVE RUN OUT OF OXYGEN..."},
-    {.id =  1,  .name= "ROOM 1",   .desc = "YOU ARE IN THE FORMER RECREATION.\nCENTER. EQUIPMENT FOR MUSCLE-TRAINING\nIN ZERO GRAVITY LITTERS THE AREA."},
-    {.id =  2,  .name= "ROOM 2",   .desc = "THIS WAS THE REPAIR AND MAINTENANCE\nHOLD OF THE SHIP. YOU CAN ONLY LEAVE IT\nVIA THE GIANT HANGAR DOOR TO THE WEST."},
-    {.id =  3,  .name= "ROOM 3",   .desc = "YOU ARE IN THE WRECKED HOLD OF A SPACE SHIP.\nTHE CAVERNOUS INTERIOR IS LITERED WITH\nFLOATING WRECKAGE, AS IF FROM SOME\nTERRIBLE EXPLOSION EONS AGO......"},
-    {.id =  4,  .name= "ROOM 4",   .desc = "THE VIEW OF THE STARS FROM THIS OBSERVATION\nPLATFORM IS MAGNIFICENT, AS FAR AS THE EYE\nCAN SEE. THE SINGLE EXIT IS BACK WHERE YOU\nCAME FROM."},
-    {.id =  5,  .name= "ROOM 5",   .desc = "ACRE UPON ACRE OF DRIED-UP HYDROPONIC\nPLANT BEDS STRETCH AROUND YOU. ONCE THIS\nAREA FED THE THOUSAND ON BOARD THE SHIP."},
-
-    {.id =  6,  .name= "ROOM 6",   .desc = "YOU ARE FREE. YOU HAVE MADE IT. YOUR\nPOD SAILS FREE INTO SPACE..........."},
-    {.id =  7,  .name= "ROOM 7",   .desc = "YOU ARE IN THE CREW'S SLEEPING QUARTERS."},
-    {.id =  8,  .name= "ROOM 8",   .desc = "THE FORMER PASSENGER SUSPENDED ANIMATION DORMITORY..."},
-    {.id =  9,  .name= "ROOM 9",   .desc = "THIS IS THE SHIP'S HOSPITAL, WHITE AND STERILE.\nA BUZZING SOUND, AND A STRANGE WARMTH COME FROM\nTHE SOUTH, WHILE A CHILL IS FELT TO THE NORTH."},
-    {.id = 10, .name= "ROOM 10",   .desc = "FOOD FOR ALL THE CREW WAS PREPARED IN THIS\nGALLEY. THE REMAINS FROM PREPARATIONS OF THE\nFINAL MEAL CAN BE SEEN. DOORS LEAVE THE GALLEY\nTO THE SOUTH AND TO THE WEST."},
-    {.id = 11, .name= "ROOM 11",   .desc = "AHA • • • THAT LOOKS LIKE THE SPACE POD\nNOW, AND ITS OUTSIDE DIALS\nINDICATE IT IS STILL IN PERFECT CONDITION."},
-    {.id = 12, .name= "ROOM 12",   .desc = "STRANGE MACHINERY LINES THE WALLS, WHILE\nOVERHEAD, A HOLOGRAPHIC STAR MAP SLOWLY TURNS.\nTHE FLICKERING GREEN LIGHT MAKES IT\nHARD TO SEE."},
-    {.id = 13, .name= "ROOM 13",   .desc = "YOU ARE CAUGHT IN A DEADLY RADIATION FIELD.\nSLOWLY YOU REALISE THIS IS THE END."},
-    {.id = 14, .name= "ROOM 14",   .desc = "THIS IS THE POWER CENTER OF THE SHIP.\nTHE CHARACTERISTIC BLUE METAL LIGHT\nOF THE STILL-FUNCTIONING ION DRIVE\nFILLS THE ENGINE ROOM. THE HAZE\nMAKES IT DIFFICULT TO SEE."},
-    {.id = 15, .name= "ROOM 15",   .desc = "YOU ARE STANDING IN THE ANDROID STORAGE HOLD.\nROW UPON ROW OF METAL MEN "
-                                           "STAND STIFFLY AT\nATTENTION, AWAITING THE DISTINCTIVE SOUND OF\nTHEIR LONG-DEAD CAPTAIN TO SET THEM INTO MOTION.\nA LIGHT COMES FROM THE WEST AND THROUGH THE\nGRAVITY WELL SET INTO THE FLOOR."},
-    {.id = 16, .name= "ROOM 16",   .desc = "ANOTHER CAVERNOUS, SEEMINGLY ENDLESS HOLD,\nTHIS ONE CRAMMED WITH GOODS FOR TRADING..."},
-    {.id = 17, .name= "ROOM 17",   .desc = "A STARK, METALLIC ROOM, REEKING OF LUBRICANTS.\nWEAPONS LINE THE WALL, RANK UPON RANK. EXITS FOR\nSOLDIER ANDROIDS ARE TO THE NORTH AND THE EAST."},
-    {.id = 18, .name= "ROOM 18",   .desc = "ABOVE YOU IS THE GRAVITY SHAFT LEADING TO\nTHE ENGINE ROOM. THIS IS THE SHIP REPAIR\nCENTER WITH EMERGENCY EXITS TO THE SOLDIER\nANDROIDS STORAGE AND TO THE TRADING GOODS HOLD."},
-    {.id = 19, .name= "ROOM 19",   .desc = "YOU'VE STUMBLED ON THE SECRET COMMAND CENTER\nWHERE SCREENS BRING VIEWS FROM ALL AROUND\nTHE SHIP. THERE ARE TWO EXITS........"},
-};
-
-
-
-constexpr int NUM_ROOMS      = 21;
+// constexpr int NUM_ROOMS      = 21;
 constexpr int ROOM_START     = 3;
 constexpr int ROOM_END       = 6;
 constexpr int POD_ROOM       = 11;
@@ -76,7 +49,7 @@ const int MAX_ROOM_OBJECTS =  1; //maximum number of items that can be placed in
 const int MAX_PLAYER_OBJECTS = 9; // max number of items that can be carried
 
 
-int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
+int ROOM_GRAPH[][RGINDEX_COUNT] = {
     { 0,  0,  0,  0,  0,  0,  0}, // Room 0
     { 0,  5,  2,  0,  0,  0,  0}, // Room 1
     { 0,  0,  0,  1,  0,  0,  0}, // Room 2
@@ -97,6 +70,7 @@ int ROOM_GRAPH[NUM_ROOMS][RGINDEX_COUNT] = {
     {14,  0, 18,  0,  0,  0,  0}, // Room 17
     { 0,  0, 16, 17, 14,  0,  0}, // Room 18
     { 0, 12,  0,  0, 15,  0,  0}, // Room 19
+    { 0,  0,  0,  0, 15,  0,  0}, // Room 20, DEAD END
 };
 
 constexpr int DEBUG_RAND_SEED = 67;
@@ -126,7 +100,10 @@ enum Item {
 // state for Mersenne Twister PRNG
 static MTState mt_state;
 
-char const * const VALID_COMMANDS = "HIQBOTRFPMNSEWUD";
+char const * const VALID_COMMANDS = "HIQBOTRFPMNSEWUDALC";
+
+
+static int radiation_turn_count = 0;  // number of turns player has been in radiation room.
 
 //// ------------------------------------------------------------
 ////
@@ -144,16 +121,6 @@ static void display_help_info(void);
 static bool cmd_move( GameState * gs, char first_letter);
 static int calc_score(const  GameState * gs);
 static void custom_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value );
-static void display_tally(const  GameState * gs);
-
-
-
-static void buy_supplies( GameState * gs);
-static void consume_oxygen( GameState * gs);
-static void use_transporter( GameState * gs);
-static void pick_up_treasure( GameState * gs);
-static void retreat( GameState * gs);
-static void fight( GameState * gs);
 
 
 
@@ -164,7 +131,6 @@ static void fight( GameState * gs);
 
 
 
-int const ITEM_COSTS[] = { 0, 15, 10, 20, 2, 30, 50};
 
 void display_inventory_menu( GameState * gs) {
     display("\nYOU HAVE $");
@@ -179,11 +145,11 @@ void display_inventory_menu( GameState * gs) {
     display_line("            0 - TO CONTINUE EXPLORATION");
 }
 
-void buy_supplies( GameState * gs) {
+static bool cmd_buy( GameState * gs) {
     display_line("\nA SUPPLY ANDROID HAS ARRIVED.");
     if (gs->cash <=0 ) {
         display_line("YOU HAVE NO MONEY.");
-        return;
+        return false;
     }
 
     for (;;) {
@@ -203,22 +169,29 @@ void buy_supplies( GameState * gs) {
             break;
         }
 
+        const Object *o = obj_find_object(option_index);
+        if (!o) {
+            printf("got null Object for id=%d\n", option_index);
+            return false;
+        }
+
         if ( option_index != 4 ) {
-            gs->cash -= ITEM_COSTS[option_index];
-            gs->items[option_index] = true;
-            if (gs->cash < 0) {
+            if (gs->cash < o->value) {
                 display_line("YOU HAVE TRIED TO CHEAT ME!");
                 //punish user
                 gs->cash = 0;
-                for (int i = 0; i < ITEM_COUNT; ++i) {
-                    gs->items[i] = false;  // no soup for you!
-                }
+                actor_remove_all_objects(gs);
+                gs->has_torch = false;
                 gs->food = gs->food / 4 ;
+                return false;
             }
+            gs->cash -= o->value;
+            actor_add_object(gs, option_index);
+            if (option_index == ITEM_LIGHT) gs->has_torch = true;
         }
 
         if (option_index == 4 ) {
-            int oxy_cost = ITEM_COSTS[ITEM_OXY];
+            int oxy_cost = o->value;
             int qty = get_int("HOW MANY UNITS OF OXYGEN? ", 0, gs->cash / oxy_cost );
             int cost = qty * oxy_cost;
             if (gs->cash - cost < 0 ) {
@@ -226,58 +199,240 @@ void buy_supplies( GameState * gs) {
             } else {
                 gs->cash -= cost;
                 gs->food += qty;
-                gs->items[ITEM_OXY] = gs->food > 0;
             }
         }
     }
-
+    return true;
 }
 
-void consume_oxygen( GameState * gs) {
+static bool cmd_consume_oxygen( GameState * gs) {
     if (gs->food <= 0) {
         display_line("\nYOU HAVE NO OXYGEN.");
-        return;
+        return false;
     }
-    display("\nYOU HAVE ");
-    printf("%d", gs->food);
-    display_line(" UNITS OF OXYGEN.");
-
+    display_linef("\nYOU HAVE %d UNITS OF OXYGEN.", gs->food);
     int qty = get_int("HOW MANY DO YOU WANT TO CONSUME? ", 0, gs->food);
     gs->food -= qty;
     gs->strength += (5 * qty);
-    gs->items[ITEM_OXY] = gs->food > 0;
+    return true;
 }
 
 
-void use_transporter( GameState * gs) {
-    if ( !gs->items[ITEM_TRANSPORTER]) {
+static bool cmd_use_transporter( GameState * gs) {
+    if ( !actor_has_item(gs, ITEM_TRANSPORTER)) {
         display_line("\nYOU DON'T HAVE A MATTER TRANSPORTER.");
-    } else if (gs->room == RADIATION_ROOM) {
+        return false;
+    }
+    if (gs->room == RADIATION_ROOM) {
         display_line("\nNOTHING HAPPENS.");
-    } else {
-        for (;;) {
-            // Generate a random number between 1 and 19
-            int room_index = mt_rand_range(&mt_state, 1, 20);
-            if ( !(room_index == ROOM_END || room_index == POD_ROOM )) {
-                gs->room = room_index;
-                break;
-            }
+        return false;
+    }
+
+    for (;;) {
+        // Generate a random number between 1 and 19
+        int room_index = rnd_range(gs, 1, 20);
+        if ( !(room_index == ROOM_END || room_index == POD_ROOM )) {
+            gs->room = room_index;
+            break;
         }
     }
+    return true;
 }
 
 
-void pick_up_treasure( GameState * gs) {
-    if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE] > 0) {
-        gs->cash += ROOM_GRAPH[gs->room][RGINDEX_TREASURE] ;
-        ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
+static bool cmd_take( GameState * gs) {
+    if (ROOM_GRAPH[gs->room][RGINDEX_TREASURE] == 0 ) {
+        display_line("THERE IS NO TREASURE TO PICK UP.");
+        return false;
     }
+    if ( !gs->has_torch ) {
+        display_line("YOU CANNOT SEE WHERE IT IS.");
+        return false;
+    }
+
+    gs->cash += ROOM_GRAPH[gs->room][RGINDEX_TREASURE] ;
+    ROOM_GRAPH[gs->room][RGINDEX_TREASURE] = 0;
+    display_line("TAKEN");
+    return true;
 }
 
-void retreat( GameState * gs) {
-    if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] != 0) {
+
+
+
+static bool cmd_fight( GameState * gs) {
+    if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
+        display_line("THERE IS NOTHING TO FIGHT.");
+        return false; // no monster to fight
+    }
+
+    int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
+    Room const *r =  room_find_room(gs->room);
+
+    MonsterPrototype *m = monsters_find_monster(r->monster);
+
+    int ferocity_factor = m->ferocity_factor;
+
+    display_line("");
+
+    if (actor_has_item(gs, ITEM_SUIT)) {
+        display_line("YOUR ARMOR INCREASES YOUR CHANCE OF SUCCESS.");
+        ferocity_factor = (int)(3.0 * (ferocity_factor / 4.0 ));  //armor gives 25% more advantage
+    }
+
+
+
+    const bool has_ion   = actor_has_item(gs, ITEM_ION);
+    const bool has_laser = actor_has_item(gs, ITEM_LASER);
+
+    bool use_ion   = has_ion;
+    bool use_laser = has_laser;
+    if ( has_ion && has_laser ) {
+        int option = get_int("WHICH WEAPON? 1 - ION, 2 - LASER ", 1, 2);
+        if (option == 1) {
+            use_laser = false;
+        } else {
+            use_ion = false;
+        }
+    }
+
+    if ( !use_ion && !use_laser ) {
+        display_line("YOU HAVE NO WEAPONS.\nYOU MUST FIGHT WITH BARE HANDS.");
+        ferocity_factor = (int)(ferocity_factor + ferocity_factor / 5.0);
+    } else if ( use_ion ) {
+        display_line("USING THE ION GUN.");
+        ferocity_factor = (int)(4.0 * ferocity_factor / 5.0);
+    } else {
+        display_line("USING YOUR LASER.");
+        ferocity_factor = (int)(3.0 * ferocity_factor / 4.0);
+    }
+
+    display_line("");
+    display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
+
+    // we'll pause a bit after every turn during the fight
+    uint32_t pause_seconds;
+    if (GLOBALS.debug_mode ) {
+        pause_seconds = 0;
+    } else {
+        pause_seconds = _1ms * 1000;
+    }
+
+    int hits_on_monster = 0;
+
+    do {
+        bool has_light = gs->has_torch;
+
+        if ( rnd_d(gs) < .5 || !has_light ) {
+            display_linef("%s ATTACKS.", m->name);
+            char_sleep((int32_t)pause_seconds);
+            if ( rnd_d(gs) < .5) {
+                display_line("THE MONSTER WOUNDS YOU.");
+                gs->strength -= 5;
+            } else {
+                if ( rnd_d(gs) < .5) {
+                    display_line("YOU SUCCESSFULLY BLOCK IT.");
+                } else {
+                    display_line("IT MISSES YOU.");
+                }
+            }
+            char_sleep((int32_t)pause_seconds);
+            if ( has_light &&  rnd_d(gs) < .1 ) {
+                display_line("YOUR LIGHT WAS KNOCKED FROM YOUR HAND!");
+                actor_remove_object(gs, ITEM_LIGHT);
+                gs->has_torch = false;
+                has_light = false;
+            } else if ( use_ion &&  rnd_d(gs) < .1 ) {
+                display_line("YOU DROP YOUR ION GUN IN THE HEAT OF BATTLE!");
+                actor_remove_object(gs, ITEM_ION);
+                use_ion = false;
+                ferocity_factor = 5 * ferocity_factor / 4;
+            } else if (use_laser &&  rnd_d(gs) < .2 ) {
+                display_line("YOUR LASER IS KNOCKED FROM YOUR HAND!!");
+                actor_remove_object(gs, ITEM_LASER);
+                use_laser = false;
+                ferocity_factor = 4 * ferocity_factor / 3;
+            }
+            char_sleep((int32_t)pause_seconds);
+
+        } else {
+            display_line("YOU ATTACK.");
+            char_sleep((int32_t)pause_seconds);
+            if ( rnd_d(gs) < .6) {
+                display_line("YOU MANAGE TO WOUND IT.");
+                ferocity_factor = 5 * ferocity_factor / 6;
+                hits_on_monster++;
+            } else {
+                display_line("IT BLOCKS YOU.");
+            }
+            char_sleep((int32_t)pause_seconds);
+        }
+
+        if ( rnd_d(gs) < .05) {
+            display_line("Aaaaargh!!!\nRIP! TEAR! RIP!");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .05) {
+            display_line("YOU WANT TO RUN, BUT YOU STAND YOUR GROUND...");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .05) {
+            display_line("*&%%$#$%$%# !! @#$$! #$@! !$ $#$");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .075) {
+            display_line("WILL THIS BE A BATTLE TO THE DEATH?");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .075) {
+            display_line("HIS EYES FLASH FEARFULLY");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .075) {
+            display_line("BLOOD DRIPS FROM HIS CLAWS");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .1) {
+            display_line("YOU SMELL THE LUBRICANTS ON HIS BREATH");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .1) {
+            display_line("HE STRIKES WILDLY, MADLY.............");
+            char_sleep((int32_t)pause_seconds);
+        }
+        if ( rnd_d(gs) < .1) {
+            display_line("YOU HAVE NEVER FOUGHT AN OPPONENT LIKE THIS!!");
+            char_sleep((int32_t)pause_seconds);
+        }
+
+    } while ( rnd_d(gs) < .65);
+
+    display_line("\n");
+
+    bool player_won = false;
+    const int win_chance = rnd_range(gs, hits_on_monster, 16 + hits_on_monster);
+    printf("win_chance: %d, ferocity_factor: %d\n", win_chance, ferocity_factor);
+    if ( win_chance > ferocity_factor) {
+        display("AND YOU MANAGED TO KILL THE ");
+        display_line( m->name);
+        gs->monsters_killed++;
+        player_won = true;
+    } else {
+        display("THE ");
+        display(m->name);
+        display_line(" SERIOUSLY WOUNDS YOU.");
+        gs->strength /= 2;
+    }
+    char_sleep((int32_t)pause_seconds);
+    gs->monsters_fought++;
+    ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
+    room_clear_monster(r);
+    return player_won;
+}
+
+static bool cmd_retreat( GameState * gs) {
+    if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
         display_line("THERE IS NO MONSTER HERE.");
-        return; // no monster to retreat from
+        return false; // no monster to retreat from
     }
 
     // determine possible exits
@@ -293,165 +448,18 @@ void retreat( GameState * gs) {
         }
     }
 
-    // randomly move to an adjacent room. If current room has paths to itself, new room may not change
-    int retreat_index = mt_rand_range(&mt_state, 0, num_exits);
+    // randomly move to an adjacent room. If the current room has paths to itself, the room may not change
+    int retreat_index = rnd_range(gs, 0, num_exits);
 
-    if ( mt_random_double(&mt_state) < .3 || num_exits == 0 || retreat_index == gs->room) {
+    if (  rnd_d(gs) < .3 || num_exits == 0 || retreat_index == gs->room) {
         display_line("THE CREATURE BLOCKS YOUR PATH.");
-        fight(gs);
-        return;
+        cmd_fight(gs);
+        return false;
     }
 
     gs->room = exits[retreat_index];
+    return true;
 }
-
-
-void fight( GameState * gs) {
-    if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] != 0) {
-        display_line("THERE IS NOTHING TO FIGHT.");
-        return; // no monster to fight
-    }
-
-    int const monster_index = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
-    Room const *r =  room_find_room(gs->room);
-
-    MonsterPrototype *m = monsters_find_monster(r->monster);
-
-    int ferocity_factor = m->ferocity_factor;
-
-    display_line("");
-
-    if (gs->items[ITEM_SUIT]) {
-        display_line("YOUR ARMOR INCREASES YOUR CHANCE OF SUCCESS.");
-        ferocity_factor = 3 * (ferocity_factor / 4);  //armor gives 25% more advantage
-    }
-
-
-
-    const bool has_ion   = gs->items[ITEM_ION];
-    const bool has_laser = gs->items[ITEM_LASER];
-
-    bool use_ion   = has_ion;
-    bool use_laser = has_laser;
-    if ( has_ion && has_laser ) {
-        int option = get_int("WHICH WEAPON? 1 - ION, 2 - LASER ", 1, 2);
-        if (option == 1) {
-            use_laser = false;
-        } else {
-            use_ion = false;
-        }
-    }
-
-    if ( !use_ion && !use_laser ) {
-        display_line("YOU HAVE NO WEAPONS.\nYOU MUST FIGHT WITH BARE HANDS.");
-        ferocity_factor = ferocity_factor + ferocity_factor / 5;
-    } else if ( use_ion ) {
-        display_line("USING THE ION GUN.");
-        ferocity_factor = 4 * ferocity_factor / 5;
-    } else {
-        display_line("USING YOUR LASER.");
-        ferocity_factor = 3 * ferocity_factor / 4;
-    }
-
-    display_line("");
-    display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
-
-    int hits_on_monster = 0;
-
-    do {
-        bool has_light = gs->items[ITEM_LIGHT];
-
-        if ( mt_random_double(&mt_state) < .5 || !has_light ) {
-            display(m->name);
-            display_line(" ATTACKS.");
-
-            if (mt_random_double(&mt_state) < .5) {
-                display_line("THE MONSTER WOUNDS YOU.");
-                gs->strength -= 5;
-            } else {
-                if (mt_random_double(&mt_state) < .5) {
-                    display_line("YOU SUCCESSFULLY BLOCK IT.");
-                } else {
-                    display_line("IT MISSES YOU.");
-                }
-            }
-
-            if ( has_light && mt_random_double(&mt_state) < .1 ) {
-                display_line("YOUR LIGHT WAS KNOCKED FROM YOUR HAND!");
-                gs->items[ITEM_LIGHT] = false;
-                has_light = false;
-            } else if ( use_ion && mt_random_double(&mt_state) < .1 ) {
-                display_line("YOU DROP YOUR ION GUN IN THE HEAT OF BATTLE!");
-                gs->items[ITEM_ION] = false;
-                use_ion = false;
-                ferocity_factor = 5 * ferocity_factor / 4;
-            } else if (use_laser && mt_random_double(&mt_state) < .2 ) {
-                display_line("YOUR LASER IS KNOCKED FROM YOUR HAND!!");
-                gs->items[ITEM_LASER] = false;
-                use_laser = false;
-                ferocity_factor = 4 * ferocity_factor / 3;
-            }
-
-
-        } else {
-            display_line("YOU ATTACK.");
-            if (mt_random_double(&mt_state) < .6) {
-                display_line("YOU MANAGE TO WOUND IT.");
-                ferocity_factor = 5 * ferocity_factor / 6;
-                hits_on_monster++;
-            } else {
-                display_line("IT BLOCKS YOU.");
-            }
-        }
-
-        if (mt_random_double(&mt_state) < .05) {
-            display_line("Aaaaargh!!!\nRIP! TEAR! RIP!");
-        }
-        if (mt_random_double(&mt_state) < .05) {
-            display_line("YOU WANT TO RUN, BUT YOU STAND YOUR GROUND...");
-        }
-        if (mt_random_double(&mt_state) < .05) {
-            display_line("*&%%$#$%$%# !! @#$$! #$@! !$ $#$");
-        }
-        if (mt_random_double(&mt_state) < .075) {
-            display_line("WILL THIS BE A BATTLE TO THE DEATH?");
-        }
-        if (mt_random_double(&mt_state) < .075) {
-            display_line("HIS EYES FLASH FEARFULLY");
-        }
-        if (mt_random_double(&mt_state) < .075) {
-            display_line("BLOOD DRIPS FROM HIS CLAWS");
-        }
-        if (mt_random_double(&mt_state) < .1) {
-            display_line("YOU SMELL THE LUBRICANTS ON HIS BREATH");
-        }
-        if (mt_random_double(&mt_state) < .1) {
-            display_line("HE STRIKES WILDLY, MADLY.............");
-        }
-        if (mt_random_double(&mt_state) < .1) {
-            display_line("YOU HAVE NEVER FOUGHT AN OPPONENT LIKE THIS!!");
-        }
-
-    } while (mt_random_double(&mt_state) < .65);
-
-    display_line("\n");
-    const int win_chance = mt_rand_range(&mt_state, hits_on_monster, 16 + hits_on_monster);
-    printf("win_chance: %d, ferocity_factor: %d\n", win_chance, ferocity_factor);
-    if ( win_chance > ferocity_factor) {
-        display("AND YOU MANAGED TO KILL THE ");
-        display_line( m->name);
-        gs->monsters_killed++;
-    } else {
-        display("THE ");
-        display(m->name);
-        display_line(" SERIOUSLY WOUNDS YOU.");
-        gs->strength /= 2;
-    }
-
-    gs->monsters_fought++;
-    ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
-}
-
 
 // first_letter must be in "NSEWUD"
 // return true if command was sucessfully processed. If false, the move is not allowed and an error message
@@ -483,10 +491,10 @@ int calc_score(const  GameState * gs) {
 void display_help_info(void) {
     display_line("\nVALID COMMANDS ARE:\n");
 
-    display_line("[H]ELP     [I]NVENTORY  [Q]UIT");
-    display_line("[B]UY      [O]XYGEN     [T]ALLY");
+    display_line("[H]ELP     [I]NVENTORY     [Q]UIT");
+    display_line("[B]UY      [C]ONSUME OXY   SC[O]RE");
     display_line("[R]ETREAT  [F]IGHT");
-    display_line("[P]ICK UP  [M]ATTER TRANSPORTER");
+    display_line("[T]AKE     [M]ATTER TRANSPORTER");
     display_line("[N]ORTH    [S]OUTH");
     display_line("[E]AST     [W]EST");
     display_line("[U]P       [D]OWN");
@@ -501,13 +509,13 @@ void custom_display_room_content( GameState * gs) {
     if ( treasure_id == 0 && monster_id == 0 ) return;  // room is empty
 
     if (treasure_id ) {
-        if ( gs->items[ITEM_LIGHT] ) {
+        if ( gs->has_torch ) {
             display("THERE IS TREASURE HERE WORTH $");
             printf("%d\n", treasure_id);
         }
     }
     if (monster_id) {
-        if (gs->items[ITEM_LIGHT] ) {
+        if (gs->has_torch ) {
             MonsterPrototype *m = monsters_find_monster(monster_id);
             display_line("\nDANGER••• THERE IS DANGER HERE•••• ");
             display("IT IS A ");
@@ -523,7 +531,7 @@ void custom_display_room_content( GameState * gs) {
 void custom_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value ) {
     display_line("");
 
-    if (gs->items[ITEM_LIGHT]) {
+    if (gs->has_torch) {
         display_line("YOU ARE CARRYING A NUCLEONIC LIGHT.");
     }
 
@@ -541,11 +549,14 @@ void custom_display_inventory(const GameState * gs, bool show_item_index, bool s
         display_line(" UNITS OF OXYGEN.");
     }
 
-    if (gs->items[ITEM_SUIT]) {
+    if ( actor_has_item(gs, ITEM_SUIT) ) {
         display_line("YOU ARE WEARING BATTLE ARMOR.");
     }
+    bool has_ion = actor_has_item(gs, ITEM_ION);
+    bool has_laser = actor_has_item(gs, ITEM_LASER);
+    bool has_transporter = actor_has_item(gs, ITEM_TRANSPORTER);
 
-    const int num_items = gs->items[ITEM_ION] + gs->items[ITEM_LASER]  + gs->items[ITEM_TRANSPORTER];
+    const int num_items = has_ion + has_laser  + has_transporter;
 
     if (num_items > 0) {
         display("YOU ARE CARRYING ");
@@ -554,9 +565,9 @@ void custom_display_inventory(const GameState * gs, bool show_item_index, bool s
     // grammar : commas and conjunctions
     // NOTE (rob) - This won't scale well when adding more items.
     if (num_items == 1) {
-        if (gs->items[ITEM_ION])         display_line("AN ION GUN.");
-        else if (gs->items[ITEM_LASER])  display_line("A LASER.");
-        else if (gs->items[ITEM_TRANSPORTER]) display_line("THE MATTER TRANSPORTER.");
+        if ( has_ion )         display_line("AN ION GUN.");
+        else if ( has_laser )  display_line("A LASER.");
+        else if (has_transporter) display_line("THE MATTER TRANSPORTER.");
     }
 
     if (num_items == 3) {
@@ -564,11 +575,11 @@ void custom_display_inventory(const GameState * gs, bool show_item_index, bool s
     }
 
     if (num_items == 2) {
-        if (gs->items[ITEM_ION]) {
+        if ( has_ion ) {
             display("AN ION GUN AND");
-            if (gs->items[ITEM_LASER]) display_line(" A LASER.");
+            if ( has_laser ) display_line(" A LASER.");
             else display_line(" THE MATTER TRANSPORTER.");
-        } else if (gs->items[ITEM_LASER]) {
+        } else if ( has_laser) {
             display_line("A LASER AND THE MATTER TRANSPORTER.");
         }
     }
@@ -577,7 +588,7 @@ void custom_display_inventory(const GameState * gs, bool show_item_index, bool s
 
 
 
-void display_tally(const  GameState * gs) {
+void display_score(const  GameState * gs) {
     display("\nSCORE: ");
     printf("%d\n", calc_score(gs));
     printf("\nturns: %d, strength: %d, cash: %d, food: %d, monsters fought: %d, killed: %d\n",
@@ -605,9 +616,66 @@ void display_strength(const  GameState * gs) {
 
 
 
+/**
+ * Death and Win condition check
+ * RETURNS: true if the game is over (win or loss).
+ * The caller should check gs->is_dead or gs->completed to see the outcome.
+ */
+bool check_game_over(GameState *gs) {
+    if (gs->completed || gs->game_over) return true;
 
 
 
+    for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
+        if (gs->stats.as_array[i] <= 0) {
+            if (!GLOBALS.silent_mode) {
+                display_char_attributes(gs->stats);
+                display_line("\nYour combined attributes are no longer\nenough to sustain you... You are dead.");
+            }
+            gs->is_dead = true;
+            gs->game_over = true;
+            return true;
+        }
+    }
+
+    if ( radiation_turn_count == 2 || gs->strength < 1 ) {
+        if (!GLOBALS.silent_mode) {
+            if (gs->strength < 1) {
+                display_line("YOU HAVE RUN OUT OF OXYGEN....");
+            } else {
+                display_line("RADIATION DESTROYS YOUR BODY...");
+            }
+        }
+        gs->is_dead = true;
+        gs->game_over = true;
+        return true;
+    }
+
+
+    if (gs->room == ROOM_END ) {
+        gs->completed = true;
+        gs->game_over = true;
+        return true;
+    }
+
+    return false;
+}
+
+// checks if there is a monster and if so, that the user has selected either F or R. Returns true for success.
+bool monster_check(const GameState * gs, const char cmd) {
+    const bool has_monster = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
+    // Rule: Must deal with monsters first. Recognized command, but logic fails.
+    if ( has_monster && gs->must_fight && cmd != 'F') {
+        display_line("DANGER! You can only FIGHT!");
+        return false;
+    }
+    if (has_monster && cmd != 'F' && cmd != 'R') {
+        display_line("DANGER! You must either FIGHT or RETREAT.");
+        return false;
+    }
+
+    return true;
+}
 
 
 
@@ -618,43 +686,73 @@ void display_strength(const  GameState * gs) {
 ////
 //// ------------------------------------------------------------
 
+
+// -----------------------------------------------------------------
+//      called at the start of each new game
+// -----------------------------------------------------------------
+
 void reset(GameState * gs, const uint32_t seed) {
+    // reset GameState
+    *gs = (GameState){ .seed=seed, .player_name=GLOBALS.player_name, .room = ROOM_START  };
+    mt_initialize_state(&gs->mt_state, seed); // initialize the PRNG
 
-    mt_initialize_state(&mt_state, 0);  // initialize the PRNG
+    gs->stats    = random_hero_stats(gs);
+    gs->strength = rnd_range(gs, 0, 50) + 75;
+    gs->cash     = rnd_range(gs, 0, 50) + 50;
+    gs->food     = rnd_range(gs, 0, 16);
 
-    gs->room = ROOM_START;
-    gs->strength = mt_rand_range(&mt_state, 0, 50) + 75;
-    gs->cash   = mt_rand_range(&mt_state, 0, 50) + 50;
-    gs->food   = mt_rand_range(&mt_state, 0, 16);
+    //clear all monsters, treasure
+    const int num_rooms = room_num_rooms();
+    for ( int room_index = 0; room_index < num_rooms; ++room_index ) {
+        // note: if we dynamically modify the edge graph we'll need to reset those edges here
+        ROOM_GRAPH[room_index][RGINDEX_TREASURE] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_MONSTER] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_REQUIRED_KEY] = 0;
+        ROOM_GRAPH[room_index][RGINDEX_UNUSED] = 0;
+        const Room *r = room_find_room(room_index);
+        room_clear_monster( r );
+        room_remove_all_objects(room_index);
+    }
 
     //allot treasure
     for (int j = 0; j < 7; ++j ) {
         for (;;) {
-            // Generate a random number between 1 and 19
-            const int room_index = mt_rand_range(&mt_state, 1, 20);
+            // Generate a random number between 1 and num_rooms inclusive
+            const int room_index = rnd_range(gs, 1, num_rooms );
             if ( !(room_index == ROOM_END || room_index == POD_ROOM || room_index == RADIATION_ROOM ||
                     ROOM_GRAPH[room_index][RGINDEX_TREASURE] != 0 ) ) {
-                const int treasure = mt_rand_range(&mt_state, 10, 111); // rand val between 10 and 110 inclusive
-                ROOM_GRAPH[room_index][RGINDEX_TREASURE] = treasure;
-                break;
-                    }
-
+                    const int treasure = rnd_range(gs, 10, 111); // rand val between 10 and 110 inclusive
+                    ROOM_GRAPH[room_index][RGINDEX_TREASURE] = treasure;
+                    break;
+            }
         }
     }
+
     //allot monsters
     for (int t = 0; t < 2; ++t) {
         for (int j = 1; j < 5; ++j ) {
             for (;;) {
-                // Generate a random number between 1 and 19
-                const int room_index = mt_rand_range(&mt_state, 1, 20);
-                if ( !(room_index == ROOM_END || room_index == ROOM_START || room_index == RADIATION_ROOM ||
-                        ROOM_GRAPH[room_index][RGINDEX_MONSTER] != 0 ) ) {
-                    ROOM_GRAPH[room_index][RGINDEX_MONSTER] = j;
+                // Generate a random number between 1 and num_rooms inclusive
+                const int rand_room = rnd_range(gs, 1, num_rooms );
+                if ( !(rand_room == ROOM_END || rand_room == ROOM_START || rand_room == RADIATION_ROOM ||
+                        ROOM_GRAPH[rand_room][RGINDEX_MONSTER] != 0 ) ) {
+                    ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = j;
+                    MonsterPrototype *m = monsters_find_monster(j);
+                    room_set_monster(room_find_room(rand_room), j);
+                    monsters_update_monster(
+                        &(MonsterPrototype){
+                            .name = m->name,
+                            .id = j,
+                            .ferocity_factor = m->ferocity_factor,
+                            .stats = random_monster_stats(gs)
+                        });
                     break;
-                        }
+                }
             }
         }
     }
+
+    radiation_turn_count = 0;
 
 }
 
@@ -666,53 +764,76 @@ static void init_string_assets() {
 }
 
 void init_rooms() {
+    RandomTextArray *rta;
     // rooms 4, 5, 7, 8, 12, 13, 14, 16, and 19 have randomized text
     // room 4
-    ROOMS[4].preamble = create_rta(1);
-    ROOMS[4].preamble->lines[0] = (struct RandomText){ .chance_percent = .4, .text="WHAT A SUPERB SIGHT....... "};
+    rta = create_rta(1);
+    rta->lines[0] = ( RandomText){ .chance_percent = .4, .text="WHAT A SUPERB SIGHT....... "};
+    room_set_preamble(1, rta);
+    
     // room 5
-    ROOMS[5].epilog = create_rta(2);
-    ROOMS[5].epilog->lines[0] = (struct RandomText){ .chance_percent = .5, .text="THE SOLAR LAMPS ARE STILL SHINING."};
-    ROOMS[5].epilog->lines[1] = (struct RandomText){ .chance_percent = .5, .text="A FEW PLANTS ARE STILL ALIVE TO THE EAST."};
+    rta =  create_rta(2);
+    rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="THE SOLAR LAMPS ARE STILL SHINING."};
+    rta->lines[1] = ( RandomText){ .chance_percent = .5, .text="A FEW PLANTS ARE STILL ALIVE TO THE EAST."};
+    room_set_epilog(5,rta);
+
     // room 7
-    ROOMS[7].epilog = create_rta(3);
-    ROOMS[7].epilog->lines[0] = (struct RandomText){ .chance_percent = .5, .text="MOST OF THE SLEEPING SHELLS ARE EMPTY."};
-    ROOMS[7].epilog->lines[1] = (struct RandomText){ .chance_percent = .5, .text="THE FEW REMAINING CREW STIR FITFULLY IN THEIR ENDLESS, DREAMLESS SLEEP."};
-    ROOMS[7].epilog->lines[2] = (struct RandomText){ .chance_percent = .3, .text="THERE ARE EXITS TO THE NORTH, EAST AND WEST."};
+    rta =  create_rta(3);
+    rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="MOST OF THE SLEEPING SHELLS ARE EMPTY."};
+    rta->lines[1] = ( RandomText){ .chance_percent = .5, .text="THE FEW REMAINING CREW STIR FITFULLY IN THEIR ENDLESS, DREAMLESS SLEEP."};
+    rta->lines[2] = ( RandomText){ .chance_percent = .3, .text="THERE ARE EXITS TO THE NORTH, EAST AND WEST."};
+    room_set_epilog(7,rta);
+
     // room 8
-    ROOMS[8].epilog = create_rta(3);
-    ROOMS[8].epilog->lines[0] = (struct RandomText){ .chance_percent = .5, .text="PASSENGERS FLOAT BY AT RANDOM."};
-    ROOMS[8].epilog->lines[1] = (struct RandomText){ .chance_percent = .5, .text="IT IS ENORMOUS, IT SEEMS TO GO ON FOREVER."};
-    ROOMS[8].epilog->lines[2] = (struct RandomText){ .chance_percent = .1, .text="THE ONLY EXITS ARE TO THE WEST AND SOUTH."};
+    rta =  create_rta(3);
+    rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="PASSENGERS FLOAT BY AT RANDOM."};
+    rta->lines[1] = ( RandomText){ .chance_percent = .5, .text="IT IS ENORMOUS, IT SEEMS TO GO ON FOREVER."};
+    rta->lines[2] = ( RandomText){ .chance_percent = .1, .text="THE ONLY EXITS ARE TO THE WEST AND SOUTH."};
+    room_set_epilog(8,rta);
+
     // room 12
-    ROOMS[12].preamble = create_rta(1);
-    ROOMS[12].preamble->lines[0] = (struct RandomText){ .chance_percent = .5, .text="THIS IS THE SHIP'S MAIN NAVIGATION ROOM."};
-    ROOMS[12].epilog = create_rta(1);
-    ROOMS[12].epilog->lines[0] = (struct RandomText){ .chance_percent = .2, .text="YOU CAN JUST MAKE OUT EXITS TO THE SOUTH AND TO THE EAST."};
+    rta =  create_rta(1);
+    rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="THIS IS THE SHIP'S MAIN NAVIGATION ROOM."};
+    room_set_preamble(12, rta);
+    
+    rta =  create_rta(1);
+    rta->lines[0] = ( RandomText){ .chance_percent = .2, .text="YOU CAN JUST MAKE OUT EXITS TO THE SOUTH AND TO THE EAST."};
+    room_set_epilog(12,rta);
+
     // room 13
-    ROOMS[13].preamble = create_rta(1);
-    ROOMS[13].preamble->lines[0] = (struct RandomText){ .chance_percent = .5, .text="YOUR BODY TWISTS AND BURNS..."};
-    ROOMS[13].epilog = create_rta(2);
-    ROOMS[13].epilog->lines[0] = (struct RandomText){ .chance_percent = .5, .text="NO MATTER WHAT YOU DO"};
-    ROOMS[13].epilog->lines[1] = (struct RandomText){ .chance_percent = .5, .text="YOU ARE DOOMED TO DIE HERE."};
+    rta =  create_rta(1);
+    rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="YOUR BODY TWISTS AND BURNS..."};
+    room_set_preamble(13, rta);
+    
+    rta =  create_rta(2);
+    rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="NO MATTER WHAT YOU DO"};
+    rta->lines[1] = ( RandomText){ .chance_percent = .5, .text="YOU ARE DOOMED TO DIE HERE."};
+    room_set_epilog(13,rta);
+
     // room 14
-    ROOMS[14].epilog = create_rta(2);
-    ROOMS[14].epilog->lines[0] = (struct RandomText){ .chance_percent = .1, .text="YOU CAN BARELY MAKE OUT DOORS TO THE NORTH AND WEST."};
-    ROOMS[14].epilog->lines[1] = (struct RandomText){ .chance_percent = .4, .text="A SHAFT LEADS DOWNWARDS TO THE REPAIR CENTER."};
+    rta =  create_rta(2);
+    rta->lines[0] = ( RandomText){ .chance_percent = .1, .text="YOU CAN BARELY MAKE OUT DOORS TO THE NORTH AND WEST."};
+    rta->lines[1] = ( RandomText){ .chance_percent = .4, .text="A SHAFT LEADS DOWNWARDS TO THE REPAIR CENTER."};
+    room_set_epilog(14,rta);
+
     // room 16
-    ROOMS[16].epilog = create_rta(5);
-    ROOMS[16].epilog->lines[0] = (struct RandomText){ .chance_percent = .3, .text="RARE METALS AND VENUSIAN SCULPTURES"};
-    ROOMS[16].epilog->lines[1] = (struct RandomText){ .chance_percent = .2, .text="PRESERVED SCALAPIAN DESERT FISH"};
-    ROOMS[16].epilog->lines[2] = (struct RandomText){ .chance_percent = .3, .text="FLASHING EBONY SCITH STONES FROM XARIAX IV"};
-    ROOMS[16].epilog->lines[3] = (struct RandomText){ .chance_percent = .2, .text="AWESOME TRADER ANT EFFIGIES FROM THE QWERTYIOPIAN EMPIRE"};
-    ROOMS[16].epilog->lines[4] = (struct RandomText){ .chance_percent = .1, .text="THE LIGHT IS STRONGER TO THE WEST"};
+    rta =  create_rta(5);
+    rta->lines[0] = ( RandomText){ .chance_percent = .3, .text="RARE METALS AND VENUSIAN SCULPTURES"};
+    rta->lines[1] = ( RandomText){ .chance_percent = .2, .text="PRESERVED SCALAPIAN DESERT FISH"};
+    rta->lines[2] = ( RandomText){ .chance_percent = .3, .text="FLASHING EBONY SCITH STONES FROM XARIAX IV"};
+    rta->lines[3] = ( RandomText){ .chance_percent = .2, .text="AWESOME TRADER ANT EFFIGIES FROM THE QWERTYIOPIAN EMPIRE"};
+    rta->lines[4] = ( RandomText){ .chance_percent = .1, .text="THE LIGHT IS STRONGER TO THE WEST"};
+    room_set_epilog(16,rta);
+
     // room 19
-    ROOMS[19].epilog = create_rta(1);
-    ROOMS[19].epilog->lines[0] =
-        (struct RandomText){
+    rta =  create_rta(1);
+    rta->lines[0] =
+        ( RandomText){
             .chance_percent = .5,
             .text  = "ONE OF WHICH IS THE GRAVITY WELL.",
         .else_text = "ONE OF WHICH LEADS TO THE GOODS HOLD." };
+    room_set_epilog(19,rta);
+
 }
 
 
@@ -787,10 +908,6 @@ void initialize( GameState * gs) {
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
 
-
-
-
-
     init_string_assets();
 
     init_rooms();
@@ -823,125 +940,187 @@ static void cleanup(GameState * gs) {
 
 // Core Game Engine Logic
 bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
+    const char cmd_char = (char)toupper(action);
+
+    if (!strchr(VALID_COMMANDS, cmd_char)) {
+        return false; // Unknown command: Not a turn, no state change.
+    }
+
+    gs->turns++;
+
+    if ( !monster_check(gs, cmd_char) ) {
+        return false;
+    }
+
+    if (strchr(VALID_DIRECTIONS, cmd_char) ) {
+        const bool result = cmd_move(gs, cmd_char);
+        return result;
+    }
+
+
+    bool result = false;
+    switch ( cmd_char ) {
+        case 'B':
+            //add to inventory/PROVISIONS
+            result = cmd_buy(gs);
+            break;
+        case 'C' :
+            result = cmd_consume_oxygen(gs);
+            break;
+        case 'T':
+            result = cmd_take(gs);
+            break;
+        case 'M':
+            result = cmd_use_transporter(gs);
+            break;
+        case 'R':
+            result = cmd_retreat(gs);
+            break;
+        case 'F':
+            result = cmd_fight(gs);
+            break;
+        default:
+            // Unknown action
+            printf("perform_action: unknown action: %c", cmd_char);
+            result = false;
+            break;
+    }
+
+    return result;
+
+
 
     return true;
 }
 
-static int radiation_turn_count = 0;
 static bool main_game_loop( GameState * gs) {
-    gs->turns++;
+    uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
+    const room_id room_id = gs->room;
+    const Room *current_room = room_find_room(room_id);
+    room_set_visit_started_flag(current_room);
 
-    printf("---------------------------------------------------------------------- %d\n", gs->turns);
 
     if (gs->room == RADIATION_ROOM ) {
         radiation_turn_count++;
     }
 
+
+
+    // in this game, every turn player loses 5 strength points
+    // this normally belongs in the model, but we want to make every turn significant.
     gs->strength -= 5;
 
-    if ( radiation_turn_count == 2 || gs->strength < 1 ) {
-        if (gs->strength < 1) {
-            display_line("YOU HAVE RUN OUT OF OXYGEN....");
+
+    if (current_room->is_visited_bit) {
+        // if we've already seen this room, speed up output display
+        if ( GLOBALS.debug_mode ) {
+            set_char_sleep( GLOBALS.debug_visited_sleep );
         } else {
-            display_line("RADIATION DESTROYS YOUR BODY...");
+            set_char_sleep( GLOBALS.char_sleep_visited_duration );
         }
-        gs->is_dead = true;
-        return false;
     }
 
-    display_line("");
+    if (gs->room != gs->room_last_turn) {
+        // only display room desc once when first entering room. Reduces screen clutter and scrolling.
+        // user can always type "look" to re-display room desc.
+        display_line("");
+        display_room_desc(gs);
+        custom_display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
+    }
+
     display_strength(gs);
-    display_room_desc(gs);
 
-    if (gs->room == ROOM_END) {
-        gs->completed = true;
-        return false;
+    if (check_game_over(gs)){
+        set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+        return END_GAME;
     }
-    custom_display_room_content(gs);
+
     const int treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
     const int monster_id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
-    char first_letter;
-    bool is_invalid_command;
-    bool user_moved = false;  // set to true if user successfully moved to a new room
 
-    do {
-        is_invalid_command = false;
-        first_letter = get_command_char("\nWHAT DO YOU WANT TO DO? ", VALID_COMMANDS, nullptr);
-        putchar('\n');
+    // todo (rob) we need a framework hook for action routines for rooms and objects
+    // do_room_actions(gs);
 
-        if (first_letter == 'Q') {
-            return false; // quit game
-        }
-
-        if (monster_id != 0 &&
-                !( first_letter == 'F' || first_letter == 'R' ) ) {
-            // if monster, can only Fight or Retreat
-            display_line("DANGER! YOU MUST EITHER FIGHT OR RETREAT.");
-            is_invalid_command = true;
-            continue;
-        }
-        if (monster_id == 0 &&
-            ( first_letter == 'F' || first_letter == 'R' )) {
-            // nothing to fight
-            display_line("THERE IS NOTHING TO FIGHT.");
-            is_invalid_command = true;
-            continue;
-        }
-
-        if ( strchr(VALID_DIRECTIONS, first_letter) ) {
-            if ( cmd_move(gs, first_letter)) {
-                user_moved = true;
-            } else {
-                is_invalid_command = true;
-                continue;
-            }
-        }
-
-    } while (is_invalid_command);
-
-
-    if (user_moved) return true;
-
-    switch (first_letter) {
-        case 'H':
-            display_help_info();
-            break;
-        case 'I':
-            custom_display_inventory(gs, false, false);
-            break;
-        case 'B':
-            buy_supplies(gs);
-            break;
-        case 'O' :
-            consume_oxygen(gs);
-            break;
-        case 'T' :
-            display_tally(gs);
-            break;
-        case 'P':
-            pick_up_treasure(gs);
-            break;
-        case 'M':
-            use_transporter(gs);
-            break;
-        case 'R':
-            retreat(gs);
-            break;
-        case 'F':
-            fight(gs);
-            break;
-
-        default: display_linef("UNHANDLED COMMAND: %c", first_letter);
-
+    // speed up the display of text for the rest of the turn.
+    if ( GLOBALS.debug_mode ) {
+        set_char_sleep( GLOBALS.debug_visited_sleep );
+    } else {
+        set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    return true;
+
+
+    // -----------------------------------------------------------------
+    //      process user input
+    // -----------------------------------------------------------------
+    flush_input();
+    char prompt_buffer[1024] = {};
+    snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
+    char cmd_char = get_command_char(prompt_buffer, VALID_COMMANDS, nullptr);
+    if (cmd_char == 'Q') {
+        set_char_sleep(saved_sleep_duration);
+        room_set_visited_flag(current_room);
+        return cmd_quit(gs);
+    }
+
+
+    // -----------------------------------------------------------------
+    //          DEBUG COMMANDS
+    // -----------------------------------------------------------------
+
+    if (cmd_char == '1') {
+        display_globals();
+    }
+    if (cmd_char == '2') {
+        display_game_state(gs);
+    }
+    if (cmd_char == '3') {
+        reset(gs, DEBUG_RAND_SEED);
+    }
+
+    // -----------------------------------------------------------------
+    //      Player Presentation Only
+    // -----------------------------------------------------------------
+
+    if (cmd_char == 'H' ) {
+        display_help_info();
+    } else if (cmd_char == 'L') {
+        cmd_look(gs);
+    } else if (cmd_char == 'I' ) {
+        custom_display_inventory(gs, false, false);
+    } else if (cmd_char == 'A' ) {
+        display_char_attributes(gs->stats);
+    } else if (cmd_char == 'O' ) {
+        display_score(gs);
+    } else if ( !monster_check(gs, cmd_char) ) {
+        // no-op, but prevents perform_action from running.
+    } else {
+        // Now the human call and the ML call use the exact same entry point
+        perform_action(gs, cmd_char, 0,0, 0);
+    }
+
+
+
+
+    set_char_sleep(saved_sleep_duration);
+
+    if (room_id == gs->room) {
+        // if room at end of turn is same as start of turn, update this so we don't display the room desc again
+        gs->room_last_turn = room_id;
+    } else {
+        gs->room_last_turn = gs->room_prev;
+    }
+
+    room_set_visited_flag(current_room);
+    return CONTINUE_GAME;
 }
 
 
 static int main_asimovian_aftermath(void) {
     setvbuf(stdin, nullptr, _IONBF, 0);
+    set_silent_mode(GLOBALS.silent_mode);
 
     if (GLOBALS.debug_mode) {
         set_char_sleep(GLOBALS.debug_normal_sleep);
@@ -950,21 +1129,22 @@ static int main_asimovian_aftermath(void) {
     }
 
 
-
-    const CharBuffer *player_name = get_player_name();
+    const CharBuffer *player_name = get_player_name("HELLO CAPTAIN ");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};
 
-    // display("HELLO CAPTAIN ");
-    // display_line(gs.player_name->buffer);
-    // display_line("TYPE 'HELP' FOR LIST OF COMMANDS.");
-
-
-
-
 
     initialize(&gs);
+    reset(&gs, DEBUG_RAND_SEED);
+
+    display_line("TYPE '[H]ELP' FOR LIST OF COMMANDS.");
+    display_line("YOUR CHARACTER ATTRIBUTE STATS ARE:");
+    display_char_attributes(gs.stats);
+    display_line("");
+    display_line("--------------------------------------------------------------------------------");
+    display_line("");
+
 
     bool continue_loop;
     do {
@@ -972,10 +1152,11 @@ static int main_asimovian_aftermath(void) {
     } while (continue_loop);
 
 
-    display_conclusion(&gs);
 
-    display_tally(&gs);
+    display_conclusion(&gs);
+    display_score(&gs);
     cleanup(&gs);
+    display_line("");
     return EXIT_SUCCESS;
 }
 
@@ -993,8 +1174,9 @@ int main(void) {
 //// ------------------------------------------------------------
 
 static void debug_room_desc() {
-    for (int room_index = 0; room_index < NUM_ROOMS; ++room_index) {
-        struct Room r = ROOMS[room_index];
+    const int num_rooms = room_num_rooms();
+    for (int room_index = 0; room_index < num_rooms; ++room_index) {
+        const Room r = *room_find_room(room_index);
         putchar('\n');
         display_line(r.name);
         display_line("---------------------------------");

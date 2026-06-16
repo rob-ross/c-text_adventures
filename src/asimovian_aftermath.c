@@ -236,7 +236,7 @@ void display_tally(const struct GameState * gs);
 
 void cls();
 
-void buy_supplies(struct GameState * gs);
+void cmd_buy(struct GameState * gs);
 void consume_oxygen(struct GameState * gs);
 void use_transporter(struct GameState * gs);
 void pick_up_treasure(struct GameState * gs);
@@ -366,7 +366,7 @@ bool main_game_loop(struct GameState * gs) {
             actor_display_inventory(gs);
             break;
         case 'B':
-            buy_supplies(gs);
+            cmd_buy(gs);
             break;
         case 'O' :
             consume_oxygen(gs);
@@ -409,7 +409,7 @@ void display_inventory_menu(struct GameState * gs) {
     display_line("            0 - TO CONTINUE EXPLORATION");
 }
 
-void buy_supplies(struct GameState * gs) {
+void cmd_buy(struct GameState * gs) {
     display_line("\nA SUPPLY ANDROID HAS ARRIVED.");
     if (gs->wealth <=0 ) {
         display_line("YOU HAVE NO MONEY.");
