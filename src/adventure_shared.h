@@ -165,7 +165,7 @@ bool room_transfer_obj_location( const Room *r, object_id id, int location );
 
 int sum_character_stats(const CharStats *s);
 
-CharBuffer *get_player_name();
+CharBuffer *get_player_name(char const *greeting);
 
 
 

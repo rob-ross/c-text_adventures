@@ -478,13 +478,11 @@ int sum_character_stats(const CharStats *s) {
 //// ------------------------------------------------------------
 
 
-CharBuffer *get_player_name() {
+CharBuffer *get_player_name(char const *greeting) {
+    char const *g = greeting ? greeting : "Hello, Explorer ";
     cls();
     CharBuffer *cb = get_char_buffer("What is your name, explorer? ");
-    display("Hello, Explorer ");
-    display(cb->buffer);
-    display_line(".");
-    display_line("Type '[H]elp' for a list of commands.");
+    display_linef("%s, %s.", g, cb->buffer);
     return cb;
 }
 
