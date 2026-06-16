@@ -12,7 +12,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/poll.h>
+
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <poll.h>
+#endif
+
 #include <sys/_types/_useconds_t.h>
 #include <ctype.h>
 #include <stdarg.h> // Added for variadic functions
