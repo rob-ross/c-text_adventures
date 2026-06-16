@@ -26,11 +26,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#ifdef _WIN32
-#include <conio.h>
-#else
-#include <poll.h>
-#endif
+
 
 #include "mersenne_twister.h"
 
