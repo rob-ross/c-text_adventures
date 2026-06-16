@@ -6,6 +6,13 @@
 // Created 2026/05/30 00:44:42 PDT
 
 
+/*
+ *  This TU currently couples the functions of the Monster methods with the loading of JSON data to initialize
+ *  the Monster data structures. The JSON loader and parser should probably be moved to a data loader module.
+ *  Then the init() method could be passed the already initialized monster data.
+ *  This is the classic "inversion of control."
+ */
+
 #include "roblib/json_parser/json_parser.h"
 #include "common/string.h"
 #include "common/files.c"
@@ -17,33 +24,14 @@
 static MonsterPrototypeArray *monster_prototypes_array = nullptr;  // this acts like a singleton in this monster library
 
 
-
-
-
-static int create_string_array(FILE *fptr, void **result_out);
+// -----------------------------------------------------------------
+//      Forward References
+// -----------------------------------------------------------------
 static int load_monster_json_file(FILE *fptr, void **monster_array_out);
+static int monster_read_json_file(const char * monster_json_filename);
 
-// reads a text file where each line is a string. This function will skip line comments and blank lines as well as
-// multiline comments. Line comments start with '//' or '#' and multiline comments are C-style /* */
-// Leading and trailing whitespace is trimmed.
-static int monster_read_string_file(const char * monster_filename) {
 
-    LenStrArray *pvt_monster_names;
-    int err = process_file( monster_filename, create_string_array, (void**) &pvt_monster_names);
-    // if (err == 0) {
-    //     printf("In main, LenStrArray from monsters.txt is:\n");
-    //     for (int i = 0; i < lsa->size; ++i) {
-    //         printf("(%zd):%s\n",lsa->array[i].len, lsa->array[i].s);
-    //     }
-    // }
-    return err;
-}
 
-static int monster_read_json_file(const char * monster_json_filename) {
-    // `load_monster_json_file` is the worker method here; `process_file` just ensures the file is closed properly
-    int err = process_file( monster_json_filename, load_monster_json_file, (void**) &monster_prototypes_array);
-    return err;
-}
 
 int monsters_init(const char * monster_filename) {
     int result = monster_read_json_file(monster_filename);
@@ -58,13 +46,20 @@ int monsters_init(const char * monster_filename) {
 void monsters_destroy(void) {
     const uint32_t num_monsters = monster_prototypes_array->len;
 
-    // monster names were copied from json parser arena via strdup, so we must free them
+    // monster names were copied from JSON parser arena via strdup, so we must free them
     for (int i = 0; i < num_monsters ; ++i) {
         free((void*)monster_prototypes_array->monsters[i].name);
     }
 
     free(monster_prototypes_array);
     monster_prototypes_array = nullptr;
+}
+
+
+static int monster_read_json_file(const char * monster_json_filename) {
+    // `load_monster_json_file` is the worker method here; `process_file` just ensures the file is closed properly
+    int err = process_file( monster_json_filename, load_monster_json_file, (void**) &monster_prototypes_array);
+    return err;
 }
 
 
@@ -143,120 +138,93 @@ const char * monsters_name_for_id(const monster_id id) {
 
 
 
+/*
+ *  When we are parsing a JSON file for reading in information about a type of entity (Monsters here),
+ *  this parsing code has to understand the structure of the JSON file to know what data to pull out and
+ *  where to save that data (i.e., what structs and members to use.)
+ *  In Python, we'd just keep attributes for a monster in a dict and look up keys as we needed certain values, like
+ *  'strength' or 'name.' In C, we need to have well-defined blocks of memory with those values so we know
+ *  what pointer offsets to use to get that data.
+ *  Thus, a "dynamic" JSON loader in C is not going to result in a performant data structure in the "C way" of
+ *  doing things.
+ *  Still, rather than having a long stream of if-statements that check if a key exists in the JSON object and then
+ *  assign the key's value to the right struct member, we can define a mapping between key names and offsets into
+ *  the struct. We simplify the algorithm logic at the expense of having to create the correct metadata structure
+ *  for the key-offset mappings.
+ *  This is a test of this concept.
+ */
 
+typedef struct {
+    const char* label;       // The string name (e.g., "id", "name", "ff")
+    size_t offset;           // The offset calculated via offsetof()
+    json_type type;     // The type for safe casting
+} MemberMetadata;
 
-// reads the text file from the argument stream pointer and extracts each line into an array element in LenStrArray
-// returns the result in the out ptr, a *LenStrArray
-static int create_string_array(FILE *fptr, void **result_out) {
+// each struct we are populating from JSON data requires one of these arrays.
+// The json_value knows the type of each key, so we don't actually need the type field!
+// static const MemberMetadata monster_schema[] = {
+//     { "name", offsetof(MonsterPrototype, name),             JSON_STRING },
+//     { "id",   offsetof(MonsterPrototype, id),               JSON_INT    },
+//     { "ff",   offsetof(MonsterPrototype, ferocity_factor),  JSON_INT    },
+//     { nullptr,   0,                                0           } // Sentinel to mark end of array
+// };
 
-    size_t results_capacity = 100;
-    size_t result_counter = 0;
-    LenStr *results = malloc(sizeof(LenStr) * results_capacity);
-    if (!results) return ENOMEM;
-    // we insert the null monster name in the first position
-    results[result_counter++] = (LenStr){.s = strdup("NULL"), .len=strlen("NULL") };
+#define REFLECT(struct_type, field, type_enum) \
+{ #field, offsetof(struct_type, field), type_enum }
 
-    char buffer[1024] = {};
-    constexpr size_t buffer_len = sizeof(buffer);
-    bool in_block_comment = false;
+// The 'type' field in MemberMetadata probably needs to be based on the C types of the struct members.
+static const MemberMetadata monster_schema[] = {
+    REFLECT(MonsterPrototype, name, JSON_STRING),
+    REFLECT(MonsterPrototype, id,   JSON_INT),
+    REFLECT(MonsterPrototype, ferocity_factor,   JSON_INT),  // we need the ability to use nicknames here, like ff?
+    { nullptr, 0, 0 }
+};
 
-    // Dynamic buffer to accumulate the string
-    size_t val_capacity = 128;
-    size_t val_len = 0;
-    char *val_buffer = malloc(val_capacity);
-    if (!val_buffer) {
-        free(results);
-        return ENOMEM;
-    }
+void set_struct_value(MonsterPrototype *m, const char *field_name, JsonValue *value_ptr) {
+    for (int i = 0; monster_schema[i].label != nullptr; i++) {
+        if (strcmp(monster_schema[i].label, field_name) == 0) {
 
-    while ( get_next_line_chunk(fptr, buffer_len, buffer) == 0 ) {
-        // strip leading and trailing spaces
-        string_trim(buffer);
-        int buffer_index = 0;
-        val_len = 0;
-        while (buffer[buffer_index] != '\0') {
-            char c = buffer[buffer_index++];
-            bool one_more_char = buffer[buffer_index] != '\0';
+            // Calculate the exact destination address in memory
+            void *dest = (char *)m + monster_schema[i].offset;
 
-            if (in_block_comment) {
-                if (c == '*' && one_more_char && buffer[buffer_index] == '/') {
-                    // end of block comment
-                    in_block_comment = false;
-                    break; // match original behavior: skip rest of line
-                }
-                // Skip all characters while in block comment
-                continue;
+            switch (monster_schema[i].type) {
+                case JSON_INT:
+                    // wrinkle. the JSON parser stores int values as long, but we can't force every struct to
+                    // use long ints. For now, casting to int seems safe and reasonable; However, this means numbers
+                    // in the JSON that are outside the int range will be truncated. We note this, but also note the
+                    // domain of these values thus far fits in an int. I.e., no monsters have stats that require a
+                    // long to represent them.
+                    *(int *)dest = (int)value_ptr->u.n_long;
+                    break;
+                case JSON_FLOAT:
+                    *(double *)dest = value_ptr->u.n_double;
+                    break;
+                case JSON_BOOLEAN:
+                    *(bool *)dest = value_ptr->u.boolean;
+                    break;
+                case JSON_STRING:
+                    // The string from the JSON parser arena needs to be duplicated for long-term storage.
+                    *(char const **)dest = strdup(value_ptr->u.string);
+                    break;
+                case JSON_NULL:
+                    // for config data we don't expect to see null, but if we do, we'll just ignore it
+                    break;
+                case JSON_NUMBER:
+                    // the parser will never use this type, as we use either double or long for actual variables
+                    break;
+                case JSON_ARRAY:
+                    // todo perhaps we can automate nested structs here, but I'm dubious. Currently the parsing code
+                    // will decide into what variables an array or object get placed into.
+                case JSON_OBJECT:
+                    break;
             }
-
-            // Check for comment starts anywhere on the line
-            if (c == '#') break;
-            if (c == '/' && one_more_char) {
-                if (buffer[buffer_index] == '/') break; // line comment
-                if (buffer[buffer_index] == '*') {
-                    in_block_comment = true;
-                    break; // match original behavior: skip rest of line
-                }
-            }
-
-            if ( add_to_expandable_buffer(c, &val_len, &val_capacity, &val_buffer) != 0 ) {
-                free(val_buffer);
-                free_LenStr(result_counter, results);
-                free(results);
-                return ENOMEM;
-            }
-        }
-
-        if ( val_len ) {
-            // save this string if it's not empty
-            val_buffer[val_len] = '\0';
-            // Trim trailing spaces that might remain before a comment
-            string_trim(val_buffer);
-            size_t trimmed_len = strlen(val_buffer);
-            if (trimmed_len == 0) continue;
-
-            if (result_counter >= results_capacity) {
-                results_capacity *= 2;
-                LenStr *temp = realloc(results, sizeof(LenStr) * results_capacity);
-                if (!temp) {
-                    free_LenStr(result_counter, results);
-                    free(results);
-                    free(val_buffer);
-                    return ENOMEM;
-                }
-                results = temp;
-            }
-
-            char *s = strdup(val_buffer);
-            if (!s) {
-                free_LenStr(result_counter, results);
-                free(results);
-                free(val_buffer);
-                return ENOMEM;
-            }
-            results[result_counter++] = (LenStr){.len=trimmed_len, .s = s};
+            return;
         }
     }
-    free(val_buffer);
-
-    LenStrArray *lsa = malloc(sizeof(LenStrArray) + sizeof(LenStr) * result_counter);
-    if (!lsa) {
-        free_LenStr(result_counter, results);
-        free(results);
-        return ENOMEM;
-    }
-
-    lsa->size = result_counter;
-
-    for (int i = 0; i < (int)result_counter; ++i) {
-        lsa->array[i] = results[i];
-    }
-    free(results);
-    (*result_out) = lsa;
-
-    return 0;
+    fprintf(stderr, "Field '%s' not found in schema.\n", field_name);
 }
 
-// parses the json file from the argument stream pointer and extracts monster objects into a Monster struct instance
+// parses the JSON file from the argument stream pointer and extracts monster objects into a Monster struct instance
 // returns the result in the out ptr, a *Monster
 static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
     if (!fptr) return EINVAL;
@@ -288,7 +256,7 @@ static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
         return error.reported_err;
     }
     JsonError err = {.json = json_text_buffer};
-    printf("\nParsing json string '%s': \n", json_text_buffer);
+    printf("\nParsing JSON string '%s': \n", json_text_buffer);
     JsonValue *jval = json_parse(json_text_buffer, &err);
     if (!jval) {
         printf("ERROR : line:%d col:%d start:%d end:%d  %s\n",
@@ -312,27 +280,46 @@ static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
     // add the null monster object
     ma->monsters[0] = (MonsterPrototype){.name = strdup("(null)"), .id = 0};
 
-    // populate our Monster[] with entries from the parsed json file
+    // populate our Monster[] with entries from the parsed JSON file
     ma->len = num_monsters + 1;
     for (int i = 0; i < num_monsters; ++i) {
         // we don't own the jason parser arena, so we have to make a copy of this string
         JsonValue *map = jval->u.array.elements[i];
         assert(map->type == JSON_OBJECT);
 
-        JsonObjectEntry *id_joe = jsonp_entry_for_key(map, "id");
-        JsonObjectEntry *name_joe = jsonp_entry_for_key(map, "name");
-        JsonObjectEntry *ff_joe = jsonp_entry_for_key(map, "ff");
+        // old method, explicitly looking up keys
+        // JsonObjectEntry *id_joe = jsonp_entry_for_key(map, "id");
+        // JsonObjectEntry *name_joe = jsonp_entry_for_key(map, "name");
+        // JsonObjectEntry *ff_joe = jsonp_entry_for_key(map, "ff");
 
 
-        //optional field
-        const int ff = ff_joe ? (int)ff_joe->value->u.n_long : 0;
+        JsonObjectEntry **entries = map->u.object.entries;
+        for (int j = 0; j < map->u.object.count; ++j) {
+            //set_struct_value loops over every member field in the MemberMetadata[], which makes the
+            // combined operation O(N^2). If either the MemberMetadata entries or the
+            // JsonObjectEntry entries used a hash map, where lookups were O(1), then this operation
+            // becomes O(N). We could also forego a hashmap if we mandated that fields in the JSON
+            // must be in the same order as fields in the struct. We can still have optional (i.e, missing)
+            // members in the JSON file; we would just skip over those when iterating the MemberMetadata[].
+            // That would again make this O(N) at the cost of some flexibility in the JSON file data.
+            // I think it's preferable to allow out-of-order JSON object members, so we should
+            // adopt a hash table for one of these. Since we're parsing in a JSON object which represents
+            // a map already, we should add that function there. Then we would iterate over elements of
+            // MemberMetadata[] in order and then look up each member field name in the JSON object via its
+            // hash map.
+            set_struct_value(&ma->monsters[i+1], entries[j]->key, entries[j]->value);
+        }
 
-        char const *dup_str = strdup(name_joe->value->u.string);
-        ma->monsters[i+1] = (MonsterPrototype){
-            .name = dup_str,
-            .id = (int)id_joe->value->u.n_long,
-            .ferocity_factor = ff
-        };
+
+        // //optional field
+        // const int ff = ff_joe ? (int)ff_joe->value->u.n_long : 0;
+        //
+        // char const *dup_str = strdup(name_joe->value->u.string);
+        // ma->monsters[i+1] = (MonsterPrototype){
+        //     .name = dup_str,
+        //     .id = (int)id_joe->value->u.n_long,
+        //     .ferocity_factor = ff
+        // };
     }
 
     *monster_array_out = ma;
