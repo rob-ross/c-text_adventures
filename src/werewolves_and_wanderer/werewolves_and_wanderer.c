@@ -6,17 +6,39 @@
 //
 // Created 2026/05/01 18:00:08 PDT
 
-// make :
-// cd /Users/robross/Documents/Development/CLionProjects/text_adventures/src/
-// DEBUG:
-//  clang -g -DWAREWOLVES_AND_WANDERER_MAIN -std=c23 -o warewolves_and_wanderer.out warewolves_and_wanderer.c
+
+/*
+
+MAKE :
+
+cd /Users/robross/Documents/Development/CLionProjects/werewolves_and_wanderer/text_adventures/src
+
+ * DEBUG *
+
+clang -g -DWEREWOLVES_AND_WANDERER_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
+    -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
+    -std=c23 -o werewolves_and_wanderer.out werewolves_and_wanderer.c  \
+            ../adventure_shared.c           \
+            ../mersenne_twister.c           \
+            ../common/console_utils.c       \
+            ../parser.c                     \
+            ../rooms.c                      \
+            ../objects.c                    \
+            ../monsters.c                   \
+            ../common/string.c              \
+            ../roblib/string/string_utils.c \
+            ../roblib/string/string_builder.c \
+            ../roblib/json_parser/json_parser.c \
+            ../roblib/json_parser/arena.c   \
+            ../roblib/json_parser/error_result.c
+
+ */
 
 
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "../adventure_shared.h"
@@ -39,8 +61,10 @@ enum Item {
     ITEM_COUNT
 };
 
-constexpr int ROOM_START         =  6;
-constexpr int ROOM_END           = 11;
+constexpr int ROOM_START          =  6;
+constexpr int ROOM_END            = 11;
+constexpr int ROOM_LIFT           =  9;
+constexpr int ROOM_REAR_VESTIBULE = 10;
 
 const int MAX_ROOM_OBJECTS = 1; //maximum number of items that can be placed in a room
 const int MAX_PLAYER_OBJECTS = 6; // max number of items that can be carried
@@ -109,12 +133,11 @@ static void display_inventory(const GameState * gs) {
 // first_letter must be in "NSEWUD"
 // return true if command was successfully processed. If false, the move is not allowed and an error message
 // will have been displayed
-static bool cmd_move(GameState * gs, char const first_letter) {
+static bool cmd_move(GameState * gs, char const cmd_char) {
     const int location = gs->room;
-    const int direction_index = calc_room_graph_direction_index(first_letter);
+    const int direction_index = calc_room_graph_direction_index(cmd_char);
     if (direction_index == DIRECTION_ERR) {
-        display("Bad direction_index, first_letter='");
-        printf("%c'\n", first_letter);
+        display_linef("Bad direction_index, first_letter='%c'", cmd_char);
         return false;
     }
     gs->room_prev = gs->room;
@@ -130,6 +153,7 @@ static bool cmd_move(GameState * gs, char const first_letter) {
 
 
 static void display_inventory_menu( GameState * gs) {
+    // we use printf here and not display to speed up the menu output
     printf("\nYOU HAVE $%d\n", gs->cash);
 
     printf("YOU CAN BUY 1 - FLAMING TORCH ($15)\n");
@@ -141,7 +165,7 @@ static void display_inventory_menu( GameState * gs) {
     printf("            0 - TO CONTINUE ADVENTURE\n");
 }
 
-char const * const VALID_COMMANDS = "QNSEWUDRFIBCTPMHAOL123";
+static char const * const VALID_COMMANDS = "QNSEWUDRFIBCTMHAOL123";
 
 static void display_help_info(void) {
     if (GLOBALS.silent_mode) return;
@@ -160,12 +184,16 @@ static void display_help_info(void) {
     display_line("[1]Globals  [2]GameState [3]Reset  [M]agic");
 }
 
+static void cmd_look_custom( GameState *gs);
+
 static bool cmd_buy( GameState * gs) {
-    printf("PROVISIONS AND INVENTORY\n");
+    display_line("PROVISIONS AND INVENTORY");
     if (gs->cash <=0 ) {
         display_line("YOU HAVE NO MONEY.");
         return false;
     }
+
+    bool bought_torch = false;
 
     for (;;) {
         display_inventory_menu(gs);
@@ -179,8 +207,6 @@ static bool cmd_buy( GameState * gs) {
         } while ( !(option >= '0' && option <= '6') );
 
         const int option_index = option - '0';
-
-        // printf("You selected ** %c ** \n", option);
 
         if ( option_index == 0 ) {
             //cls
@@ -206,7 +232,10 @@ static bool cmd_buy( GameState * gs) {
             }
             gs->cash -= o->value;
             actor_add_object(gs, option_index);
-            if (option_index == ITEM_LIGHT) gs->has_torch = true;
+            if (option_index == ITEM_LIGHT) {
+                gs->has_torch = true;
+                bought_torch = true;
+            }
         }
 
         if (option_index == 4 ) {
@@ -231,6 +260,10 @@ static bool cmd_buy( GameState * gs) {
             }
         }
     }
+    if (bought_torch) {
+        display_line("");
+        cmd_look_custom(gs); // user can now see the room
+    }
     return true;
 }
 
@@ -244,8 +277,8 @@ static bool cmd_eat( GameState * gs) {
         char food_quantity;
         fflush(stdin);
         do {
-            printf("YOU HAVE %d UNITS OF FOOD.\n", gs->food);
-            printf("HOW MANY DO YOU WANT TO EAT (0-9)? ");
+            display_linef("YOU HAVE %d UNITS OF FOOD.", gs->food);
+            display("HOW MANY DO YOU WANT TO EAT (0-9)? ");
 
             food_quantity = (char)getchar();
             fflush(stdin);
@@ -309,9 +342,17 @@ static bool cmd_fight( GameState * gs) {
         ferocity_factor = (int)(3 * ferocity_factor / 4.0 ) ;  //armor gives 25% more advantage
     }
 
-    // for (int j = 0; j < 6; ++j ) {
-        display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
-    // }
+
+    display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
+
+
+    // we'll pause a bit after every turn during the fight
+    uint32_t pause_seconds;
+    if (GLOBALS.debug_mode ) {
+        pause_seconds = 0;
+    } else {
+        pause_seconds = _1ms * 1000;
+    }
 
     const bool has_axe   = actor_has_item(gs, ITEM_AXE);
     const bool has_sword = actor_has_item(gs, ITEM_SWORD);
@@ -348,22 +389,23 @@ static bool cmd_fight( GameState * gs) {
         } else {
             display_linef("\nYOU ATTACK.");
         }
+        char_sleep((int32_t)pause_seconds);
 
         if ( rnd_d(gs) < .5 ) {
             display_line("YOU MANAGE TO WOUND IT.");
             ferocity_factor = (int)(5 * ferocity_factor / 6.0);
+            char_sleep((int32_t)pause_seconds);
         }
 
         if ( rnd_d(gs) < .5 ) {
             display_line("THE MONSTER WOUNDS YOU!");
             gs->strength -= 5;
+            char_sleep((int32_t)pause_seconds);
         }
-        // printf("monster ff=%d\n", ferocity_factor);
     } while ( rnd_d(gs) < .666 );
 
     bool player_won = false;
     int roll = rnd_range(gs, 5, 16);
-    // printf("final roll: %d, ff:%d\n", roll, ferocity_factor);
     if ( roll > ferocity_factor) {
         display_linef("\n\nAND YOU MANAGED TO KILL THE %s", monster->name);
         gs->monsters_killed++;
@@ -372,7 +414,7 @@ static bool cmd_fight( GameState * gs) {
         display_linef("\n\nTHE %s DEFEATED YOU!.", monster->name);
         gs->strength /= 2;
     }
-
+    char_sleep((int32_t)pause_seconds);
     ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
     return player_won;
 }
@@ -380,10 +422,11 @@ static bool cmd_fight( GameState * gs) {
 
 static bool cmd_retreat(GameState * gs) {
     if (ROOM_GRAPH[gs->room][RGINDEX_MONSTER] == 0) {
+        display_line("THERE IS NO MONSTER HERE.");
         return false; // no monster to retreat from
     }
     if ( rnd_d(gs) < .30 ) {
-        printf("NO, YOU MUST STAND AND FIGHT!\n");
+        display_line("NO, YOU MUST STAND AND FIGHT!");
         cmd_fight(gs);
         return false;
     }
@@ -395,43 +438,86 @@ static bool cmd_retreat(GameState * gs) {
     char input_buffer[1024];
     // process the next user command. First, check the command is valid for the current state
     do {
-        printf("WHICH WAY DO YOU WANT TO FLEE? ");
+        display("WHICH WAY DO YOU WANT TO FLEE? ");
         fscanf(stdin, "%s", input_buffer);
-        // printf("   you entered: %s\n", input_buffer);
         first_letter = (char)toupper(input_buffer[0]);
 
         is_invalid_command = ! strchr(VALID_DIRECTIONS, first_letter);
         if (is_invalid_command) {
-            printf("INVALID DIRECTION '%c'\n", first_letter);
+            display_linef("INVALID DIRECTION '%c'", first_letter);
         }
     } while (is_invalid_command || !cmd_move(gs, first_letter) );
-
+    fflush(stdin);
     return true;
 }
 
+static void custom_display_room_content( GameState * gs) {
+    const int treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
+    const int monster_id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
+    if ( treasure_id == 0 && monster_id == 0 ) return;  // room is empty
 
-void do_room_actions(GameState *gs) {
-    if (gs->room == 9) {
-        // if in Room 9 transition to Room 10 and show description
-        gs->room = 10;
-        display_room_desc(gs);
+    if (treasure_id ) {
+        if ( gs->has_torch ) {
+            display_linef("THERE IS TREASURE HERE WORTH $%d", treasure_id);
+        }
+    }
+    if (monster_id) {
+        if (gs->has_torch ) {
+            MonsterPrototype *m = monsters_find_monster(monster_id);
+            display_line("\nDANGER••• THERE IS DANGER HERE•••• ");
+            display_linef("IT IS A %s", m->name);
+            display_linef("YOUR PERSONAL DANGER METER REGISTERS %d!!", m->ferocity_factor);
+        } else {
+            display_line("YOU FEEL A DANGEROUS PRESENCE!");
+        }
     }
 }
 
-void display_strength(const  GameState * gs) {
-    display("YOUR STRENGTH IS ");
-    printf("%d.\n", gs->strength);
+static void cmd_look_custom( GameState *gs) {
+    display_room_desc(gs);
+    custom_display_room_content(gs);
+}
+
+static bool main_game_loop(GameState * gs);
+
+// If the user enters the lift, they are moved to ROOM_REAR_VESTIBULE. We call main_game_loop() recursively from here.
+// We need a way to signal to the first main_game_loop() frame that it should exit early since we have processed
+// the room here.
+// Returns true if the current main_game_loop() iteration should exit early, otherwise returns false.
+static bool do_room_actions(GameState *gs) {
+    if (gs->room == ROOM_LIFT) {
+        uint32_t pause_seconds;
+        if (GLOBALS.debug_mode ) {
+            pause_seconds = 0;
+        } else {
+            pause_seconds = _1ms * 1000;
+        }
+        char_sleep((int32_t)pause_seconds);
+        display_line("IT SLOWLY DESCENDS...");
+        char_sleep((int32_t)pause_seconds);
+
+
+        // if in Room 9 transition to Room 10 and show description
+        room_set_visited_flag(room_find_room(ROOM_LIFT));
+
+        gs->room = ROOM_REAR_VESTIBULE;
+        main_game_loop(gs);
+        return true;
+    }
+    return false;
+}
+
+static void display_strength(const  GameState * gs) {
+    display_linef("YOUR STRENGTH IS %d.", gs->strength);
     if (gs->strength <= 20) {
-        display("*** WARNING ***\nCAPTAIN ");
-        display(gs->player_name->buffer);
-        display_line(",");
+        displayf("*** WARNING ***\nCAPTAIN %s, ",gs->player_name->buffer);
         if (gs->strength <= 5) {
             display_line("YOUR STRENGTH IS EXTREMELY LOW.");
             display_line("YOU ARE ABOUT TO DIE!!!");
         } else if (gs->strength <= 10) {
             display_line("YOUR STRENGTH IS VERY LOW.");
-            display_line("YOU NEED AN OXYGEN BOOST.");
+            display_line("YOU NEED TO EAT.");
         } else {
             display_line("YOUR STRENGTH IS RUNNING LOW.");
         }
@@ -444,7 +530,7 @@ void display_strength(const  GameState * gs) {
  * RETURNS: true if the game is over (win or loss).
  * The caller should check gs->is_dead or gs->completed to see the outcome.
  */
-bool check_game_over(GameState *gs) {
+static bool check_game_over(GameState *gs) {
     if (gs->completed || gs->game_over) return true;
 
     for (int i = STAT_STRENGTH; i < STAT_COUNT; ++i) {
@@ -469,7 +555,7 @@ bool check_game_over(GameState *gs) {
 }
 
 // checks if there is a monster and if so, that the user has selected either F or R. Returns true for success.
-bool monster_check(const GameState * gs, const char cmd) {
+static bool monster_check(const GameState * gs, const char cmd) {
     const bool has_monster = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
     // Rule: Must deal with monsters first. Recognized command, but logic fails.
     if ( has_monster && gs->must_fight && cmd != 'F') {
@@ -496,7 +582,7 @@ bool monster_check(const GameState * gs, const char cmd) {
 //      called at the start of each new game
 // -----------------------------------------------------------------
 
-void reset(GameState * gs, const uint32_t seed) {
+static void reset(GameState * gs, const uint32_t seed) {
     // reset GameState
     *gs = (GameState){ .seed=seed, .player_name=GLOBALS.player_name, .room = ROOM_START, .cash = 75,  };
     mt_initialize_state(&gs->mt_state, seed); // initialize the PRNG
@@ -524,7 +610,8 @@ void reset(GameState * gs, const uint32_t seed) {
         for (;;) {
             // Generate a random number between 1 and num_rooms inclusive
             const int rand_room = rnd_range(gs, 1, num_rooms );
-            if ( !(rand_room == ROOM_START || rand_room == ROOM_END || ROOM_GRAPH[rand_room][RGINDEX_TREASURE] !=0 ) ) {
+            if ( !(rand_room == ROOM_START || rand_room == ROOM_END || rand_room == ROOM_LIFT
+                || ROOM_GRAPH[rand_room][RGINDEX_TREASURE] !=0 ) ) {
                 // rand val between 10 and 110 inclusive
                 const int treasure = rnd_range(gs, 10, 110 + 1);
                 ROOM_GRAPH[rand_room][RGINDEX_TREASURE] = treasure;
@@ -538,7 +625,8 @@ void reset(GameState * gs, const uint32_t seed) {
 
             // Generate a random number between 1 and num_rooms inclusive
             const int rand_room = rnd_range(gs, 1, num_rooms );
-            if ( !(rand_room == ROOM_START || rand_room == ROOM_END || ROOM_GRAPH[rand_room][RGINDEX_MONSTER] !=0 ) ) {
+            if ( !(rand_room == ROOM_START || rand_room == ROOM_END || rand_room == ROOM_LIFT
+                || ROOM_GRAPH[rand_room][RGINDEX_MONSTER] !=0 ) ) {
                 ROOM_GRAPH[rand_room][RGINDEX_MONSTER] = j;
                 MonsterPrototype *m = monsters_find_monster(j);
                 room_set_monster(room_find_room(rand_room), j);
@@ -591,11 +679,11 @@ static RoomData get_room_data(void) {
             {.id =  6,  .name= "ENTRANCE",         .desc = "YOU ARE AT THE ENTRANCE TO A FORBIDDING-LOOKING STONE CASTLE. YOU ARE FACING EAST."},
             {.id =  7,  .name= "KITCHEN",          .desc = "THIS IS THE CASTLE'S KITCHEN. THROUGH WINDOWS IN THE NORTH WALL YOU CAN SEE A SECRET HERB GARDEN. A DOOR LEAVES THE KITCHEN TO THE SOUTH."},
             {.id =  8,  .name= "STORE ROOM",       .desc = "YOU ARE IN THE STORE ROOM, AMIDST SPICES, VEGETABLES, AND VAST SACKS OF FLOUR AND OTHER PROVISIONS. THERE IS A DOOR TO THE NORTH AND ONE TO THE SOUTH."},
-            {.id =  9,  .name= "LIFT",             .desc = "YOU HAVE ENTERED THE LIFT... IT SLOWLY DESCENDS..."},
+            {.id =  9,  .name= "LIFT",             .desc = "YOU HAVE ENTERED THE LIFT..."},
             {.id = 10, .name= "REAR VESTIBULE",    .desc = "YOU ARE IN THE REAR VESTIBULE. THERE ARE WINDOWS TO THE SOUTH FROM WHICH YOU CAN SEE THE ORNAMENTAL LAKE. THERE IS AN EXIT TO THE EAST, AND ONE TO THE NORTH."},
             {.id = 11, .name= "EXIT",              .desc = "YOU'VE DONE IT!!\nTHAT WAS THE EXIT FROM THE CASTLE"},
             {.id = 12, .name= "DUNGEON",           .desc = "YOU ARE IN THE DANK, DARK DUNGEON. THERE IS A SINGLE EXIT, A SMALL HOLE IN THE WALL TOWARDS THE WEST."},
-            {.id = 13, .name= "GUARDROOM",         .desc = "YOU ARE IN THE PRISON GUARDROOM, IN THE BASEMENT OF THE CASTLE. THE STAIRWELL ENDS IN THIS ROOM. THERE IS ONE OTHER EXIT, A SMALL HOLE IN THE EASST WALL."},
+            {.id = 13, .name= "GUARDROOM",         .desc = "YOU ARE IN THE PRISON GUARDROOM, IN THE BASEMENT OF THE CASTLE. THE STAIRWELL ENDS IN THIS ROOM. THERE IS ONE OTHER EXIT, A SMALL HOLE IN THE EAST WALL."},
             {.id = 14, .name= "MASTER BEDROOM",    .desc = "YOU ARE IN THE MASTER BEDROOM ON THE UPPER LEVEL OF THE CASTLE.... LOOKING DOWN FROM THE WINDOW TO THE WEST YOU CAN SEE THE ENTRANCE TO THE CASTLE, WHILE THE SECRET HERB GARDEN IS VISIBLE BELOW THE NORTH WINDOW. THERE ARE DOORS TO THE EAST AND TO THE SOUTH...."},
             {.id = 15, .name= "UPPER HALLWAY",     .desc = "THIS IS THE L-SHAPED UPPER HALLWAY. TO THE NORTH IS A DOOR, AND THERE IS A STAIRWELL IN THE HALL AS WELL. YOU CAN SEE THE LAKE THROUGH THE SOUTH WINDOWS."},
             {.id = 16, .name= "TREASURY",          .desc = "THIS ROOM WAS USED AS THE CASTLE TREASURY IN BY-GONE YEARS.... THERE ARE NO WINDOWS, JUST EXITS TO THE NORTH AND TO THE EAST."},
@@ -616,7 +704,7 @@ static ObjectData get_object_data(void) {
     return (ObjectData){
         .size = num_objectz,
         .data = {
-                { .id =  1, .name = "Flaming Torch", .value = 15, .is_light_source_bit = true, .is_lit_bit = true} ,
+                { .id =  1, .name = "FLAMING TORCH", .value = 15, .is_light_source_bit = true, .is_lit_bit = true} ,
                 { .id =  2, .name = "AXE",           .value = 10, .is_weapon = true },
                 { .id =  3, .name = "SWORD",         .value = 20, .is_weapon = true },
                 { .id =  4, .name = "FOOD",          .value = 2,  .is_eatable_bit = true },
@@ -745,7 +833,8 @@ static bool main_game_loop(GameState * gs) {
         // user can always type "look" to re-display room desc.
         display_line("");
         display_room_desc(gs);
-        display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
+        // display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
+        custom_display_room_content(gs);
     }
 
     if (check_game_over(gs)){
@@ -755,7 +844,9 @@ static bool main_game_loop(GameState * gs) {
     }
 
     // todo (rob) we need a framework hook for action routines for rooms and objects
-    do_room_actions(gs);
+    if (do_room_actions(gs)) {
+        return CONTINUE_GAME;
+    }
 
     // speed up the display of text for the rest of the turn.
     if ( GLOBALS.debug_mode ) {
@@ -764,24 +855,15 @@ static bool main_game_loop(GameState * gs) {
         set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    // if (gs->strength <= 15) {
-    //     printf("WARNING, %s, YOUR STRENGTH\nIS RUNNING LOW\n", gs->player_name->buffer);
-    // }
+    if (gs->strength < 25) display_strength(gs);
 
-    display_strength(gs);
-    // printf("%s, YOUR STRENGTH IS %d\n", gs->player_name->buffer, gs->strength);
-
-    int room_treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-
-    if ( room_treasure_id > 0 ) {
-        printf("THERE IS TREASURE HERE WORTH $%d\n", room_treasure_id);
-    }
 
     // -----------------------------------------------------------------
     //      process user input
     // -----------------------------------------------------------------
     flush_input();
     char prompt_buffer[1024] = {};
+    // we use the room name as the prompt
     snprintf(prompt_buffer, sizeof(prompt_buffer), "\n%s >", current_room->name);
     char cmd_char = get_command_char(prompt_buffer, VALID_COMMANDS, nullptr);
 
@@ -812,7 +894,7 @@ static bool main_game_loop(GameState * gs) {
     if (cmd_char == 'H' ) {
         display_help_info();
     } else if (cmd_char == 'L') {
-        cmd_look(gs);
+        cmd_look_custom(gs);
     } else if (cmd_char == 'I' ) {
         display_inventory(gs);
     } else if (cmd_char == 'A' ) {
@@ -869,7 +951,7 @@ int main_werewolves_and_wanderer(void) {
     display_line("");
 
     // obj_repr();
-    monsters_all_repr();
+    // monsters_all_repr();
     // room_rooms_repr();
 
     bool continue_loop;
