@@ -103,14 +103,23 @@ struct GlobalState GLOBALS = {
     .debug_mode = false,
 };
 
+// -----------------------------------------------------------------
+//      Forward Declarations
+// -----------------------------------------------------------------
+static bool main_game_loop(GameState * gs);
+static void cmd_look_custom( GameState *gs);
+
+
+
 static int calc_score(const GameState * gs) {
     const int score = 3* gs->turns + 5* gs->strength + 2* gs->cash + gs->food + 30*gs->monsters_killed;
     return score;
 }
 
 static void display_score(const GameState * gs) {
-    display_linef("\nYOUR SCORE IS %d", calc_score(gs));
-}
+    display_linef("\nSCORE: %d", calc_score(gs));
+    display_linef("\nturns: %d, strength: %d, cash: %d, food: %d, monsters fought: %d, killed: %d",
+        gs->turns, gs->strength, gs->cash, gs->food, gs->monsters_fought, gs->monsters_killed);}
 
 
 static void display_status(const GameState * gs) {
@@ -184,7 +193,7 @@ static void display_help_info(void) {
     display_line("[1]Globals  [2]GameState [3]Reset  [M]agic");
 }
 
-static void cmd_look_custom( GameState *gs);
+
 
 static bool cmd_buy( GameState * gs) {
     display_line("PROVISIONS AND INVENTORY");
@@ -479,7 +488,7 @@ static void cmd_look_custom( GameState *gs) {
     custom_display_room_content(gs);
 }
 
-static bool main_game_loop(GameState * gs);
+
 
 // If the user enters the lift, they are moved to ROOM_REAR_VESTIBULE. We call main_game_loop() recursively from here.
 // We need a way to signal to the first main_game_loop() frame that it should exit early since we have processed
@@ -832,16 +841,17 @@ static bool main_game_loop(GameState * gs) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
         display_line("");
-        display_room_desc(gs);
-        // display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
-        custom_display_room_content(gs);
+        cmd_look_custom(gs);
     }
+
+    if (gs->strength <= 25) display_strength(gs);
 
     if (check_game_over(gs)){
         set_char_sleep(saved_sleep_duration);
         room_set_visited_flag(current_room);
         return END_GAME;
     }
+
 
     // todo (rob) we need a framework hook for action routines for rooms and objects
     if (do_room_actions(gs)) {
@@ -855,7 +865,6 @@ static bool main_game_loop(GameState * gs) {
         set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    if (gs->strength <= 25) display_strength(gs);
 
 
     // -----------------------------------------------------------------

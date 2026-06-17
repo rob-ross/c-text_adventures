@@ -132,18 +132,7 @@ static int radiation_turn_count = 0;  // number of turns player has been in radi
 ////
 //// ------------------------------------------------------------
 
-static void initialize( GameState * gs);
-static void cleanup( GameState * gs);
-static void display_strength(const  GameState * gs);
-static void display_score(const  GameState * gs);
-static void custom_display_room_content( GameState * gs);
-static void display_help_info(void);
-static bool cmd_move( GameState * gs, char cmd_char);
-static int calc_score(const  GameState * gs);
-static void custom_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value );
-
-
-
+static void cmd_look_custom( GameState *gs);
 
 
 
@@ -171,6 +160,8 @@ static bool cmd_buy( GameState * gs) {
         display_line("YOU HAVE NO MONEY.");
         return false;
     }
+
+    bool bought_torch = false;
 
     for (;;) {
         display_inventory_menu(gs);
@@ -207,7 +198,10 @@ static bool cmd_buy( GameState * gs) {
             }
             gs->cash -= o->value;
             actor_add_object(gs, option_index);
-            if (option_index == ITEM_LIGHT) gs->has_torch = true;
+            if (option_index == ITEM_LIGHT) {
+                gs->has_torch = true;
+                bought_torch = true;
+            }
         }
 
         if (option_index == 4 ) {
@@ -221,6 +215,10 @@ static bool cmd_buy( GameState * gs) {
                 gs->food += qty;
             }
         }
+    }
+    if (bought_torch) {
+        display_line("");
+        cmd_look_custom(gs); // user can now see the room
     }
     return true;
 }
@@ -545,6 +543,11 @@ static void custom_display_room_content( GameState * gs) {
     }
 }
 
+static void cmd_look_custom( GameState *gs) {
+    display_room_desc(gs);
+    custom_display_room_content(gs);
+}
+
 void custom_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value ) {
     display_line("");
 
@@ -605,10 +608,9 @@ void custom_display_inventory(const GameState * gs, bool show_item_index, bool s
 
 
 
-void display_score(const  GameState * gs) {
-    display("\nSCORE: ");
-    printf("%d\n", calc_score(gs));
-    printf("\nturns: %d, strength: %d, cash: %d, food: %d, monsters fought: %d, killed: %d\n",
+static void display_score(const  GameState * gs) {
+    display_linef("\nSCORE: %d", calc_score(gs));
+    display_linef("\nturns: %d, strength: %d, cash: %d, oxy: %d, monsters fought: %d, killed: %d",
         gs->turns, gs->strength, gs->cash, gs->food, gs->monsters_fought, gs->monsters_killed);
 }
 
@@ -1040,8 +1042,7 @@ static bool main_game_loop( GameState * gs) {
         // only display room desc once when first entering room. Reduces screen clutter and scrolling.
         // user can always type "look" to re-display room desc.
         display_line("");
-        display_room_desc(gs);
-        custom_display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
+        cmd_look_custom(gs);
     }
 
     if (gs->strength <= 25) display_strength(gs);
@@ -1051,9 +1052,6 @@ static bool main_game_loop( GameState * gs) {
         room_set_visited_flag(current_room);
         return END_GAME;
     }
-
-    const int treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
-    const int monster_id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
 
     // todo (rob) we need a framework hook for action routines for rooms and objects
@@ -1103,7 +1101,7 @@ static bool main_game_loop( GameState * gs) {
     if (cmd_char == 'H' ) {
         display_help_info();
     } else if (cmd_char == 'L') {
-        cmd_look(gs);
+        cmd_look_custom(gs);
     } else if (cmd_char == 'I' ) {
         custom_display_inventory(gs, false, false);
     } else if (cmd_char == 'A' ) {
