@@ -1044,7 +1044,7 @@ static bool main_game_loop( GameState * gs) {
         custom_display_room_content(gs);  // we need to be able to query if any contents exist to add a newline before here
     }
 
-    display_strength(gs);
+    if (gs->strength <= 25) display_strength(gs);
 
     if (check_game_over(gs)){
         set_char_sleep(saved_sleep_duration);

@@ -855,7 +855,7 @@ static bool main_game_loop(GameState * gs) {
         set_char_sleep(GLOBALS.char_sleep_visited_duration);
     }
 
-    if (gs->strength < 25) display_strength(gs);
+    if (gs->strength <= 25) display_strength(gs);
 
 
     // -----------------------------------------------------------------
