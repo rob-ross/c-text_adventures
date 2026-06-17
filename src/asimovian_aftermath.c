@@ -228,7 +228,7 @@ void display_help_info(void);
 void flush_input(void);
 char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);
 int get_int(char const * const prompt, int min, int max);
-bool cmd_move(struct GameState * gs, char first_letter);
+bool cmd_move(struct GameState * gs, char cmd_char);
 int calc_score(const struct GameState * gs);
 void display_command_err(char const * msg, char  command);
 void actor_display_inventory(struct GameState * gs);
@@ -681,9 +681,9 @@ void fight(struct GameState * gs) {
 // first_letter must be in "NSEWUD"
 // return true if command was sucessfully processed. If false, the move is not allowed and an error message
 // will have been displayed
-bool cmd_move(struct GameState * gs, char const first_letter) {
+bool cmd_move(struct GameState * gs, char const cmd_char) {
     const int location = gs->room;
-    const int direction_index = calc_room_graph_direction_index(first_letter);
+    const int direction_index = calc_room_graph_direction_index(cmd_char);
     if (ROOM_GRAPH[location][direction_index] > 0) {
         gs->room = ROOM_GRAPH[location][direction_index];
         return true;
