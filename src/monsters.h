@@ -60,4 +60,4 @@ void monsters_update_monster(const MonsterPrototype *m);
 void monsters_clear_all(void);
 
 void monsters_all_repr();
-void monsters_repr(monster_id id);;
+void monsters_repr(monster_id id);
