@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-#include "string.h"
+#include "cu_string.h"
 
 
 constexpr size_t ONE_MEBIBYTE = 1024 * 1024;

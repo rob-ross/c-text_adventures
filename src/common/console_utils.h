@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-#include "string.h"
+#include "cu_string.h"
 
 // char_sleep() takes argument in microseconds; these are equivalent milliseconds
 constexpr uint32_t  _1ms =  1'000;  // NOLINT(*-reserved-identifier)

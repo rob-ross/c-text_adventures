@@ -18,7 +18,7 @@
 #include "monsters.h"
 #include "objects.h"
 #include "rooms.h"
-#include "common/string.h"
+#include "common/cu_string.h"
 
 //// ------------------------------------------------------------
 ////

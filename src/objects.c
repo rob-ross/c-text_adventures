@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 
-#include "common/string.h"
+#include "common/cu_string.h"
 
 
 typedef struct ObjectStore {

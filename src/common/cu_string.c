@@ -9,7 +9,7 @@
 // Created by Rob Ross on 5/23/26.
 //
 
-#include "string.h"
+#include "cu_string.h"
 
 // Standard C Library headers
 #include <ctype.h>

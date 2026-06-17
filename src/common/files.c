@@ -19,7 +19,7 @@
 #include <string.h>
 
 // Project headers
-#include "string.h"
+#include "cu_string.h"
 
 constexpr char QUOTATION_MARK = '"';
 
