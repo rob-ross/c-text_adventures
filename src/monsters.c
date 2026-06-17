@@ -13,12 +13,15 @@
  *  This is the classic "inversion of control."
  */
 
-#include "roblib/json_parser/json_parser.h"
-#include "common/string.h"
-#include "common/files.c"
+
 #include "monsters.h"
 
 #include <assert.h>
+
+
+#include "roblib/json_parser/json_parser.h"
+#include "common/string.h"
+#include "common/files.c"
 
 
 static MonsterPrototypeArray *monster_prototypes_array = nullptr;  // this acts like a singleton in this monster library
