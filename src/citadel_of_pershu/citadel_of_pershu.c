@@ -514,9 +514,18 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
     
     gs->monsters_fought++;
     gs->must_fight = false;
+
+    // we'll pause a bit after every turn during the fight
+    uint32_t pause_seconds;
+    if (GLOBALS.debug_mode ) {
+        pause_seconds = 0;
+    } else {
+        pause_seconds = _1ms * 1000;
+    }
     
     if (strategy == 1) {
         display_line("Your magic destroys it!");
+        char_sleep((int32_t)pause_seconds);
         gs->magic--;
         gs->monsters_killed++;
         room_clear_monster(r);
@@ -549,17 +558,15 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         } else {
             display_line(m->name);
         }
-    
-        display("The ");
-        display(m->name);
-        display(" - ");
-        printf("%d\n",monster_tally);
-        display(gs->player_name->buffer);
-        display(" - ");
-        printf("%d\n",hero_tally);
+        char_sleep((int32_t)pause_seconds);
+        display_linef("The %s - %d", m->name, monster_tally);
+        char_sleep((int32_t)pause_seconds);
+        display_linef("%s - %d", gs->player_name->buffer, hero_tally);
+        char_sleep((int32_t)pause_seconds);
+
     }
     
-       for (;;) {
+    for (;;) {
         int attack = rnd_range(gs, 0,8 );
         switch (attack) {
             case 0: {
@@ -614,6 +621,8 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
             } break;
         }
 
+        char_sleep((int32_t)pause_seconds);
+
         if (! (hero_tally > 0 && monster_tally > 0 && rnd_d(gs) < .75 ) ) {
             break;
         }
@@ -623,9 +632,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         display_line("You bested the beast!");
         gs->monsters_killed++;
     } else {
-        display("The ");
-        display(m->name);
-        display_line(" got the better of you that time.");
+        display_linef("The %s got the better of you that time.", m->name);
 
         if (stat1 == STAT_STRENGTH || stat2 == STAT_STRENGTH ) {
             gs->stats.strength = 4 *  gs->stats.strength / 5;
@@ -645,9 +652,8 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         if (stat1 == STAT_CONSTITUTION || stat2 == STAT_CONSTITUTION ) {
             gs->stats.constitution = 3 *  gs->stats.constitution / 6;
         }
-
     }
-
+    char_sleep((int32_t)pause_seconds);
     room_clear_monster(r);
     //normalize any negative stats to 0
     for (int i = 0; i < STAT_COUNT; ++i ) {
@@ -656,7 +662,6 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         }
     }
     return true;
-    
 }
 
 // Entry point for human user path. This displays some information, prompts user for some choices, and passes those to
@@ -698,7 +703,7 @@ static bool cmd_fight(GameState * gs) {
     if (gs->items[ITEM_WAND]) {
         display_line("The Wand of Fireballs enhances your strength");
     }
-
+    display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
     if (gs->magic) {
         int choice = get_int("Enter 1 to fight with magic or 2 to rely on skill: ", 1, 2);
         if (choice == 1) {
