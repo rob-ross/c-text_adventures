@@ -19,12 +19,13 @@ clang -g  -fsanitize=address -fsanitize=leak -Wall -Werror \
 
 */
 
-#include <regex.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "parser.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <regex.h>
+#include <stdlib.h>
+
 
 constexpr int MATCH_FOUND = 0;
 
@@ -78,7 +79,7 @@ int main(void) {
     //     "quit", "bribe", "bribe dwarf", "drop foo", "drop chest", "drop chest of iron",
     //     "go", "go ", "go e", "go east", "e", "east", " east", "east ", " east ",
     //     " north", "south ", "  west  ", "N", " S", "E ", " D ", // Added more direction tests
-    //     "go fuck yourself", " fuck yourself",  "no match pattern",
+    //     "go fudge yourself", " fudge yourself",  "no match pattern",
     //
     //     nullptr  // sentinel value, end of array
     // };
