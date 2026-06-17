@@ -5,13 +5,11 @@
 //
 // Created 2026/05/28 17:49:00 PDT
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "parser.h"
 
+#include <stdio.h>
+
+#include <string.h>
 
 
 // -----------------------------------------------------------------
