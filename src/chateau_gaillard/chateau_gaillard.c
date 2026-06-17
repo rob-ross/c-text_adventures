@@ -1668,7 +1668,7 @@ static void initialize() {
     room_init(rd.size,rd.data);
 
     parser_init();
-    monsters_init("monsters.json");
+    monsters_init(MONSTER_DATA_PATH);
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);

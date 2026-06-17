@@ -729,7 +729,7 @@ static void initialize() {
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
 
-    monsters_init("monsters.json");
+    monsters_init(MONSTER_DATA_PATH);
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
