@@ -17,6 +17,7 @@
 #include "mersenne_twister.h"
 #include "monsters.h"
 #include "objects.h"
+#include "rooms.h"
 #include "common/string.h"
 
 //// ------------------------------------------------------------

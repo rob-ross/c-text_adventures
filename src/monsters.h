@@ -11,16 +11,16 @@
 #include <stdint.h>
 
 #include "attribute_stats.h"
-#include "rooms.h"
+// #include "rooms.h"
 
 typedef struct Room Room;
+typedef int room_id;
 
 //// ------------------------------------------------------------
 ////
 ////    MONSTERS
 ////
 //// ------------------------------------------------------------
-
 
 
 

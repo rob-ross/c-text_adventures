@@ -19,6 +19,7 @@
 #include <assert.h>
 
 
+#include "rooms.h"
 #include "roblib/json_parser/json_parser.h"
 #include "common/string.h"
 #include "common/files.c"

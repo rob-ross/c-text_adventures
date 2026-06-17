@@ -6,12 +6,13 @@
 // Created 2026/05/28 21:38:52 PDT
 
 
+#include "rooms.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "rooms.h"
-
+#include "objects.h"
 #include "common/string.h"
 
 typedef struct RoomStore {
@@ -26,7 +27,6 @@ typedef struct RoomStore {
 // like a Class or a prototype for each type of such objects.
 static RoomStore * pvt_rooms = {};
 
-extern int ROOM_GRAPH[][RGINDEX_COUNT];  // transition graph, room (node) to other rooms via directed edges
 extern const int MAX_ROOM_OBJECTS;
 
 Room * pvt_room_find_room(const room_id id) {

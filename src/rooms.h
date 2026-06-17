@@ -11,9 +11,11 @@
 
 typedef int monster_id;
 typedef int room_id;
+typedef int object_id;
+
+typedef struct Object Object;
 
 #include "monsters.h"
-#include "objects.h"
 
 //// ------------------------------------------------------------
 ////
