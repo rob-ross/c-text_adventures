@@ -424,6 +424,7 @@ static bool cmd_fight( GameState * gs) {
         gs->strength /= 2;
     }
     char_sleep((int32_t)pause_seconds);
+    gs->monsters_fought++;
     ROOM_GRAPH[gs->room][RGINDEX_MONSTER] = 0;
     return player_won;
 }
