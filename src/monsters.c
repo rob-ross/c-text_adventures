@@ -256,16 +256,19 @@ static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
         return error.reported_err;
     }
     JsonError err = {.json = json_text_buffer};
-    printf("\nParsing JSON string '%s': \n", json_text_buffer);
+
+    // printf("\nParsing JSON string '%s': \n", json_text_buffer);
+
     JsonValue *jval = json_parse(json_text_buffer, &err);
-    if (!jval) {
+
+    /*if (!jval) {
         printf("ERROR : line:%d col:%d start:%d end:%d  %s\n",
             err.line, err.column, err.parse_start, err.parse_end -1, err.message);
     }
     else {
         json_value_str(jval);
         printf("\n");
-    }
+    }*/
 
     assert(jval->type == JSON_ARRAY);
     const size_t num_monsters = jval->u.array.count;  // we add one for the null monster
