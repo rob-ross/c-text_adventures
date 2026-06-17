@@ -49,8 +49,22 @@ extern struct GlobalState GLOBALS;
 
 void cls() {
     // \033[2J clears the screen, \033[H moves the cursor to the top-left corner
-    printf("\033[2J\033[H");
+    // printf("\033[2J\033[H");
+
+
+#ifdef _WIN32
+    // For legacy Windows CMD, this clears both screen and scrollback
+    system("cls");
+#else
+    // For Linux, macOS, and modern Windows Terminal
+    /*
+     *  \033[3J: Tells the terminal emulator to delete all saved lines in the scrollback buffer.
+     *  \033[2J: Clears the entire visible screen.
+     *  \033[H: Moves the cursor back to row 1, column 1 (top-left).
+     */
+    printf("\033[3J\033[2J\033[H");
     fflush(stdout);
+#endif
 }
 
 /** API for ML/AI to suppress text output */
