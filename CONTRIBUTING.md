@@ -9,4 +9,4 @@ Thank you for your interest in contributing!
 4. Open a Pull Request.
 
 ## Code Style
-Please follow the existing code style in the project.
+Please follow the existing code style in the project. An `.editorconfig` file is provided to help maintain consistent formatting, including ensuring that all files end with a newline.
