@@ -9,9 +9,8 @@
 
 #pragma once
 
-
 #include <stdint.h>
-#include <stdarg.h> // Added for variadic functions
+
 #include "string.h"
 
 // char_sleep() takes argument in microseconds; these are equivalent milliseconds
