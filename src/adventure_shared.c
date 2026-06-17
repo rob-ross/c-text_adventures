@@ -264,7 +264,7 @@ void display_globals(void) {
 
 void display_random_room_text(GameState * gs, const RandomTextArray *rta) {
     if (GLOBALS.silent_mode ) return;
-    for (int i=0; i< rta->length; ++i) {
+    for (size_t i=0; i < rta->length; ++i) {
         const RandomText rt = rta->lines[i];
         const double random = mt_random_double(&gs->mt_state); // random double in [0,1)
         if (random < rt.chance_percent) {
@@ -482,7 +482,7 @@ CharBuffer *get_player_name(char const *greeting) {
     char const *g = greeting ? greeting : "Hello, Explorer ";
     cls();
     CharBuffer *cb = get_char_buffer("What is your name, explorer? ");
-    display_linef("%s, %s.", g, cb->buffer);
+    display_linef("%s %s.", g, cb->buffer);
     return cb;
 }
 

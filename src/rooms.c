@@ -47,7 +47,7 @@ int room_init(size_t size, Room data[static size]) {
 
     int room_index = 0;
     pvt_rooms->rooms[room_index++] = (Room){ .id =  0, .name="NULL ROOM" };
-    for (int data_index = 0 ; data_index < size; ++data_index) {
+    for (size_t data_index = 0 ; data_index < size; ++data_index) {
         if (data[data_index].id < 1) {
             continue;  // only copy ids > 0
         }

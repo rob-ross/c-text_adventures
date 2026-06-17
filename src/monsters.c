@@ -51,7 +51,7 @@ void monsters_destroy(void) {
     const u32 num_monsters = monster_prototypes_array->len;
 
     // monster names were copied from JSON parser arena via strdup, so we must free them
-    for (int i = 0; i < num_monsters ; ++i) {
+    for ( size_t i = 0; i < num_monsters ; ++i) {
         free((void*)monster_prototypes_array->monsters[i].name);
     }
 
@@ -80,7 +80,7 @@ static MonsterPrototype * pvt_monsters_find_monster(const monster_id id) {
 // the non-pvt version is intended for outside API use and should be const qualified. But for now, it's not because
 // many methods are mutating the monsters. As we implement more service methods, we can eventually add const here
 MonsterPrototype * monsters_find_monster(const monster_id id) {
-    if (id < 0 || id > monster_prototypes_array->len - 1 ) {
+    if (id < 0 || (u64)id > (u64)monster_prototypes_array->len - 1 ) {
         // Oh, I miss you Java! This would be a good place to throw an exception.
         // todo (rob) this would be a good place for returning a ResultError struct,
         // containing an error code (0 for no error) and the result of the function if no error
@@ -129,14 +129,14 @@ void monsters_repr(const monster_id id) {
 }
 
 void monsters_all_repr() {
-    for (int i = 0; i < monster_prototypes_array->len; ++i) {
+    for ( size_t i = 0; i < monster_prototypes_array->len; ++i) {
         monsters_repr(i);
     }
 }
 
 const char * monsters_name_for_id(const monster_id id) {
     const size_t num_monsters = monster_prototypes_array->len;
-    if (id < 0 || id > num_monsters - 1) return "null";
+    if (id < 0 || (u64)id > (u64)num_monsters - 1) return "null";
     return monster_prototypes_array->monsters[id].name;
 }
 
@@ -289,7 +289,7 @@ static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
 
     // populate our Monster[] with entries from the parsed JSON file
     ma->len = num_monsters + 1;
-    for (int i = 0; i < num_monsters; ++i) {
+    for ( size_t i = 0; i < num_monsters; ++i) {
         // we don't own the jason parser arena, so we have to make a copy of this string
         JsonValue *map = jval->u.array.elements[i];
         assert(map->type == JSON_OBJECT);
@@ -301,7 +301,7 @@ static int load_monster_json_file(FILE *fptr, void **monster_array_out) {
 
 
         JsonObjectEntry **entries = map->u.object.entries;
-        for (int j = 0; j < map->u.object.count; ++j) {
+        for ( size_t j = 0; j < map->u.object.count; ++j) {
             //set_struct_value loops over every member field in the MemberMetadata[], which makes the
             // combined operation O(N^2). If either the MemberMetadata entries or the
             // JsonObjectEntry entries used a hash map, where lookups were O(1), then this operation

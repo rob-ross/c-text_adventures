@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 
+#include "common/base_types.h"
 #include "common/cu_string.h"
 
 
@@ -40,7 +41,7 @@ int obj_init(const size_t size, Object data[static size]) {
     int obj_index = 0;
     pvt_objects->objects[obj_index++] = (Object){ .id =  0, .name="NULL OBJECT" };
 
-    for (int data_index = 0 ; data_index < size; ++data_index) {
+    for ( size_t data_index = 0 ; data_index < size; ++data_index) {
         if (data[data_index].id < 1) {
             continue;  // only copy ids > 0
         }
@@ -61,7 +62,7 @@ void obj_destroy(void) {
 
 const Object * obj_find_object(const object_id id) {
     const size_t size = pvt_objects->size;
-    for (int i = 0; i < size; ++i) {
+    for ( size_t i = 0; i < size; ++i) {
         if (pvt_objects->objects[i].id == id) {
             return &pvt_objects->objects[i];
         }
@@ -73,7 +74,7 @@ const Object * obj_find_object(const object_id id) {
 
 static Object * pvt_find_object(const object_id id) {
     const size_t size = pvt_objects->size;
-    for (int i = 0; i < size; ++i) {
+    for ( size_t i = 0; i < size; ++i) {
         if (pvt_objects->objects[i].id == id) {
             return &pvt_objects->objects[i];
         }
@@ -112,7 +113,7 @@ int obj_id_for_partial_name(char const partial_name[static 1]) {
     if (!partial_name) return OBJ_NULL_OBJECT_NAME;
 
     const size_t size = pvt_objects->size;
-    for (int i = 1; i < size; ++i) {
+    for ( size_t i = 1; i < size; ++i) {
         if (string_starts_with_ignore_case(partial_name, pvt_objects->objects[i].name)) {
             return pvt_objects->objects[i].id;
         }
@@ -146,7 +147,7 @@ void obj_touch(const object_id id) {
 int obj_update(const Object *o) {
     if (!o) return -1;
     const size_t num_objects = pvt_objects->size;
-    if ( o->id < 0 || o->id > num_objects - 1 ) {
+    if ( o->id < 0 || (u32)o->id > (u32)num_objects - 1 ) {
         return -2;
     }
     pvt_objects->objects[o->id] = *o;
@@ -157,7 +158,7 @@ int obj_update(const Object *o) {
 void obj_repr(void) {
     const size_t size = pvt_objects->size;
     printf("\n(ObjectStore){.capacity=%zd, .size=%zd, .objects[]=\n", pvt_objects->capacity, pvt_objects->size);
-    for (int i = 0; i < size; ++i) {
+    for ( size_t i = 0; i < size; ++i) {
         const Object *o = &pvt_objects->objects[i];
         printf("  (Object){ .id=%4d, .name=%-30s, .value=%4d, .location=%4d},\n", o->id, o->name, o->value, o->location);
     }

@@ -20,7 +20,7 @@ cd /Users/robross/Documents/Development/CLionProjects/asimovian_aftermath/text_a
  * DEBUG *
 
 
-clang -g -DASIMOVIAN_AFTERMATH_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
+clang -g -DASIMOVIAN_AFTERMATH_MAIN -DMONSTER_DATA_PATH= \"./monsters.json\" -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
     -std=c23 -o asimovian_aftermath.out asimovian_aftermath.c  \
             ../adventure_shared.c           \
@@ -30,7 +30,7 @@ clang -g -DASIMOVIAN_AFTERMATH_MAIN -fsanitize=address -fsanitize=leak -Wall -We
             ../rooms.c                      \
             ../objects.c                    \
             ../monsters.c                   \
-            ../common/string.c              \
+            ../common/cu_string.c              \
             ../roblib/string/string_utils.c \
             ../roblib/string/string_builder.c \
             ../roblib/json_parser/json_parser.c \
@@ -789,7 +789,7 @@ void init_rooms() {
     rta = create_rta(1);
     rta->lines[0] = ( RandomText){ .chance_percent = .4, .text="WHAT A SUPERB SIGHT....... "};
     room_set_preamble(1, rta);
-    
+
     // room 5
     rta =  create_rta(2);
     rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="THE SOLAR LAMPS ARE STILL SHINING."};
@@ -814,7 +814,7 @@ void init_rooms() {
     rta =  create_rta(1);
     rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="THIS IS THE SHIP'S MAIN NAVIGATION ROOM."};
     room_set_preamble(12, rta);
-    
+
     rta =  create_rta(1);
     rta->lines[0] = ( RandomText){ .chance_percent = .2, .text="YOU CAN JUST MAKE OUT EXITS TO THE SOUTH AND TO THE EAST."};
     room_set_epilog(12,rta);
@@ -823,7 +823,7 @@ void init_rooms() {
     rta =  create_rta(1);
     rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="YOUR BODY TWISTS AND BURNS..."};
     room_set_preamble(13, rta);
-    
+
     rta =  create_rta(2);
     rta->lines[0] = ( RandomText){ .chance_percent = .5, .text="NO MATTER WHAT YOU DO"};
     rta->lines[1] = ( RandomText){ .chance_percent = .5, .text="YOU ARE DOOMED TO DIE HERE."};
@@ -921,7 +921,7 @@ void initialize( GameState * gs) {
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
 
-    monsters_init(MONSTER_DATA_PATH);
+    monsters_init((MONSTER_DATA_PATH) );
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
@@ -1143,7 +1143,7 @@ static int main_asimovian_aftermath(void) {
     }
 
 
-    const CharBuffer *player_name = get_player_name("HELLO CAPTAIN ");
+    const CharBuffer *player_name = get_player_name("HELLO CAPTAIN");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};
@@ -1199,7 +1199,7 @@ static void debug_room_desc() {
         display_line("---------------------------------");
         if (r.preamble) {
             display_line("PREAMBLE");
-            for (int i = 0; i < r.preamble->length; ++i) {
+            for ( size_t i = 0; i < r.preamble->length; ++i) {
                 display_line(r.preamble->lines[i].text);
                 if (r.preamble->lines[i].else_text) {
                     display_line(r.preamble->lines[i].else_text);
@@ -1211,7 +1211,7 @@ static void debug_room_desc() {
         putchar('\n');
         if (r.epilog) {
             display_line("EPILOG");
-            for (int i = 0; i < r.epilog->length; ++i) {
+            for ( size_t i = 0; i < r.epilog->length; ++i) {
                 display_line(r.epilog->lines[i].text);
                 if (r.epilog->lines[i].else_text) {
                     display_line(r.epilog->lines[i].else_text);

@@ -288,7 +288,7 @@ static void display_room_header(const GameState *gs) {
     const Room *r = room_find_room(gs->room);
     char room_buffer[81] = "--------------------------------------------------------------------------------";
     const size_t room_name_len = strlen(r->name);
-    for (int i = 0; i < room_name_len; ++i) {
+    for (size_t i = 0; i < room_name_len; ++i) {
         room_buffer[i] = r->name[i];
     }
     room_buffer[room_name_len ] = ' ';
@@ -1869,7 +1869,7 @@ int main_chateau_gaillard(void) {
         set_char_sleep(GLOBALS.char_sleep_duration);
     }
 
-    const CharBuffer *player_name = get_player_name("Hello, Explorer ");
+    const CharBuffer *player_name = get_player_name("Hello, Explorer");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};

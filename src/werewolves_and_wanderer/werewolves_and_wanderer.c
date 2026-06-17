@@ -679,7 +679,7 @@ typedef struct RoomData {
 static RoomData get_room_data(void) {
     return (RoomData){
         .size = num_roomz,
-        .data = {    
+        .data = {
             {.id =  0,  .name= "ROOM 0",           .desc = "UNUSED"},
             {.id =  1,  .name= "HALLWAY",          .desc = "YOU ARE IN THE HALLWAY. THERE IS A DOOR TO THE SOUTH. THROUGH WINDOWS TO THE NORTH YOU CAN SEE A SECRET HERB GARDEN."},
             {.id =  2,  .name= "AUDIENCE CHAMBER", .desc = "THIS IS THE AUDIENCE CHAMBER. THERE IS A WINDOW TO THE WEST. BY LOOKING TO THE RIGHT, THROUGH IT YOU CAN SEE THE ENTRANCE TO THE CASTLE. DOORS LEAVE THIS ROOM TO THE NORTH, EAST, AND SOUTH."},
@@ -946,7 +946,7 @@ int main_werewolves_and_wanderer(void) {
     }
 
 
-    const CharBuffer *player_name = get_player_name("Hello, Explorer ");
+    const CharBuffer *player_name = get_player_name("Hello, Explorer");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};

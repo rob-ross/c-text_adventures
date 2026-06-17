@@ -160,7 +160,7 @@ static int try_match(size_t len, const RegexPattern rp[restrict len], char const
         parser_init();
     }
 
-    for (int pattern_index = 0; pattern_index < len; ++pattern_index ) {
+    for (size_t pattern_index = 0; pattern_index < len; ++pattern_index ) {
         RegexPattern pattern = rp[pattern_index];
         if (match_one_pattern(pattern, str, pc_out) == MATCH_FOUND) {
             return MATCH_FOUND;

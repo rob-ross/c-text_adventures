@@ -1336,7 +1336,7 @@ int main_citadel_of_pershu(void) {
         set_char_sleep(GLOBALS.char_sleep_duration);
     }
 
-    const CharBuffer *player_name = get_player_name("Hello, Explorer ");
+    const CharBuffer *player_name = get_player_name("Hello, Explorer");
     GLOBALS.player_name = player_name;
 
     GameState gs = {};

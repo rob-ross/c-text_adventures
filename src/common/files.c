@@ -222,7 +222,7 @@ int find_json_strings(FILE *fptr) {
 
 
 static void free_LenStr(size_t size, LenStr array[static size]) {
-    for (int i = 0; i < size; ++i) {
+    for ( size_t i = 0; i < size; ++i) {
         free((void*)array[i].s);
     }
 }
