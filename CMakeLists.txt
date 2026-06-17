@@ -3,6 +3,13 @@ project(text_adventures C)
 
 set(CMAKE_C_STANDARD 23)
 
+include(CheckCCompilerFlag)
+set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=address")
+check_c_compiler_flag("-fsanitize=address" HAS_ASAN)
+set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=leak")
+check_c_compiler_flag("-fsanitize=leak" HAS_LSAN)
+unset(CMAKE_REQUIRED_LINK_OPTIONS)
+
 function(add_adventure_executable target_name main_source macro_name)
     add_executable(${target_name}
             ${main_source}
@@ -24,21 +31,33 @@ function(add_adventure_executable target_name main_source macro_name)
     target_include_directories(${target_name} PUBLIC include)
     target_compile_definitions(${target_name} PRIVATE ${macro_name})
 
+    # Define the path to the monsters.json file for this adventure
+    get_filename_component(target_source_dir ${main_source} DIRECTORY)
+    target_compile_definitions(${target_name} PRIVATE
+        MONSTER_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/${target_source_dir}/monsters.json")
+
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        target_compile_options(${target_name} PRIVATE
+        set(DEBUG_OPTS
             -g
-            -fsanitize=address
-            -fsanitize=leak
             -Wall
+            -Wpedantic
+            -Wextra
             -Werror
             -Wno-unused-const-variable
             -Wno-unused-variable
             -Wno-unused-function
+            -Wno-unused-parameter
+            -Wno-sign-compare
         )
-        target_link_options(${target_name} PRIVATE
-            -fsanitize=address
-            -fsanitize=leak
-        )
+        if(HAS_ASAN)
+            list(APPEND DEBUG_OPTS -fsanitize=address)
+        endif()
+        if(HAS_LSAN)
+            list(APPEND DEBUG_OPTS -fsanitize=leak)
+        endif()
+
+        target_compile_options(${target_name} PRIVATE ${DEBUG_OPTS})
+        target_link_options(${target_name} PRIVATE ${DEBUG_OPTS})
     endif()
 endfunction()
 
