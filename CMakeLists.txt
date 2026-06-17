@@ -15,6 +15,7 @@ function(add_adventure_executable target_name main_source macro_name)
             src/monsters.c
             src/common/string.c
             src/roblib/string/string_utils.c
+            src/roblib/string/string_builder.c
             src/roblib/json_parser/json_parser.c
             src/roblib/json_parser/arena.c
             src/roblib/json_parser/error_result.c
