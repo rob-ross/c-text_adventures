@@ -7,11 +7,14 @@
 
 #include "mersenne_twister.h"
 
+// Standard C Library headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+// OS/System headers
+#include <fcntl.h>
 #include <unistd.h>
-#include <sys/fcntl.h>
 
 #define m 397
 #define w 32
