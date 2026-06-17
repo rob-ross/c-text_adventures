@@ -48,7 +48,7 @@ int monsters_init(const char * monster_filename) {
 
 // Frees resources used by this module
 void monsters_destroy(void) {
-    const uint32_t num_monsters = monster_prototypes_array->len;
+    const u32 num_monsters = monster_prototypes_array->len;
 
     // monster names were copied from JSON parser arena via strdup, so we must free them
     for (int i = 0; i < num_monsters ; ++i) {

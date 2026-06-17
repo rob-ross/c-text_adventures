@@ -8,13 +8,11 @@
 #pragma once
 
 
-#include <stdint.h>
 
 #include "attribute_stats.h"
-// #include "rooms.h"
+#include "common/base_types.h"
 
 typedef struct Room Room;
-typedef int room_id;
 
 //// ------------------------------------------------------------
 ////
@@ -24,7 +22,6 @@ typedef int room_id;
 
 
 
-typedef int monster_id;
 
 typedef struct monster_prototype_s {
     char const * name;
@@ -43,7 +40,7 @@ typedef struct spawned_monster_s {
 } SpawnedMonster;
 
 typedef struct monster_prototype_array_s {
-    uint32_t len;
+    u32 len;
     MonsterPrototype monsters[];  // flexible array
 } MonsterPrototypeArray;
 

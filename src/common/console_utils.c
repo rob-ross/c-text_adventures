@@ -15,6 +15,8 @@
 #include <string.h>
 #include <time.h>
 
+
+
 // OS/System headers
 #ifdef _WIN32
 #include <conio.h>
@@ -33,10 +35,10 @@
 struct GlobalState {
     const char * player_name;
     bool         silent_mode;
-    uint32_t     char_sleep_duration;
-    uint32_t     char_sleep_visited_duration;
-    uint32_t     debug_normal_sleep;
-    uint32_t     debug_visited_sleep;
+    u32     char_sleep_duration;
+    u32     char_sleep_visited_duration;
+    u32     debug_normal_sleep;
+    u32     debug_visited_sleep;
     bool         debug_mode;
 };
 extern struct GlobalState GLOBALS;
@@ -77,8 +79,8 @@ void set_silent_mode(const bool silent) {
 
 // sets the current sleep duration (in microseconds) for future calls to char_sleep().
 // returns the previous sleep duration value
-uint32_t set_char_sleep(const uint32_t microseconds) {
-    const uint32_t temp = GLOBALS.char_sleep_duration;
+u32 set_char_sleep(const u32 microseconds) {
+    const u32 temp = GLOBALS.char_sleep_duration;
     GLOBALS.char_sleep_duration = microseconds;
     return temp;
 }

@@ -11,7 +11,6 @@
 
 #ifndef TEXT_ADVENTURES_ADVENTURE_SHARED_H
 #define TEXT_ADVENTURES_ADVENTURE_SHARED_H
-#include <stdint.h>
 
 #include "attribute_stats.h"
 #include "mersenne_twister.h"
@@ -19,6 +18,8 @@
 #include "objects.h"
 #include "rooms.h"
 #include "common/cu_string.h"
+#include "common/base_types.h"
+
 
 //// ------------------------------------------------------------
 ////
@@ -30,10 +31,10 @@
 struct GlobalState {
     const CharBuffer * player_name;
     bool               silent_mode;
-    uint32_t           char_sleep_duration;
-    uint32_t           char_sleep_visited_duration;
-    uint32_t           debug_normal_sleep;
-    uint32_t           debug_visited_sleep;
+    u32           char_sleep_duration;
+    u32           char_sleep_visited_duration;
+    u32           debug_normal_sleep;
+    u32           debug_visited_sleep;
     bool               debug_mode;
 };
 
@@ -70,7 +71,7 @@ extern StringAssets global_string_assets;
 
 typedef struct GameState {
     const CharBuffer * player_name;
-    uint32_t seed;
+    u32 seed;
     // state for Mersenne Twister PRNG
     MTState mt_state;
 
@@ -114,7 +115,7 @@ typedef struct GameState {
         bool     must_fight; // Explicitly tell ML that movement/retreat is blocked
         MonsterPrototype  current_monster;
         Object   current_treasure;
-        uint32_t legal_actions_mask; // Bitmask where each bit corresponds to VALID_COMMANDS
+        u32 legal_actions_mask; // Bitmask where each bit corresponds to VALID_COMMANDS
     } perception;
 
     double QU;  // end-of-game flag? Quit flag, used in final scoring

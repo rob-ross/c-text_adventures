@@ -9,22 +9,22 @@
 
 #pragma once
 
-#include <stdint.h>
 
+#include "../common/base_types.h"
 #include "cu_string.h"
 
 // char_sleep() takes argument in microseconds; these are equivalent milliseconds
-constexpr uint32_t  _1ms =  1'000;  // NOLINT(*-reserved-identifier)
-constexpr uint32_t _10ms = 10'000;  // NOLINT(*-reserved-identifier)
-constexpr uint32_t _15ms = 15'000;  // NOLINT(*-reserved-identifier)
-constexpr uint32_t _30ms = 30'000;  // NOLINT(*-reserved-identifier)
+constexpr u32  _1ms =  1'000;  // NOLINT(*-reserved-identifier)
+constexpr u32 _10ms = 10'000;  // NOLINT(*-reserved-identifier)
+constexpr u32 _15ms = 15'000;  // NOLINT(*-reserved-identifier)
+constexpr u32 _30ms = 30'000;  // NOLINT(*-reserved-identifier)
 
 
 void cls();
 void flush_input(void);
 void set_silent_mode(bool silent);
-uint32_t set_char_sleep(uint32_t microseconds);
-void char_sleep(int32_t microseconds);
+u32 set_char_sleep(u32 microseconds);
+void char_sleep(s32 microseconds);
 void display(char const* msg );
 void display_line(char const* msg );
 // Add the format attribute here

@@ -52,12 +52,13 @@ clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werr
 
 
 #include "../adventure_shared.h"
-#include "../directions.h"
+#include "../common/base_types.h"
 #include "../common/console_utils.h"
+#include "../directions.h"
 #include "../mersenne_twister.h"
-#include "../rooms.h"
 #include "../monsters.h"
 #include "../objects.h"
+#include "../rooms.h"
 
 
 enum Item {
@@ -502,27 +503,27 @@ static bool action_drop(GameState *gs, object_id id) {
 bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatIndex stat2) {
     if (!ROOM_GRAPH[gs->room][RGINDEX_MONSTER]) {
         return false;  // nothing to fight
-    }    
+    }
     const Room *r = room_find_room(gs->room);
     MonsterPrototype *m = monsters_find_monster(r->monster);
-    
+
     if (strategy == 1 && gs->magic == 0 ) {
         // not enough magic
         //todo (rob) - create return code for this case and others.
         return false;
-    } 
-    
+    }
+
     gs->monsters_fought++;
     gs->must_fight = false;
 
     // we'll pause a bit after every turn during the fight
-    uint32_t pause_seconds;
+    u32 pause_seconds;
     if (GLOBALS.debug_mode ) {
         pause_seconds = 0;
     } else {
         pause_seconds = _1ms * 1000;
     }
-    
+
     if (strategy == 1) {
         display_line("Your magic destroys it!");
         char_sleep((int32_t)pause_seconds);
@@ -531,17 +532,17 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         room_clear_monster(r);
         return true;
     }
-    
+
     int hero_tally = 0;
     int monster_tally = 0;
-    
+
     // calc enhancements due to fighting items
     for (enum Item item = ITEM_SWORD; item <= ITEM_WAND; ++item ) {
         if ( actor_has_item(gs, item) ) {
             hero_tally++;
         }
     }
-    
+
     hero_tally += gs->stats.as_array[stat1];
     hero_tally += gs->stats.as_array[stat2];
     monster_tally += m->stats.as_array[stat1];
@@ -550,7 +551,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
     if (!gs->has_torch) {
         hero_tally -= 5;  // harder to see in the dark
     }
-    
+
     if (!GLOBALS.silent_mode) {
         display("\nThe fight starts in favor of ");
         if (hero_tally > monster_tally ) {
@@ -565,7 +566,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
         char_sleep((int32_t)pause_seconds);
 
     }
-    
+
     for (;;) {
         int attack = rnd_range(gs, 0,8 );
         switch (attack) {
@@ -762,7 +763,7 @@ static bool process_retreat(GameState * gs) {
 }
 
 /**
- * Helper to check if a specific command character is currently legal 
+ * Helper to check if a specific command character is currently legal
  * based on the game rules and current room state.
  */
 static bool is_action_legal(const GameState *gs, char c) {
@@ -888,7 +889,7 @@ bool check_game_over(GameState *gs) {
 //      called at the start of each new game
 // -----------------------------------------------------------------
 
-void reset(GameState * gs, const uint32_t seed) {
+void reset(GameState * gs, const u32 seed) {
     // reset GameState
     *gs = (GameState){ .seed = seed, .player_name = GLOBALS.player_name, .room = ROOM_START, .cash = 100, .magic = 3 };
 
@@ -1213,7 +1214,7 @@ bool perform_action(GameState *gs, char action, int arg1, int arg2, int arg3) {
 
 
 static bool main_game_loop(GameState * gs) {
-    uint32_t saved_sleep_duration = GLOBALS.char_sleep_duration;
+    u32 saved_sleep_duration = GLOBALS.char_sleep_duration;
     const room_id room_id = gs->room;
     const Room *current_room = room_find_room(room_id);
     room_set_visit_started_flag(current_room);

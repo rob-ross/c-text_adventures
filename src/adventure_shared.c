@@ -15,7 +15,6 @@
 #include <string.h>
 
 #include "attribute_stats.h"
-// #include "rooms.h"
 #include "common/console_utils.h"
 
 
@@ -241,7 +240,7 @@ void display_game_state(const GameState *gs) {
 }
 
 void display_globals(void) {
-    const uint32_t saved_sleep = set_char_sleep(0);
+    const u32 saved_sleep = set_char_sleep(0);
     char  buffer[1024] = {};
     int n = snprintf(buffer, sizeof buffer,
         "(GlobalState){ player_name=%s, silent_mode=%d, char_sleep_duration=%d, "
