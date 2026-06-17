@@ -20,7 +20,7 @@ function(add_adventure_executable target_name main_source macro_name)
             src/rooms.c
             src/objects.c
             src/monsters.c
-            src/common/string.c
+            src/common/cu_string.c
             src/roblib/string/string_utils.c
             src/roblib/string/string_builder.c
             src/roblib/json_parser/json_parser.c
@@ -78,4 +78,4 @@ add_adventure_executable(werewolves_and_wanderer
         WEREWOLVES_AND_WANDERER_MAIN)
 
 
-add_executable(regex_tests src/regex_tests.c)
+add_executable(regex_tests src/regex_tests.c src/parser.c)

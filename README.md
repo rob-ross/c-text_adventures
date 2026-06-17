@@ -19,9 +19,11 @@ The project uses `MONSTER_DATA_PATH` (defined via CMake) to locate `monsters.jso
 
 ### Building
 ```bash
-# Ensure you are using the Homebrew LLVM compiler (configured in ~/.zshrc)
+# Ensure you are using the Homebrew LLVM compiler (configured in ~/.zshrc). 
 # If not, you can specify it manually:
 # CC=/usr/local/opt/llvm/bin/clang CXX=/usr/local/opt/llvm/bin/clang++ cmake -S . -B build
+# The lastest XCode tools may be sufficient. My version is a bit behind and doesn't support ASAN/LSAN but the
+# Homebrew version does. 
 
 Run this from the project root:
 
@@ -31,10 +33,16 @@ Build Everything    cmake --build build
 Clean Build         cmake --build build --target clean
 
 Building Specific Targets
+cmake --build build --target werewolves_and_wanderer
+cmake --build build --target asimovian_aftermath
+cmake --build build --target citadel_of_pershu
 cmake --build build --target chateau_gaillard
 ```
 
 ### Running
 ```bash
+./build/werewolves_and_wanderer
+./build/asimovian_aftermath
+./build/citadel_of_pershu
 ./build/chateau_gaillard
 ```
