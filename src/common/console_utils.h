@@ -14,8 +14,7 @@
 #include <stdarg.h> // Added for variadic functions
 #include "string.h"
 
-// usleep() takes argument in microseconds
-// these are equivalent milliseconds
+// char_sleep() takes argument in microseconds; these are equivalent milliseconds
 constexpr uint32_t  _1ms =  1'000;  // NOLINT(*-reserved-identifier)
 constexpr uint32_t _10ms = 10'000;  // NOLINT(*-reserved-identifier)
 constexpr uint32_t _15ms = 15'000;  // NOLINT(*-reserved-identifier)

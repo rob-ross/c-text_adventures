@@ -6,7 +6,7 @@
 // Created 2026/05/23 20:01:31 PDT
 
 
-#include "console_utils.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,9 +19,18 @@
 #include <poll.h>
 #endif
 
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <time.h>
+#endif
+
+
 #include <sys/_types/_useconds_t.h>
 #include <ctype.h>
 #include <stdarg.h> // Added for variadic functions
+
+#include "console_utils.h"
 
 // todo (rob) this is messy. We want a GLOBALS object to share among all TU for truly global values.
 // but to avoid cyclic dependencies this has to be re-declared here since we can't have console_utils
@@ -80,7 +89,7 @@ uint32_t set_char_sleep(const uint32_t microseconds) {
     return temp;
 }
 
-// pass -1 to sleep for GLOBALS.char_sleep_duration  (see set_char_sleep(),
+// pass -1 to sleep for GLOBALS.char_sleep_duration (see set_char_sleep(),
 // or pass a duration >0 in microseconds
 // ReSharper disable once CppDFAConstantParameter
 void char_sleep(const int32_t microseconds) {
@@ -93,7 +102,19 @@ void char_sleep(const int32_t microseconds) {
     }
     if (sleep_time > 0) {
         // usleep() takes argument in microseconds
-        usleep(sleep_time); // todo is this portable? What about windows?
+        // usleep(sleep_time); // previously we used usleep() here.
+#ifdef _WIN32
+        Sleep(sleep_time / 1000);
+#else
+        struct timespec ts = {
+            .tv_sec = sleep_time / 1'000'000,  // seconds, type time_t
+            .tv_nsec = (sleep_time % 1'000'000) * 1000 // nanoseconds, range: 0 - 999,999,999 inclusive
+        };
+        // The second parameter is `rem`, "remaining." If nanosleep() is interrupted before sleeping the full duration,
+        // it will write how much time is remaining to sleep in this struct timespec. You can use it to call
+        // nanosleep() again with the remaining time as the first argument.
+        nanosleep(&ts, nullptr);
+#endif
     }
 }
 
