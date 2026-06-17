@@ -537,7 +537,7 @@ bool action_fight(GameState * gs, int strategy, enum StatIndex stat1, enum StatI
     
     // calc enhancements due to fighting items
     for (enum Item item = ITEM_SWORD; item <= ITEM_WAND; ++item ) {
-        if (gs->items[item]) {
+        if ( actor_has_item(gs, item) ) {
             hero_tally++;
         }
     }
@@ -684,23 +684,23 @@ static bool cmd_fight(GameState * gs) {
         display_char_attributes(gs->stats);
 
 
-    if (gs->items[ITEM_SWORD]) {
+    if ( actor_has_item(gs, ITEM_SWORD) ) {
         display_line("You have a sword");
     }
-    if (gs->items[ITEM_WAR_HAMMER]) {
+    if ( actor_has_item(gs, ITEM_WAR_HAMMER) ) {
         display_line("Your War Hammer will be of aid");
     }
-    if (gs->items[ITEM_CHAIN_MAIL]) {
+    if ( actor_has_item(gs, ITEM_CHAIN_MAIL) ) {
         display_line("Chainmail armor gives you an edge");
     }
-    if (gs->items[ITEM_SHIELD]) {
+    if ( actor_has_item(gs, ITEM_SHIELD) ) {
         display("Your shield will help you in this fight against the ");
         display_line(m->name);
     }
-    if (gs->items[ITEM_CLOAK]) {
+    if ( actor_has_item(gs, ITEM_CLOAK) ) {
         display_line("The Cloak of Protection surrounds you");
     }
-    if (gs->items[ITEM_WAND]) {
+    if ( actor_has_item(gs, ITEM_WAND) ) {
         display_line("The Wand of Fireballs enhances your strength");
     }
     display_line("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
