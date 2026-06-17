@@ -5,32 +5,26 @@
 //
 // Created 2026/05/23 20:01:31 PDT
 
+#include "console_utils.h"
 
-
-
+// Standard C Library headers
+#include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <time.h>
 
+// OS/System headers
 #ifdef _WIN32
 #include <conio.h>
+#include <windows.h>
 #else
 #include <poll.h>
-#endif
-
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #include <time.h>
+#include <unistd.h>
 #endif
 
 
-#include <sys/_types/_useconds_t.h>
-#include <ctype.h>
-#include <stdarg.h> // Added for variadic functions
-
-#include "console_utils.h"
 
 // todo (rob) this is messy. We want a GLOBALS object to share among all TU for truly global values.
 // but to avoid cyclic dependencies this has to be re-declared here since we can't have console_utils
