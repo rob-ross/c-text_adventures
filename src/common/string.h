@@ -8,7 +8,8 @@
 
 
 #pragma once
-#include <sys/_types/_size_t.h>
+#include <stddef.h>
+
 
 typedef struct CharBuffer {
     size_t length;

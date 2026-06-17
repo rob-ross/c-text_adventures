@@ -8,13 +8,10 @@
 
 #pragma once
 
-
 #include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <_string.h>
 
 #include "string.h"
+
 
 constexpr size_t ONE_MEBIBYTE = 1024 * 1024;
 constexpr size_t ONE_GIBIBYTE = ONE_MEBIBYTE * 1024;

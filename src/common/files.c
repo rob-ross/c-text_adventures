@@ -9,8 +9,16 @@
 // Created by Rob Ross on 6/2/26.
 //
 
-#include <ctype.h>
 #include "files.h"
+
+// Standard C Library headers
+#include <ctype.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Project headers
 #include "string.h"
 
 constexpr char QUOTATION_MARK = '"';
