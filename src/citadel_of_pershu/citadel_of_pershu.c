@@ -13,16 +13,32 @@
 //
 // Created 2026/05/15 01:35:01 PDT
 
-// make :
-// cd /Users/robross/Documents/Development/CLionProjects/text_adventures/src
-
 /*
- * DEBUG:
+
+MAKE :
+
+cd /Users/robross/Documents/Development/CLionProjects/citadel_of_pershu/text_adventures/src
+
+ * DEBUG *
+
+
 clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
-    -std=c23 -o citadel_of_pershu.out citadel_of_pershu.c ../adventure_shared.c \
-      ../mersenne_twister.c ../common/console_utils.c ../common/string.c ../parser.c ../objects.c \
-      ../rooms.c ../monsters.c ../roblib/string/string_utils.c
+    -std=c23 -o citadel_of_pershu.out citadel_of_pershu.c  \
+            ../adventure_shared.c           \
+            ../mersenne_twister.c           \
+            ../common/console_utils.c       \
+            ../parser.c                     \
+            ../rooms.c                      \
+            ../objects.c                    \
+            ../monsters.c                   \
+            ../common/string.c              \
+            ../roblib/string/string_utils.c \
+            ../roblib/string/string_builder.c \
+            ../roblib/json_parser/json_parser.c \
+            ../roblib/json_parser/arena.c   \
+            ../roblib/json_parser/error_result.c
+
 */
 
 
@@ -355,12 +371,12 @@ static void display_score(const GameState * gs) {
 // first_letter must be in "NSEWUD"
 // return true if command was successfully processed. If false, the move is not allowed and an error message
 // will have been displayed
-static bool cmd_move(GameState * gs, char const first_letter) {
+static bool cmd_move(GameState * gs, char const cmd_char) {
     const int location = gs->room;
-    const int direction_index = calc_room_graph_direction_index(first_letter);
+    const int direction_index = calc_room_graph_direction_index(cmd_char);
     if (direction_index == DIRECTION_ERR) {
         display("Bad direction_index, first_letter='");
-        printf("%c'\n", first_letter);
+        printf("%c'\n", cmd_char);
         return false;
     }
     gs->room_prev = gs->room;
@@ -1330,7 +1346,7 @@ int main_citadel_of_pershu(void) {
     display_line("");
 
     // obj_repr();
-    // monsters_names_repr();
+    // monsters_all_repr();
     // room_rooms_repr();
 
     bool continue_loop;

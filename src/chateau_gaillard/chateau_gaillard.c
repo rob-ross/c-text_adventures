@@ -13,17 +13,30 @@
 //
 // Created by Rob Ross on 5/22/26.
 
-
-// make :
-// cd /Users/robross/Documents/Development/CLionProjects/text_adventures/src
-
 /*
- * DEBUG:
+
+MAKE :
+
+cd /Users/robross/Documents/Development/CLionProjects/chateau_gaillard/text_adventures/src
+
+ * DEBUG *
+
 clang -g -DCHATEAU_GAILLARD_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
     -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
-    -std=c23 -o chateau_gaillard.out chateau_gaillard.c ../adventure_shared.c \
-      ../mersenne_twister.c ../common/console_utils.c ../common/string.c ../parser.c ../objects.c \
-      ../rooms.c ../monsters.c ../roblib/string/string_utils.c
+    -std=c23 -o chateau_gaillard.out chateau_gaillard.c  \
+            ../adventure_shared.c           \
+            ../mersenne_twister.c           \
+            ../common/console_utils.c       \
+            ../parser.c                     \
+            ../rooms.c                      \
+            ../objects.c                    \
+            ../monsters.c                   \
+            ../common/string.c              \
+            ../roblib/string/string_utils.c \
+            ../roblib/string/string_builder.c \
+            ../roblib/json_parser/json_parser.c \
+            ../roblib/json_parser/arena.c   \
+            ../roblib/json_parser/error_result.c
 
 */
 
@@ -1657,8 +1670,6 @@ static void initialize() {
     parser_init();
     monsters_init("monsters.json");
 
-    monsters_all_repr();
-
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
 
@@ -1874,7 +1885,7 @@ int main_chateau_gaillard(void) {
     display_line("");
 
     // obj_repr();
-    // monsters_names_repr();
+    // monsters_all_repr();
     // room_rooms_repr();
 
     bool continue_loop;

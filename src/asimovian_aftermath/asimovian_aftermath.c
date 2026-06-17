@@ -11,13 +11,34 @@
 // from a BASIC text adventure by Tim Hartnell, 1983
 
 
-// make :
-// cd /Users/robross/Documents/Development/CLionProjects/text_adventures/src
-//  DEBUG:
-// clang -g -DASIMOVIAN_AFTERMATH_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror -std=c23 -o asimovian_aftermath.out asimovian_aftermath.c mersenne_twister.c
-///
-//  PROD:
-// clang -std=c23 -o asimovian_aftermath.out asimovian_aftermath.c mersenne_twister.c
+/*
+
+MAKE :
+
+cd /Users/robross/Documents/Development/CLionProjects/asimovian_aftermath/text_adventures/src
+
+ * DEBUG *
+
+
+clang -g -DASIMOVIAN_AFTERMATH_MAIN -fsanitize=address -fsanitize=leak -Wall -Werror \
+    -Wno-unused-const-variable -Wno-unused-variable -Wno-unused-function \
+    -std=c23 -o asimovian_aftermath.out asimovian_aftermath.c  \
+            ../adventure_shared.c           \
+            ../mersenne_twister.c           \
+            ../common/console_utils.c       \
+            ../parser.c                     \
+            ../rooms.c                      \
+            ../objects.c                    \
+            ../monsters.c                   \
+            ../common/string.c              \
+            ../roblib/string/string_utils.c \
+            ../roblib/string/string_builder.c \
+            ../roblib/json_parser/json_parser.c \
+            ../roblib/json_parser/arena.c   \
+            ../roblib/json_parser/error_result.c
+
+
+ */
 
 #include <ctype.h>
 #include <stdio.h>
@@ -113,12 +134,11 @@ static int radiation_turn_count = 0;  // number of turns player has been in radi
 
 static void initialize( GameState * gs);
 static void cleanup( GameState * gs);
-static bool main_game_loop( GameState * gs);
 static void display_strength(const  GameState * gs);
 static void display_score(const  GameState * gs);
 static void custom_display_room_content( GameState * gs);
 static void display_help_info(void);
-static bool cmd_move( GameState * gs, char first_letter);
+static bool cmd_move( GameState * gs, char cmd_char);
 static int calc_score(const  GameState * gs);
 static void custom_display_inventory(const GameState * gs, bool show_item_index, bool show_item_value );
 
@@ -464,9 +484,9 @@ static bool cmd_retreat( GameState * gs) {
 // first_letter must be in "NSEWUD"
 // return true if command was sucessfully processed. If false, the move is not allowed and an error message
 // will have been displayed
-bool cmd_move( GameState * gs, char const first_letter) {
+bool cmd_move( GameState * gs, char const cmd_char) {
     const int location = gs->room;
-    const int direction_index = calc_room_graph_direction_index(first_letter);
+    const int direction_index = calc_room_graph_direction_index(cmd_char);
     if (ROOM_GRAPH[location][direction_index] > 0) {
         gs->room = ROOM_GRAPH[location][direction_index];
         return true;
@@ -488,7 +508,7 @@ int calc_score(const  GameState * gs) {
 
 
 
-void display_help_info(void) {
+static void display_help_info(void) {
     display_line("\nVALID COMMANDS ARE:\n");
 
     display_line("[H]ELP     [I]NVENTORY     [Q]UIT");
@@ -502,7 +522,7 @@ void display_help_info(void) {
 
 
 
-void custom_display_room_content( GameState * gs) {
+static void custom_display_room_content( GameState * gs) {
     const int treasure_id = ROOM_GRAPH[gs->room][RGINDEX_TREASURE];
     const int monster_id = ROOM_GRAPH[gs->room][RGINDEX_MONSTER];
 
@@ -510,18 +530,15 @@ void custom_display_room_content( GameState * gs) {
 
     if (treasure_id ) {
         if ( gs->has_torch ) {
-            display("THERE IS TREASURE HERE WORTH $");
-            printf("%d\n", treasure_id);
+            display_linef("THERE IS TREASURE HERE WORTH $%d", treasure_id);
         }
     }
     if (monster_id) {
         if (gs->has_torch ) {
             MonsterPrototype *m = monsters_find_monster(monster_id);
             display_line("\nDANGER••• THERE IS DANGER HERE•••• ");
-            display("IT IS A ");
-            display_line(m->name);
-            display("YOUR PERSONAL DANGER METER REGISTERS ");
-            printf("%d!!\n", m->ferocity_factor);
+            display_linef("IT IS A %s", m->name);
+            display_linef("YOUR PERSONAL DANGER METER REGISTERS %d!!", m->ferocity_factor);
         } else {
             display_line("YOU FEEL A DANGEROUS PRESENCE!");
         }
@@ -903,7 +920,6 @@ void initialize( GameState * gs) {
     room_init(rd.size,rd.data);
 
     monsters_init("monsters.json");
-    monsters_all_repr();
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);
@@ -1145,6 +1161,9 @@ static int main_asimovian_aftermath(void) {
     display_line("--------------------------------------------------------------------------------");
     display_line("");
 
+    // obj_repr();
+    // monsters_all_repr();
+    // room_rooms_repr();
 
     bool continue_loop;
     do {
