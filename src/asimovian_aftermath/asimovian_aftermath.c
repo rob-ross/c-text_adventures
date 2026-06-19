@@ -54,6 +54,7 @@ clang -g -DASIMOVIAN_AFTERMATH_MAIN -DMONSTER_DATA_PATH= \"./monsters.json\" -fs
 #include "../common/mersenne_twister.h"
 #include "../common/rooms.h"
 #include "../common/monsters.h"
+#include "../common/monster_loader.h"
 #include "../common/objects.h"
 
 
@@ -920,8 +921,11 @@ void initialize( GameState * gs) {
     // note: randomized data is initialized in reset()
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
+    MonsterPrototypeArray *mpa = nullptr;
 
-    monsters_init((MONSTER_DATA_PATH) );
+    int result = monster_read_json_file((MONSTER_DATA_PATH), &mpa);
+    printf("monster_read_json_file returns %d\n", result);
+    monsters_init( mpa );
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);

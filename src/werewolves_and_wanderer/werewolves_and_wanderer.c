@@ -47,6 +47,7 @@ clang -g -DWEREWOLVES_AND_WANDERER_MAIN -fsanitize=address -fsanitize=leak -Wall
 #include "../common/mersenne_twister.h"
 #include "../common/rooms.h"
 #include "../common/monsters.h"
+#include "../common/monster_loader.h"
 #include "../common/objects.h"
 
 
@@ -729,7 +730,10 @@ static void initialize() {
     RoomData rd = get_room_data();
     room_init(rd.size,rd.data);
 
-    monsters_init(MONSTER_DATA_PATH);
+    MonsterPrototypeArray *mpa = nullptr;
+    int result = monster_read_json_file((MONSTER_DATA_PATH), &mpa);
+    printf("monster_read_json_file returns %d\n", result);
+    monsters_init( mpa );
 
     ObjectData od = get_object_data();
     obj_init(od.size, od.data);

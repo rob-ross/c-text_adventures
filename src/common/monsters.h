@@ -3,7 +3,7 @@
 // Copyright (c) Rob Ross 2026.
 //
 //
-// Created 2026/05/22 23:38:00 PDT
+// Created 2026/06/19 01:47:29 PDT
 
 #pragma once
 
@@ -50,7 +50,7 @@ typedef struct monster_prototype_array_s {
 } MonsterPrototypeArray;
 
 
-int monsters_init(const char * monster_filename);
+int monsters_init(MonsterPrototypeArray *mpa);
 void monsters_destroy(void);
 int monsters_num_monsters(void);
 
