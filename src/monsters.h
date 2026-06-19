@@ -7,12 +7,9 @@
 
 #pragma once
 
-
-
 #include "attribute_stats.h"
 #include "common/base_types.h"
 
-typedef struct Room Room;
 
 //// ------------------------------------------------------------
 ////
@@ -57,7 +54,6 @@ int monsters_init(const char * monster_filename);
 void monsters_destroy(void);
 int monsters_num_monsters(void);
 
-bool monsters_monster_is_in_room( const char *monster_name, const Room *r );
 const char * monsters_name_for_id(monster_id id);
 MonsterPrototype * monsters_find_monster(monster_id id);
 void monsters_update_monster(const MonsterPrototype *m);

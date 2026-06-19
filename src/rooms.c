@@ -135,6 +135,14 @@ bool room_contains_lit_object(const Room *r ) {
     return false;
 }
 
+bool room_contains_monster_named( const Room *r, const char *monster_name  ) {
+    if (!r || !monster_name || r->monster == 0 ) return false;
+    const monster_id id = r->monster;
+    const char *room_monster_name = monsters_name_for_id(id);
+    if (! room_monster_name) return false;
+    return string_starts_with_ignore_case(monster_name, room_monster_name);
+}
+
 bool room_contains_object(const Room *r, const object_id id) {
     const int len = r->objects_len;
     for (int i = 0; i < len; ++i) {

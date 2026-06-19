@@ -924,7 +924,7 @@ static bool verify_monster_choice(const GameState *gs, const ParsedCommand *pc) 
 
     if (pc->has_verb_object ) {
         // player is referencing a monster by name
-        const bool is_present = monsters_monster_is_in_room(pc->verb_object, current_room );
+        const bool is_present = room_contains_monster_named( current_room, pc->verb_object );
         if (!is_present) {
             display_linef("There is no %s here.", pc->verb_object);
             return false;

@@ -19,7 +19,6 @@
 #include <assert.h>
 
 
-#include "rooms.h"
 #include "roblib/json_parser/json_parser.h"
 #include "common/cu_string.h"
 #include "common/files.c"
@@ -107,15 +106,6 @@ void monsters_clear_all(void) {
     // for (int i = 0; i < num_monsters; ++i) {
     //     pvt_monsters[i] = (Monster){};
     // }
-}
-
-
-bool monsters_monster_is_in_room( const char *monster_name, const Room *r ) {
-    if (!r || !monster_name || r->monster == 0 ) return false;
-    const monster_id id = r->monster;
-    const char *room_monster_name = monsters_name_for_id(id);
-    if (! room_monster_name) return false;
-    return string_starts_with_ignore_case(monster_name, room_monster_name);
 }
 
 static void monsters_stats_repr(const CharStats stats) {
