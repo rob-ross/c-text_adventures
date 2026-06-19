@@ -21,20 +21,28 @@ typedef struct Room Room;
 //// ------------------------------------------------------------
 
 
-
+#define MONSTER_PROTOTYPE_MEMBERS \
+    char const * name; \
+    monster_id id;      \
+    int ferocity_factor;    \
+    union {                 \
+        CharStats stats;  \
+        union { CHAR_STATS_UNION_BODY }; \
+    }; \
 
 typedef struct monster_prototype_s {
-    char const * name;
-    monster_id id;
-    int ferocity_factor;
-    union {
-        CharStats stats; // Named access: m.stats.strength
-        union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength or m.as_array[StatIndex]
-    };
+    struct {MONSTER_PROTOTYPE_MEMBERS};
+    // char const * name;
+    // monster_id id;
+    // int ferocity_factor;
+    // union {
+    //     CharStats stats; // Named access: m.stats.strength
+    //     union { CHAR_STATS_UNION_BODY }; // Anonymous access: m.strength or m.as_array[StatIndex]
+    // };
 } MonsterPrototype;
 
 typedef struct spawned_monster_s {
-    MonsterPrototype m;
+    struct { MONSTER_PROTOTYPE_MEMBERS };
     int entity_id;
     room_id location;
 } SpawnedMonster;

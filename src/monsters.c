@@ -26,7 +26,9 @@
 
 
 static MonsterPrototypeArray *monster_prototypes_array = nullptr;  // this acts like a singleton in this monster library
-
+// we always spawn the same number of monsters in reset(). This will change as the game evolves
+static SpawnedMonster *monsters = nullptr;
+static int next_monster_id = 0; // "entity id" for monsters.
 
 // -----------------------------------------------------------------
 //      Forward References
