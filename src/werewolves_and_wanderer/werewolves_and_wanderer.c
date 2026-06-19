@@ -41,13 +41,13 @@ clang -g -DWEREWOLVES_AND_WANDERER_MAIN -fsanitize=address -fsanitize=leak -Wall
 #include <string.h>
 #include <unistd.h>
 
-#include "../adventure_shared.h"
-#include "../directions.h"
+#include "../common/adventure_shared.h"
+#include "../common/directions.h"
 #include "../common/console_utils.h"
-#include "../mersenne_twister.h"
-#include "../rooms.h"
-#include "../monsters.h"
-#include "../objects.h"
+#include "../common/mersenne_twister.h"
+#include "../common/rooms.h"
+#include "../common/monsters.h"
+#include "../common/objects.h"
 
 
 enum Item {

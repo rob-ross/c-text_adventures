@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-#include "common/base_types.h"
+#include "base_types.h"
 
 
 #define MT_NUM_STATES 624

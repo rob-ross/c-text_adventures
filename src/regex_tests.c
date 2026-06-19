@@ -19,7 +19,7 @@ clang -g  -fsanitize=address -fsanitize=leak -Wall -Werror \
 
 */
 
-#include "parser.h"
+#include "common/parser.h"
 
 #include <stdio.h>
 #include <string.h>

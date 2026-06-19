@@ -8,7 +8,7 @@
 #pragma once
 
 #include "attribute_stats.h"
-#include "common/base_types.h"
+#include "base_types.h"
 
 
 //// ------------------------------------------------------------

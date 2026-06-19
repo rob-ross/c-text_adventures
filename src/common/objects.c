@@ -12,8 +12,8 @@
 #include <stdlib.h>
 
 
-#include "common/base_types.h"
-#include "common/cu_string.h"
+#include "base_types.h"
+#include "cu_string.h"
 
 
 typedef struct ObjectStore {

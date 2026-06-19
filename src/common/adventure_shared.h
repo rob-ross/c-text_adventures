@@ -3,7 +3,7 @@
 // Copyright (c) Rob Ross 2026.
 //
 //
-// Created 2026/06/04 22:33:55 PDT
+// Created 2026/06/19 01:21:10 PDT
 
 //
 // Created by Rob Ross on 6/4/26.
@@ -17,8 +17,8 @@
 #include "monsters.h"
 #include "objects.h"
 #include "rooms.h"
-#include "common/cu_string.h"
-#include "common/base_types.h"
+#include "cu_string.h"
+#include "base_types.h"
 
 
 //// ------------------------------------------------------------

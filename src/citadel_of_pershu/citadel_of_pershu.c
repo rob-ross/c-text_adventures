@@ -51,14 +51,14 @@ clang -g -DCITADEL_OF_PERSHU_MAIN -fsanitize=address -fsanitize=leak -Wall -Werr
 #include <unistd.h>
 
 
-#include "../adventure_shared.h"
+#include "../common/adventure_shared.h"
 #include "../common/base_types.h"
 #include "../common/console_utils.h"
-#include "../directions.h"
-#include "../mersenne_twister.h"
-#include "../monsters.h"
-#include "../objects.h"
-#include "../rooms.h"
+#include "../common/directions.h"
+#include "../common/mersenne_twister.h"
+#include "../common/monsters.h"
+#include "../common/objects.h"
+#include "../common/rooms.h"
 
 
 enum Item {

@@ -13,13 +13,13 @@ unset(CMAKE_REQUIRED_LINK_OPTIONS)
 function(add_adventure_executable target_name main_source macro_name)
     add_executable(${target_name}
             ${main_source}
-            src/adventure_shared.c
-            src/mersenne_twister.c
+            src/common/adventure_shared.c
+            src/common/mersenne_twister.c
             src/common/console_utils.c
-            src/parser.c
-            src/rooms.c
-            src/objects.c
-            src/monsters.c
+            src/common/parser.c
+            src/common/rooms.c
+            src/common/objects.c
+            src/common/monsters.c
             src/common/cu_string.c
             src/roblib/string/string_utils.c
             src/roblib/string/string_builder.c
@@ -78,4 +78,4 @@ add_adventure_executable(werewolves_and_wanderer
         WEREWOLVES_AND_WANDERER_MAIN)
 
 
-add_executable(regex_tests src/regex_tests.c src/parser.c)
+add_executable(regex_tests src/regex_tests.c src/common/parser.c)

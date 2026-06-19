@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "objects.h"
-#include "common/cu_string.h"
+#include "cu_string.h"
 
 typedef struct RoomStore {
     size_t capacity;

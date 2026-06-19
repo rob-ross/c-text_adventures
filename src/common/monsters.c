@@ -19,9 +19,9 @@
 #include <assert.h>
 
 
-#include "roblib/json_parser/json_parser.h"
-#include "common/cu_string.h"
-#include "common/files.c"
+#include "../roblib/json_parser/json_parser.h"
+#include "cu_string.h"
+#include "files.c"
 
 
 static MonsterPrototypeArray *monster_prototypes_array = nullptr;  // this acts like a singleton in this monster library
