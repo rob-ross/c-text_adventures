@@ -28,7 +28,7 @@
 
 
 
-#include "mersenne_twister.h"
+#include "../mersenne_twister.h"
 
 
 
