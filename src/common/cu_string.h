@@ -10,6 +10,10 @@
 #pragma once
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef struct CharBuffer {
     size_t length;
@@ -32,3 +36,7 @@ typedef struct len_str_array_s {
 bool string_starts_with_ignore_case(const char *prefix, const char *str);
 // remove leading and trailing whitespace characters in-place, as defined by isspace()
 void string_trim(char *s);
+
+#ifdef __cplusplus
+}
+#endif

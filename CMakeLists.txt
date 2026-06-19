@@ -10,35 +10,9 @@ set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=leak")
 check_c_compiler_flag("-fsanitize=leak" HAS_LSAN)
 unset(CMAKE_REQUIRED_LINK_OPTIONS)
 
-function(add_adventure_executable target_name main_source macro_name)
-    add_executable(${target_name}
-            ${main_source}
-            src/common/adventure_shared.c
-            src/common/mersenne_twister.c
-            src/common/console_utils.c
-            src/common/parser.c
-            src/common/rooms.c
-            src/common/objects.c
-            src/common/monsters.c
-            src/common/monster_loader.c
-            src/common/cu_string.c
-            src/roblib/string/string_utils.c
-            src/roblib/string/string_builder.c
-            src/roblib/json_parser/json_parser.c
-            src/roblib/json_parser/arena.c
-            src/roblib/json_parser/error_result.c
-    )
-
-    target_include_directories(${target_name} PUBLIC include)
-    target_compile_definitions(${target_name} PRIVATE ${macro_name})
-
-    # Define the path to the monsters.json file for this adventure
-    get_filename_component(target_source_dir ${main_source} DIRECTORY)
-    target_compile_definitions(${target_name} PRIVATE
-        MONSTER_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/${target_source_dir}/monsters.json")
-
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(DEBUG_OPTS
+# Define debug options globally for reuse
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(DEBUG_OPTS
             -g
             -Wall
             -Wpedantic
@@ -49,14 +23,66 @@ function(add_adventure_executable target_name main_source macro_name)
             -Wno-unused-function
             -Wno-unused-parameter
             -Wno-sign-compare
-        )
-        if(HAS_ASAN)
-            list(APPEND DEBUG_OPTS -fsanitize=address)
-        endif()
-        if(HAS_LSAN)
-            list(APPEND DEBUG_OPTS -fsanitize=leak)
-        endif()
+    )
+    if(HAS_ASAN)
+        list(APPEND DEBUG_OPTS -fsanitize=address)
+    endif()
+    if(HAS_LSAN)
+        list(APPEND DEBUG_OPTS -fsanitize=leak)
+    endif()
+endif()
 
+# Define the sources for the shared adventure library
+set(ADVENTURE_LIB_SOURCES
+        src/common/adventure_shared.c
+        src/common/mersenne_twister.c
+        src/common/console_utils.c
+        src/common/parser.c
+        src/common/rooms.c
+        src/common/objects.c
+        src/common/monsters.c
+        src/common/monster_loader.c
+        src/common/cu_string.c
+        src/roblib/string/string_utils.c
+        src/roblib/string/string_builder.c
+        src/roblib/json_parser/json_parser.c
+        src/roblib/json_parser/arena.c
+        src/roblib/json_parser/error_result.c
+)
+
+# Create a static library target
+add_library(adventure_lib STATIC ${ADVENTURE_LIB_SOURCES})
+
+# Configure include directories for the library
+# PUBLIC means these directories are used to build the library AND by anyone linking to it
+# If you were to peek inside libadventure_lib.a using a terminal command like ar -t libadventure_lib.a,
+# you would see a list of all the original object files that were bundled together.
+target_include_directories(adventure_lib PUBLIC
+        include
+        src/common
+        src/roblib/string
+        src/roblib/json_parser
+)
+
+# Apply debug options to the library
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(adventure_lib PRIVATE ${DEBUG_OPTS})
+endif()
+
+function(add_adventure_executable target_name main_source macro_name)
+    add_executable(${target_name} ${main_source})
+
+    # Link the executable against our library
+    target_link_libraries(${target_name} PRIVATE adventure_lib)
+
+    target_compile_definitions(${target_name} PRIVATE ${macro_name})
+
+    # Define the path to the monsters.json file for this adventure
+    get_filename_component(target_source_dir ${main_source} DIRECTORY)
+    target_compile_definitions(${target_name} PRIVATE
+        MONSTER_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/${target_source_dir}/monsters.json")
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_options(${target_name} PRIVATE ${DEBUG_OPTS})
         target_link_options(${target_name} PRIVATE ${DEBUG_OPTS})
     endif()
@@ -79,4 +105,9 @@ add_adventure_executable(werewolves_and_wanderer
         WEREWOLVES_AND_WANDERER_MAIN)
 
 
-add_executable(regex_tests src/regex_tests.c src/common/parser.c)
+add_executable(regex_tests src/regex_tests.c)
+target_link_libraries(regex_tests PRIVATE adventure_lib)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(regex_tests PRIVATE ${DEBUG_OPTS})
+    target_link_options(regex_tests PRIVATE ${DEBUG_OPTS})
+endif()

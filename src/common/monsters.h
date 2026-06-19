@@ -10,6 +10,10 @@
 #include "attribute_stats.h"
 #include "base_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 //// ------------------------------------------------------------
 ////
@@ -62,3 +66,7 @@ void monsters_clear_all(void);
 
 void monsters_all_repr();
 void monsters_repr(monster_id id);
+
+#ifdef __cplusplus
+}
+#endif

@@ -20,6 +20,10 @@
 #include "cu_string.h"
 #include "base_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 //// ------------------------------------------------------------
 ////
@@ -168,6 +172,10 @@ bool room_transfer_obj_location( const Room *r, object_id id, int location );
 int sum_character_stats(const CharStats *s);
 
 CharBuffer *get_player_name(char const *greeting);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 

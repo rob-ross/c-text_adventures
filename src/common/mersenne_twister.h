@@ -3,7 +3,7 @@
 // Copyright (c) Rob Ross 2026.
 //
 //
-// Created 2026/05/11 19:52:00 PDT
+// Created 2026/06/19 12:22:54 PDT
 
 //
 // Created by Rob Ross on 5/11/26.
@@ -15,6 +15,9 @@
 
 #include "base_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MT_NUM_STATES 624
 typedef struct MTState
@@ -44,4 +47,8 @@ float mt_random_float(MTState* state);
 
 // Function to generate a random double between 0.0 (inclusive) and 1.0 (exclusive)
 double mt_random_double(MTState* state);
+
+#ifdef __cplusplus
+}
+#endif
 

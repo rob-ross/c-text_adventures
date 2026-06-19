@@ -10,6 +10,10 @@
 #pragma once
 #include <ctype.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 char const * const VALID_DIRECTIONS = "NSEWUD";
 
 //// ------------------------------------------------------------
@@ -68,3 +72,7 @@ static char const * const BAD_MOVE_DESC[DIRECTION_COUNT] = {
     "There is no way up from here.",
     "You cannot descend from here.",
 };
+
+#ifdef __cplusplus
+}
+#endif

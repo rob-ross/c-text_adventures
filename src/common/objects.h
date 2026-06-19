@@ -13,6 +13,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //// ------------------------------------------------------------
 ////
 ////    OBJECTS
@@ -104,4 +108,8 @@ const Object * obj_find_object(object_id id);
 bool obj_set_open_flag(object_id id);
 void obj_touch( object_id id);
 void obj_repr(void);
+
+#ifdef __cplusplus
+}
+#endif
 

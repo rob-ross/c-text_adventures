@@ -1,9 +1,20 @@
 // attribute_stats.h
 //
+// Copyright (c) Rob Ross 2026.
+//
+//
+// Created 2026/06/19 12:23:08 PDT
+
+// attribute_stats.h
+//
 // Created by Rob Ross on 5/22/26.
 //
 
 #pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //// ------------------------------------------------------------
 ////
@@ -40,4 +51,8 @@ struct { CHAR_STATS_LIST };
 typedef struct CharStats {
     union { CHAR_STATS_UNION_BODY };
 } CharStats;
+
+#ifdef __cplusplus
+}
+#endif
 

@@ -17,6 +17,10 @@ typedef struct Object Object;
 
 #include "monsters.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //// ------------------------------------------------------------
 ////
 ////    RANDOM TEXT
@@ -143,3 +147,7 @@ bool room_set_preamble(room_id id, RandomTextArray *rta);
 bool room_set_monster(const Room *r, monster_id id);
 void room_set_visited_flag(const Room *r);
 void room_set_visit_started_flag(const Room *r);
+
+#ifdef __cplusplus
+}
+#endif

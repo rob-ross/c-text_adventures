@@ -12,6 +12,10 @@
 
 #include "cu_string.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 constexpr size_t ONE_MEBIBYTE = 1024 * 1024;
 constexpr size_t ONE_GIBIBYTE = ONE_MEBIBYTE * 1024;
@@ -32,5 +36,9 @@ typedef int (*file_process_action)( FILE *fptr, void **result_ptr);
 
 int process_file(string file_name, file_process_action function, void **result_ptr);
 void free_LenStrArray(LenStrArray *lsa);
+
+#ifdef __cplusplus
+}
+#endif
 
 

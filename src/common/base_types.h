@@ -14,6 +14,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint8_t  byte;
 typedef uint32_t u32;
 typedef int32_t  s32;
@@ -23,6 +27,10 @@ typedef int64_t  s64;
 
 typedef s32 room_id;
 typedef s32 monster_id;
+
+#ifdef __cplusplus
+}
+#endif
 
 
 

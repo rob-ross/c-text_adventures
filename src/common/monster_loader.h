@@ -14,8 +14,16 @@
 
 #include "monsters.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 int monster_read_json_file(const char * monster_json_filename, MonsterPrototypeArray **mpa_out);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif //TEXT_ADVENTURES_MONSTER_LOADER_H

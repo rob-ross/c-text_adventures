@@ -13,6 +13,10 @@
 #include "../common/base_types.h"
 #include "cu_string.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // char_sleep() takes argument in microseconds; these are equivalent milliseconds
 constexpr u32  _1ms =  1'000;  // NOLINT(*-reserved-identifier)
 constexpr u32 _10ms = 10'000;  // NOLINT(*-reserved-identifier)
@@ -34,3 +38,7 @@ void display_paginated(char const* msg, int num_columns);
 CharBuffer * get_char_buffer(char const *  prompt);
 char get_command_char(char const *  prompt, char const *  valid_chars, char const *  err_msg);
 int get_int(char const * prompt, int min, int max);
+
+#ifdef __cplusplus
+}
+#endif

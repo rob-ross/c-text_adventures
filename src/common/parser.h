@@ -8,6 +8,10 @@
 
 #include <regex.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // enum ids taken from https://en-word.net
 
 enum Command {
@@ -87,3 +91,7 @@ void parser_free_resources();
 // parses the argument and returns a struct ParsedCommand.
 // If .verb_command < 0, an error has occurred in parsing
 struct ParsedCommand parse_cmd_string( char const * str);
+
+#ifdef __cplusplus
+}
+#endif
