@@ -11,11 +11,14 @@
 
 #pragma once
 
-#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "roblib/cpp_helper.h"
+#include <stddef.h>
+
 
 //// ------------------------------------------------------------
 ////
@@ -24,20 +27,6 @@ extern "C" {
 ////      or pick up
 ////
 //// ------------------------------------------------------------
-
-// enum Item {
-//     ITEM_NULL [[maybe_unused]],
-//     ITEM_TORCH,
-//     ITEM_SILVER_KEY,
-//     ITEM_GOLD_KEY,
-//     ITEM_SWORD,
-//     ITEM_WAR_HAMMER,
-//     ITEM_CHAIN_MAIL,
-//     ITEM_SHIELD,
-//     ITEM_CLOAK,
-//     ITEM_WAND,
-//     ITEM_COUNT
-// };
 
 typedef int object_id;
 
@@ -98,7 +87,7 @@ void obj_clear_location(object_id id);
 
 int  obj_relocate_object( int id,  int new_location);
 
-int  obj_id_for_partial_name(char const partial_name[static 1]);
+int  obj_id_for_partial_name(char const partial_name[ ROBLIB_STATIC_SIZE(1) ]);
 
 char const * obj_name_for_id(object_id id);
 int obj_num_objects( void );

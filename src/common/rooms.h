@@ -7,7 +7,12 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
+#include "roblib/cpp_helper.h"
 
 typedef int monster_id;
 typedef int room_id;
@@ -15,11 +20,8 @@ typedef int object_id;
 
 typedef struct Object Object;
 
-#include "monsters.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 //// ------------------------------------------------------------
 ////
@@ -100,7 +102,7 @@ constexpr int ROOM_ERR_ALREADY_GOT_ONE_YOU_SEE_ITS_VERY_NICE =  -1;
 constexpr int ROOM_SUCCESS = 0;
 
 
-int room_init(size_t size, Room data[static size]);
+int room_init(size_t size, Room data[ ROBLIB_STATIC_SIZE(size) ] );
 void room_destroy();
 
 
@@ -121,7 +123,7 @@ int  room_count_visited();
 RandomTextArray * create_rta(int length);
 
 const Room * room_find_room(room_id id);
-const Object * room_find_object_named(const Room *r, char const partial_name[static 1]);
+const Object * room_find_object_named(const Room *r, char const partial_name[ ROBLIB_STATIC_SIZE(1) ]);
 
 // Returns the object id of the first object in the room, or ROOM_ERR_OBJECT_NOT_FOUND if there are no items
 int  room_first_object_id(const Room *r);
