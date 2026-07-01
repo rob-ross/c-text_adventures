@@ -15,12 +15,10 @@
 
 
 #include "monsters.h"
+#include "files.c"
 
 #include <assert.h>
-
-
-#include "../roblib/json_parser/json_parser.h"
-#include "files.c"
+#include <stdlib.h>
 
 
 static MonsterPrototypeArray *monster_prototypes_array = nullptr;  // this acts like a singleton in this monster library
