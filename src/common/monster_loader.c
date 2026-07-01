@@ -5,9 +5,7 @@
 //
 // Created 2026/06/19 01:29:52 PDT
 
-//
-// Created by Rob Ross on 6/19/26.
-//
+
 
 #include "monster_loader.h"
 
@@ -19,7 +17,7 @@
 
 #include "files.h"
 #include "monsters.h"
-#include "../roblib/json_parser/json_parser.h"
+#include "roblib/json_parser.h"
 
 
 // -----------------------------------------------------------------
@@ -151,13 +149,22 @@ int load_monster_json_file(FILE *fptr, void **monster_array_out) {
     Error error = jsonp_init();
     if (error.err) {
         err_print(error);
+        free(json_text_buffer);
         return error.reported_err;
     }
     JsonError err = {.json = json_text_buffer};
 
     // printf("\nParsing JSON string '%s': \n", json_text_buffer);
 
-    JsonValue *jval = json_parse(json_text_buffer, &err);
+    Arena scratch_arena = {};
+    ArenaErrResult aer = arena_create_arena( &scratch_arena, ONE_MIBIBYTE * 100);
+    if (aer.err) {
+        printf("Couldn't create arena. err=%d", aer.err );
+        free(json_text_buffer);
+        return ENOMEM;
+    }
+
+    JsonValue *jval = json_parse(json_text_buffer, &err, &scratch_arena);
 
     /*if (!jval) {
         printf("ERROR : line:%d col:%d start:%d end:%d  %s\n",
@@ -176,6 +183,7 @@ int load_monster_json_file(FILE *fptr, void **monster_array_out) {
     if (!ma) {
         jsonp_destroy();
         free(json_text_buffer);
+        arena_destroy_arena(&scratch_arena);
         return ENOMEM;
     }
     // add the null monster object
@@ -227,5 +235,6 @@ int load_monster_json_file(FILE *fptr, void **monster_array_out) {
 
     jsonp_destroy();
     free(json_text_buffer);
+    arena_destroy_arena(&scratch_arena);
     return 0;
 }
