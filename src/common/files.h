@@ -10,8 +10,6 @@
 
 #include <stdio.h>
 
-#include "cu_string.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
