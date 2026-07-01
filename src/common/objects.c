@@ -7,13 +7,14 @@
 
 
 #include "objects.h"
+#include "base_types.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
+#include <roblib/string_utils.h>
 
-#include "base_types.h"
-#include "cu_string.h"
+
+
 
 
 typedef struct ObjectStore {
@@ -114,7 +115,7 @@ int obj_id_for_partial_name(char const partial_name[static 1]) {
 
     const size_t size = pvt_objects->size;
     for ( size_t i = 1; i < size; ++i) {
-        if (string_starts_with_ignore_case(partial_name, pvt_objects->objects[i].name)) {
+        if (sutil_starts_with_ignore_case(pvt_objects->objects[i].name, partial_name)) {
             return pvt_objects->objects[i].id;
         }
 
