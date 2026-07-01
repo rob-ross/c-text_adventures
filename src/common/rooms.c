@@ -8,12 +8,14 @@
 
 #include "rooms.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <roblib/string_utils.h>
+
+
 #include "objects.h"
-#include "cu_string.h"
+#include "monsters.h"
 
 typedef struct RoomStore {
     size_t capacity;
@@ -140,7 +142,7 @@ bool room_contains_monster_named( const Room *r, const char *monster_name  ) {
     const monster_id id = r->monster;
     const char *room_monster_name = monsters_name_for_id(id);
     if (! room_monster_name) return false;
-    return string_starts_with_ignore_case(monster_name, room_monster_name);
+    return sutil_starts_with_ignore_case(room_monster_name, monster_name);
 }
 
 bool room_contains_object(const Room *r, const object_id id) {
@@ -189,7 +191,7 @@ const Object * room_find_object_named(const Room *r, char const partial_name[sta
     const int objects_len = r->objects_len;
     for (int i = 0; i < objects_len; ++i) {
         const Object *o  = obj_find_object(r->objects[i]);
-        if (string_starts_with_ignore_case(partial_name, o->name) ){
+        if (sutil_starts_with_ignore_case(o->name, partial_name) ){
             return o;
         }
     }
