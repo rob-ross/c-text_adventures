@@ -11,11 +11,15 @@
 
 
 #include "../common/base_types.h"
-#include "cu_string.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct CharBuffer {
+    size_t length;
+    char const buffer[]; // flexible array
+} CharBuffer;
 
 // char_sleep() takes argument in microseconds; these are equivalent milliseconds
 constexpr u32  _1ms =  1'000;  // NOLINT(*-reserved-identifier)
