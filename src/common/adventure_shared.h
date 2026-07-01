@@ -12,12 +12,12 @@
 #ifndef TEXT_ADVENTURES_ADVENTURE_SHARED_H
 #define TEXT_ADVENTURES_ADVENTURE_SHARED_H
 
+#include "console_utils.h"
 #include "attribute_stats.h"
 #include "mersenne_twister.h"
 #include "monsters.h"
 #include "objects.h"
 #include "rooms.h"
-#include "cu_string.h"
 #include "base_types.h"
 
 #ifdef __cplusplus
